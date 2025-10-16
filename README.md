@@ -1,18 +1,47 @@
-# React + Vite
+# FilterFinder
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![FilterFinder Logo](./src/assets/logo.png)  
 
-Currently, two official plugins are available:
+**FilterFinder** est une application web permettant aux utilisateurs de **rechercher et comparer des produits ou pièces automobiles**, passer des commandes (devis), consulter des annuaires intelligents et filtrer selon plusieurs critères (prix, catégorie, marque, etc.).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🚀 Fonctionnalités
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- Recherche intelligente de produits/pièces automobiles  
+- Filtrage par catégorie, prix, marque, etc.  
+- Comparaison de produits  
+- Gestion des devis et commandes  
+- Mode sombre / clair  
+- Interface responsive adaptée aux mobiles et tablettes  
 
-Note: This will impact Vite dev & build performances.
+---
 
-## Expanding the ESLint configuration
+## 🏗️ Architecture du projet
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+FilterFinder utilise une architecture **3 tiers** : Frontend, Backend, Base de données.
+
+   +------------------+
+   |   Frontend       |  <- React + Tailwind
+   +------------------+
+            |
+            v
+   +------------------+
+   |   Backend        |  <- Node.js + Express
+   +------------------+
+            |
+            v
+   +------------------+
+   | Base de données  |  <- MySQL / PostgreSQL
+   +------------------+
+# ⚠️ Avertissement de licence
+
+© 2025 FilterFinder. Tous droits réservés.
+
+Ce projet et tout son contenu (code source, images, textes, designs, logos, données, etc.) sont la **propriété exclusive de FilterFinder**.  
+
+⚠️ **Conditions d’utilisation :**
+- Il est **strictement interdit** de copier, modifier, distribuer ou utiliser ce projet sans l’autorisation écrite préalable de FilterFinder.
+- Toute utilisation non autorisée pourra entraîner des **poursuites légales** conformément aux lois sur la propriété intellectuelle.
+
+Pour obtenir une autorisation ou une licence d’utilisation, contactez : **contact@filterfinder.com**.
