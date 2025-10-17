@@ -16,6 +16,7 @@ dist-ssr
 .env.development
 .env.production
 .gitignore
+.vite/*
 
 # Editor directories and files
 .vscode/*

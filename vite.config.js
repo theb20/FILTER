@@ -13,6 +13,6 @@ export default defineConfig({
     host: '0.0.0.0', // accessible sur le réseau local
     port: 3001,
     open: true,
-    strictPort: true,
+    strictPort: false,
   },
 })
