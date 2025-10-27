@@ -16,11 +16,16 @@ const Footer = () => {
             <div>
             {/* Logo */}
             <div className="text-2xl font-extrabold text-amber-500 cursor-pointer select-none">
-                <a to="/">
-                Filter<span className="text-gray-800 dark:text-white">Finder</span>
+                <a className="flex items-center" to="/">
+                <div className="md:w-10 md:h-10 w-9 h-9">
+                  <img src="/img/logo/favicon.svg" className="w-full" alt="" />
+                </div>
+                <span className="text-gray-800 dark:text-white">HLEA</span>
                 </a>
-            </div>              <p className="text-sm text-sub leading-relaxed">
-                Votre partenaire de confiance pour tous vos besoins en filtration automobile.
+            </div>              
+            
+              <p className="text-sm text-sub leading-relaxed">
+                Donner vie aux idées pour illuminer votre vision.
               </p>
             </div>
             <div className="text-dark">
@@ -58,7 +63,7 @@ const Footer = () => {
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-500">
-              © {new Date().getFullYear()} Filter Finder. Tous droits réservés.
+              © {new Date().getFullYear()} HLEA. Tous droits réservés.
             </p>
             <div className="flex items-center text-dark gap-4 text-sm">
               <a href="#" className="hover:text-amber-600 transition-colors">Politique de confidentialité</a>

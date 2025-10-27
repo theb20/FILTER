@@ -291,7 +291,7 @@ export default function PrivacyPolicyPage() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <p className="text-sm text-gray-700">
                   <strong>Marketing :</strong> Nous ne vous envoyons des communications commerciales 
                   que si vous y avez explicitement consenti. Vous pouvez vous désabonner à tout moment.

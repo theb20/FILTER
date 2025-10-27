@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence  } from "framer-motion";
 import { MapPin, Home, Building2, Warehouse, Users, Bed, DollarSign, TrendingUp, Star, ChevronRight, Filter, Map, Grid, List, Heart, ArrowRight, CheckCircle, Clock, Shield, Award, Phone, Mail, Menu, X, SlidersHorizontal , ChevronDown,  Search, Package, Wrench, ShieldCheck, BarChart3,  Cpu } from 'lucide-react';
+import SearchModule from '../components/Search';
 
-import Video from "../../../public/videos/industrial_dark.mp4";
-import Video1 from "../../../public/videos/chantier.mp4";
 
 export default function FilterFinderHome() {
-  const [searchType, setSearchType] = useState('buy');
+  const videoRef = useRef(null);
     const [index, setIndex] = useState(0);
-  const [category, setCategory] = useState("all");
     const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [displayedText, setDisplayedText] = useState('');
   const [viewMode, setViewMode] = useState('grid');
     const [isDeleting, setIsDeleting] = useState(false);
 
-  const words = ['équipements industriels', 'fournitures de bureau', 'matériel professionnel', 'solutions logistiques', 'outils de production'];
+
+  const words = ["d'équipements industriels", "des fournitures de bureau", "de matériel professionnel", "de solutions logistiques", "d'outils de production"];
+
 // ⏱ Changement de mot toutes les 3 secondes
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,12 +23,7 @@ export default function FilterFinderHome() {
     return () => clearInterval(interval);
   }, [words.length]);
 
-  const categories = [
-    { id: "all", label: "Tous les produits", icon: Package },
-    { id: "tools", label: "Outils & Matériel", icon: Wrench },
-    { id: "tech", label: "Électronique & IT", icon: Cpu },
-    { id: "industrial", label: "Industrie & BTP", icon: Building2 },
-  ];
+
 
   const featuredProperties = [
     {
@@ -190,230 +184,98 @@ export default function FilterFinderHome() {
     return () => clearTimeout(timeout);
   }, [displayedText, isDeleting, currentWordIndex]);
 
+    useEffect(() => {
+    const video = videoRef.current;
+    if (video && video.paused) {
+      video.play().catch(() => {});
+    }
+  }, []);
   return (
     <div className="min-h-screen bg-white">
       
       {/* Hero Section avec Search */}
-        <section className="relative py-32 text-white transition-colors duration-500 dark:text-gray-100 overflow-hidden">
-      {/* 🎥 Vidéo ou Image de fond */}
-      <div className="absolute inset-0 z-0">
-        <video
-          className="w-full h-full object-cover hidden dark:block"
-          autoPlay
-          muted
-          loop
-          playsInline
-        >
-          <source src={Video} type="video/mp4" />
-        </video>
+        <section className="relative py-32 text-white transition-colors duration-500 dark:text-gray-100 ">
+          {/* 🎥 Vidéo ou Image de fond */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto -translate-x-1/2 -translate-y-1/2 object-cover"
+          >
+            <source src="/videos/hero.mp4" type="video/mp4" />
+          </video>
 
-        <video
-          className="w-full h-full object-cover block dark:hidden"
-          autoPlay
-          muted
-          loop
-          playsInline
-        >
-          <source src={Video} type="video/mp4" />
-        </video>
-
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/70 to-transparent dark:from-black/80 dark:via-gray-900/70 dark:to-transparent"></div>
-      </div>
-
-      {/* 🌟 Contenu principal */}
-     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* Badge certifications */}
-          <div className="flex rounded-full justify-center mb-8">
-            <div className="inline-flex items-center gap-6 px-6 py-3 bg-white border border-gray-200 shadow-sm">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-gray-600" />
-                <span className="text-xs font-medium text-gray-600">ISO 9001</span>
-              </div>
-              <div className="w-px h-4 bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-600" />
-                <span className="text-xs font-medium text-gray-600">Livraison 24/48h</span>
-              </div>
-              <div className="w-px h-4 bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-gray-600" />
-                <span className="text-xs font-medium text-gray-600">+15 000 références</span>
-              </div>
-            </div>
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-transparent dark:from-black/85 dark:via-gray-900/70 dark:to-transparent"></div>
           </div>
 
-          {/* Titre principal avec animation */}
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-gray-100 mb-6 leading-tight tracking-tight">
-              Optimisez vos achats de{' '}
-              <br className="hidden sm:block" />
-              <span className="relative inline-block">
-                <span className="font-normal text-amber-600">
-                  {displayedText}
-                </span>
-                <span className="inline-block w-0.5 h-12 sm:h-14 lg:h-16 bg-gray-900 ml-1 align-middle animate-cursor"></span>
-              </span>
-            </h1>
-
-            <p className="text-lg sm:text-xl text-gray-100 max-w-3xl mx-auto font-light leading-relaxed mb-8">
-              Plateforme B2B de référence pour sourcer, comparer et commander vos équipements professionnels. Tarifs négociés, service dédié, livraison garantie.
-            </p>
-
-            {/* Trust badges */}
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Paiement sécurisé</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Factures personnalisées</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Support commercial dédié</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Module de recherche B2B */}
-          <div className="max-w-5xl rounded-24 mx-auto">
-            <div className="bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-200">
-              
-              {/* Tabs */}
-              <div className="border-b border-gray-200">
-                <div className="flex">
-                  {['products', 'suppliers', 'rfq'].map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setSearchType(type)}
-                      className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
-                        searchType === type
-                          ? 'text-amber-500 border-b-2 border-amber-400 bg-gray-50'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {type === 'products' && 'Recherche produits'}
-                      {type === 'suppliers' && 'Trouver un fournisseur'}
-                      {type === 'rfq' && 'Demande de devis'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Catégories */}
-              <div className="p-6 border-b border-gray-200 bg-gray-50">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {categories.map((cat) => {
-                    const Icon = cat.icon;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setCategory(cat.id)}
-                        className={`flex items-center justify-center gap-2 px-4 py-3 border text-sm font-medium transition-all ${
-                          category === cat.id
-                            ? 'border-gray-900 bg-white text-gray-900 shadow-sm'
-                            : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span className="hidden sm:inline">{cat.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Champs de recherche */}
-              <div className="p-6 sm:p-8">
-                <div className="grid sm:grid-cols-12 gap-4">
-                  {/* Recherche produit */}
-                  <div className="sm:col-span-6">
-                    <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">
-                      Produit ou référence
-                    </label>
-                    <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Ex: Imprimante laser, bureau professionnel..."
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Quantité */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">
-                      Quantité
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="10"
-                      min="1"
-                      className="w-full px-4 py-3 border border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none bg-white"
-                    />
-                  </div>
-
-                  {/* Budget */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">
-                      Budget max
-                    </label>
-                    <div className="relative">
-                      <select className="w-full px-4 py-3 border border-gray-300 text-gray-900 focus:border-gray-900 focus:outline-none bg-white appearance-none cursor-pointer">
-                        <option>1 000 €</option>
-                        <option>5 000 €</option>
-                        <option>10 000 €</option>
-                        <option>25 000 €</option>
-                        <option>50 000 €</option>
-                        <option>100 000 €+</option>
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  {/* Bouton */}
-                  <div className="sm:col-span-2 flex items-end">
-                    <button className="w-full bg-gray-900 text-white py-3 px-6 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 font-medium">
-                      <Search className="w-5 h-5" />
-                      <span>Rechercher</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Filtres avancés */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <button className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2">
-                      <span>Filtres avancés</span>
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                    <div className="flex flex-wrap gap-2">
-                      <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700 transition-colors">
-                        Stock immédiat
-                      </button>
-                      <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700 transition-colors">
-                        Livraison rapide
-                      </button>
-                      <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700 transition-colors">
-                        Remise volume
-                      </button>
-                      <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700 transition-colors">
-                        Made in France
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          {/* 🌟 Contenu principal */}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
+              {/* Badge certifications */}
+              <div className="flex rounded-full justify-center mb-8">
+                <div className="relative animate-bounce inline-flex rounded-full items-center gap-6 px-6 py-3 bg-white border border-gray-200 shadow-sm overflow-hidden badge-shine">
+                  {/* Contenu du badge */}
+                  <div className="flex items-center gap-2 relative z-10">
+                    <ShieldCheck className="w-4 h-4 text-gray-600" />
+                    <span className="text-xs font-medium text-gray-600">Qualité</span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-300 relative z-10"></div>
+                  <div className="flex items-center gap-2 relative z-10">
+                    <Clock className="w-4 h-4 text-gray-600" />
+                    <span className="text-xs font-medium text-gray-600">24/48h</span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-300 relative z-10"></div>
+                  <div className="flex items-center gap-2 relative z-10">
+                    <BarChart3 className="w-4 h-4 text-gray-600" />
+                    <span className="text-xs font-medium text-gray-600">+15 000</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Titre principal avec animation */}
+              <div className="max-w-4xl mx-auto text-center mb-16">
+                <h1 className="text-4xl h-[130px] lg:h-[160px] sm:text-5xl lg:text-6xl font-light text-gray-100 mb-6 leading-tight tracking-tight">
+                  Optimisez vos achats{' '}
+                  <br className="hidden sm:block" />
+                  <span className="relative inline-block">
+                    <span className="font-normal text-amber-500">
+                      {displayedText}
+                    </span>
+                    <span className="inline-block w-0.5 h-12 sm:h-14 lg:h-16 bg-gray-400 ml-1 align-middle animate-cursor"></span>
+                  </span>
+                </h1>
+
+                <p className="text-lg sm:text-xl text-gray-100 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                  Plateforme B2B de référence pour sourcer, comparer et commander vos équipements professionnels. Tarifs négociés, service dédié, livraison garantie.
+                </p>
+
+                {/* Trust badges */}
+                <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Paiement sécurisé</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Factures personnalisées</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Support commercial dédié</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Module de recherche B2B */}
+            
+              <div className="max-w-5xl relative z-100 rounded-24 mx-auto">
+                <SearchModule />
+              </div>
           </div>
-        </div>
-    </section>
+        </section>
 
       {/* Stats Section */}
       <section className="py-12 sm:py-16 bg-gray-50 border-y border-gray-200">
@@ -423,8 +285,8 @@ export default function FilterFinderHome() {
               const Icon = stat.icon;
               return (
                 <div key={idx} className="text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full mb-3 sm:mb-4">
-                    <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-amber-200 rounded-full mb-3 sm:mb-4">
+                    <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-amber-500" />
                   </div>
                   <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{stat.value}</div>
                   <div className="text-xs sm:text-sm text-gray-600">{stat.label}</div>

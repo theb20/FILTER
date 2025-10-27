@@ -1,224 +1,280 @@
 <!doctype html>
 <html lang="fr">
   <head>
+    <!-- ========================================
+         BASIC META TAGS
+         ======================================== -->
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
-    <!-- SEO Meta Tags -->
+    <!-- ========================================
+         SITE IDENTITY
+         ======================================== -->
+    <title>Holding Ledan Et Associe - Transformez vos idées en réalité</title>
     <meta name="description" content="Filter Finder - Plateforme professionnelle de gestion immobilière sécurisée. Trouvez, gérez et sécurisez vos biens immobiliers en toute confiance." />
     <meta name="keywords" content="immobilier, gestion, sécurité, authentification, filter finder" />
     <meta name="author" content="Filter Finder" />
     <meta name="robots" content="index, follow" />
     
-    <!-- Open Graph Meta Tags (Facebook, LinkedIn) -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Filter Finder - Plateforme Immobilière Sécurisée" />
-    <meta property="og:description" content="Plateforme professionnelle de gestion immobilière avec authentification sécurisée et outils avancés." />
-    <meta property="og:url" content="https://www.filter-finder.com" />
-    <meta property="og:image" content="/og-image.jpg" />
-    <meta property="og:site_name" content="Filter Finder" />
-    <meta property="og:locale" content="fr_FR" />
+    <!-- ========================================
+         FAVICONS & APP ICONS
+         ======================================== -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/img/logo/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/img/logo/favicon.svg" />
+    <link rel="shortcut icon" href="/img/logo/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/logo/apple-touch-icon.png" />
+    <link rel="manifest" href="/img/logo/site.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="HLEA" />
     
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Filter Finder - Plateforme Immobilière Sécurisée" />
-    <meta name="twitter:description" content="Plateforme professionnelle de gestion immobilière avec authentification sécurisée et outils avancés." />
-    <meta name="twitter:image" content="/twitter-image.jpg" />
-    <meta name="twitter:creator" content="@filterfinder" />
-    
-    <!-- Theme Color -->
+    <!-- ========================================
+         THEME & BRANDING
+         ======================================== -->
     <meta name="theme-color" content="#d97706" />
     <meta name="msapplication-TileColor" content="#d97706" />
     
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <!-- ========================================
+         SOCIAL MEDIA - OPEN GRAPH (Facebook, LinkedIn)
+         ======================================== -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Filter Finder" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:url" content="https://www.filter-finder.com" />
+    <meta property="og:title" content="Filter Finder - Plateforme Immobilière Sécurisée" />
+    <meta property="og:description" content="Plateforme professionnelle de gestion immobilière avec authentification sécurisée et outils avancés." />
+    <meta property="og:image" content="/og-image.jpg" />
     
-    <!-- Preconnect to improve performance -->
+    <!-- ========================================
+         SOCIAL MEDIA - TWITTER CARD
+         ======================================== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@filterfinder" />
+    <meta name="twitter:title" content="Filter Finder - Plateforme Immobilière Sécurisée" />
+    <meta name="twitter:description" content="Plateforme professionnelle de gestion immobilière avec authentification sécurisée et outils avancés." />
+    <meta name="twitter:image" content="/twitter-image.jpg" />
+    
+    <!-- ========================================
+         SECURITY
+         ======================================== -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.filter-finder.com;" />
+    
+    <!-- ========================================
+         PERFORMANCE OPTIMIZATION
+         ======================================== -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- Google Fonts (Optional - uncomment if needed) -->
+    <!-- Google Fonts - Uncomment if needed -->
     <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" /> -->
     
-    <!-- Security Headers -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.filter-finder.com;" />
-    
-    <!-- Prevent indexing in development -->
+    <!-- Development Mode - Uncomment to prevent indexing -->
     <!-- <meta name="robots" content="noindex, nofollow" /> -->
     
-    <title>Filter Finder - Plateforme Immobilière Sécurisée</title>
-    
-    <!-- Inline Critical CSS for faster initial render -->
-    <style>
-       
-      html {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-      }
-      
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-          sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        background-color: #f8fafc;
-        color: #0f172a;
-        overflow-x: hidden;
-      }
-      
-      /* Loading Screen */
-      #loading-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-      }
-      
-      #loading-screen.hidden {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-      }
-      
-      .loader {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-      }
-      
-      .loader-logo {
-        width: 80px;
-        height: 80px;
-        background: white;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 40px;
-        font-weight: bold;
-        color: #d97706;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        animation: pulse 2s ease-in-out infinite;
-      }
-      
-      .loader-spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      
-      .loader-text {
-        color: white;
-        font-size: 18px;
-        font-weight: 500;
-        letter-spacing: 0.5px;
-      }
-      
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-      }
-      
-      /* Root Container */
-      #root {
-        min-height: 100vh;
-        width: 100%;
-      }
-      
-      /* Accessibility */
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border-width: 0;
-      }
-      
-      /* Print Styles */
-      @media print {
-        #loading-screen {
-          display: none !important;
-        }
-      }
-    </style>
+    <!-- ========================================
+         CRITICAL CSS - Inline for Performance
+         ======================================== -->
+<style>
+  /* ========================================
+     BASE
+  ======================================== */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Poppins", system-ui, sans-serif;
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+
+  /* ========================================
+     LOADING SCREEN
+  ======================================== */
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+    z-index: 9999;
+  }
+
+  #loading-screen.hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    animation: fadeIn 1s ease forwards;
+  }
+
+  /* ========================================
+     ORBITAL LOADER
+  ======================================== */
+  .loader-orbit {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loader-logo {
+    width: 104px;
+    height: 104px;
+    z-index: 2;
+    position: absolute;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  .orbit-spinner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-top: 3px solid #f59e0b; /* or #ffc107 si tu veux plus doré */
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+  }
+
+  .loader-text {
+    color: #0f172a;
+    font-weight: 500;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ========================================
+     ANIMATIONS
+  ======================================== */
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ========================================
+     PRINT
+  ======================================== */
+  @media print {
+    #loading-screen {
+      display: none !important;
+    }
+  }
+</style>
+
   </head>
+  
   <body>
-    <!-- Loading Screen -->
-    <div id="loading-screen">
-      <div class="loader">
-        <div class="loader-logo"><span class="text-orange-500">Filter</span> <br>Finder</div>
-        <div class="loader-spinner"></div>
-        <div class="loader-text">Chargement...</div>
-      </div>
+    <!-- ========================================
+         LOADING SCREEN
+         ======================================== -->
+   <div id="loading-screen">
+  <div class="loader">
+    <div class="loader-orbit">
+      <div class="orbit-spinner"></div>
+      <img src="/img/logo/favicon.svg" alt="Logo" class="loader-logo" />
     </div>
+  </div>
+</div>
     
-    <!-- Skip to main content for accessibility -->
+    <!-- ========================================
+         ACCESSIBILITY: Skip Navigation
+         ======================================== -->
     <a href="#root" class="sr-only">Aller au contenu principal</a>
     
-    <!-- Main Application Container -->
+    <!-- ========================================
+         MAIN APPLICATION CONTAINER
+         ======================================== -->
     <div id="root"></div>
     
-    <!-- Main JavaScript -->
+    <!-- ========================================
+         SCRIPTS
+         ======================================== -->
+    
+    <!-- Main Application Script -->
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Loading Screen Auto-Hide Script -->
+    <!-- Loading Screen Controller -->
     <script>
-      // Hide loading screen when the page is fully loaded
-      window.addEventListener('load', function() {
-        const loadingScreen = document.getElementById('loading-screen');
-        setTimeout(function() {
+      (function() {
+        'use strict';
+        
+        const LOADING_CONFIG = {
+          minDisplayTime: 1000,    // Minimum display duration (ms)
+          maxDisplayTime: 5000,    // Maximum fallback timeout (ms)
+          fadeOutDelay: 500        // Fade out animation duration (ms)
+        };
+        
+        /**
+         * Hide the loading screen with animation
+         */
+        function hideLoadingScreen() {
+          const loadingScreen = document.getElementById('loading-screen');
+          if (!loadingScreen || loadingScreen.classList.contains('hidden')) {
+            return;
+          }
+          
           loadingScreen.classList.add('hidden');
-          // Remove from DOM after animation
+          
+          // Remove from DOM after animation completes
           setTimeout(function() {
-            loadingScreen.remove();
-          }, 500);
-        }, 1000); // Minimum display time of 1 second
-      });
-      
-      // Fallback: hide loading screen after 5 seconds if load event doesn't fire
-      setTimeout(function() {
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
-          loadingScreen.classList.add('hidden');
-          setTimeout(function() {
-            loadingScreen.remove();
-          }, 500);
+            if (loadingScreen.parentNode) {
+              loadingScreen.remove();
+            }
+          }, LOADING_CONFIG.fadeOutDelay);
         }
-      }, 5000);
+        
+        /**
+         * Initialize loading screen auto-hide on page load
+         */
+        window.addEventListener('load', function() {
+          setTimeout(hideLoadingScreen, LOADING_CONFIG.minDisplayTime);
+        });
+        
+        /**
+         * Fallback: Force hide if load event doesn't fire
+         */
+        setTimeout(hideLoadingScreen, LOADING_CONFIG.maxDisplayTime);
+      })();
     </script>
     
-    <!-- No JavaScript Fallback -->
+    <!-- ========================================
+         NO JAVASCRIPT FALLBACK
+         ======================================== -->
     <noscript>
-      <div style="position: fixed; top: 0; left: 0; width: 100%; background: #f59e0b; color: white; padding: 20px; text-align: center; z-index: 10000; font-family: sans-serif;">
-        <strong>⚠️ JavaScript est désactivé</strong><br/>
-        Filter Finder nécessite JavaScript pour fonctionner correctement. Veuillez l'activer dans les paramètres de votre navigateur.
+      <div class="no-js-warning">
+        <strong>⚠️ JavaScript est désactivé</strong>
+        Filter Finder nécessite JavaScript pour fonctionner correctement. 
+        Veuillez l'activer dans les paramètres de votre navigateur.
       </div>
     </noscript>
   </body>

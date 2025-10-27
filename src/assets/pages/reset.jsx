@@ -164,6 +164,7 @@ const PasswordResetFlow = () => {
   return (
     <div className="min-h-screen flex bg-slate-50"> 
 
+
       {/* Left side - Image/Brand */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
@@ -175,12 +176,12 @@ const PasswordResetFlow = () => {
         <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
           <div>
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center">
-                <Key className="w-7 h-7" />
+              <div className="w-17 h-17 rounded-lg flex items-center justify-center">
+                <img src="/img/logo/favicon-light.png" alt="HLEA" className="w-full" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold"><span className="text-amber-500">Filter</span> Finder</h1>
-                <p className="text-slate-400 text-sm">Plateforme Professionnelle</p>
+                <h1 className="text-2xl font-bold"><span className="text-amber-500">HLEA</span></h1>
+                <p className="text-slate-400 text-sm"> Bring ideas into reality.</p>
               </div>
             </div>
           </div>
@@ -213,7 +214,7 @@ const PasswordResetFlow = () => {
           </div>
 
           <div className="text-slate-500 text-sm">
-            © 2025 ImmoSecure. Tous droits réservés.
+            © 2025 Holding Ledan Et Associe. Tous droits réservés.
           </div>
         </div>
       </div>
@@ -271,7 +272,7 @@ const PasswordResetFlow = () => {
                 <button
                   onClick={handleRequestReset}
                   disabled={isLoading}
-                  className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                  className="w-full py-3.5 bg-amber-500 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center">
@@ -297,8 +298,8 @@ const PasswordResetFlow = () => {
 
               <div className="pt-6 border-t border-slate-200">
                 <p className="text-slate-500 text-sm text-center">
-                  Besoin d'aide? Contactez notre support au{" "}
-                  <span className="text-amber-600 font-semibold">01 XX XX XX XX</span>
+                  Besoin d'aide? Contactez notre support {" "} <br/>
+                  <span className="text-amber-600 font-semibold">ledan.associe@gmail.com</span>
                 </p>
               </div>
             </div>
@@ -349,7 +350,7 @@ const PasswordResetFlow = () => {
               <button
                 onClick={handleVerifyCode}
                 disabled={isLoading}
-                className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center">
@@ -527,7 +528,7 @@ const PasswordResetFlow = () => {
                 <button
                   onClick={handleResetPassword}
                   disabled={isLoading}
-                  className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                  className="w-full py-3.5 bg-amber-500 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center">

@@ -89,29 +89,10 @@ const AuthSplit = () => {
           </div>
           <div className="m-8 p-4 text-white flex flex-col space-y-3 h-full z-10 relative">
             <div>
-              <h2 className="text-3xl font-bold mb-2">Bienvenue chez FilterFinder</h2>
-              <p className="text-white/90 text-sm">Connectez-vous pour accéder à toutes les fonctionnalités de FilterFinder.</p>
+              <h2 className="text-3xl font-bold mb-2">Bienvenue chez <br/>HLEA</h2>
+              <p className="text-white/90 text-sm">HOLDING LEDAN ET ASSOCIE | Bring ideas into reality.</p>
             </div>
-            <div className="self-left space-x-4">
-              <button
-                type="button"
-                onClick={() => setIsLogin(false)}
-                className={`px-6 py-2 border-2 border-white rounded-lg transition-all duration-300 ${
-                  !isLogin ? "bg-white text-amber-600 font-semibold" : "hover:bg-white/10"
-                }`}
-              >
-                Inscrivez-vous
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsLogin(true)}
-                className={`px-6 py-2 border-2 border-white rounded-lg transition-all duration-300 ${
-                  isLogin ? "bg-white text-amber-600 font-semibold" : "hover:bg-white/10"
-                }`}
-              >
-                Connectez-vous
-              </button>
-            </div>
+            
           </div>
         </div>
 
@@ -122,8 +103,8 @@ const AuthSplit = () => {
             </h1>
             <p className="text-gray-200 dark:text-gray-300 mb-6">
               {isLogin
-                ? "Connectez-vous pour accéder à toutes les fonctionnalités de FilterFinder."
-                : "Inscrivez-vous pour commencer à utiliser FilterFinder."}
+                ? "Connectez-vous pour accéder à toutes les fonctionnalités de HLEA."
+                : "Inscrivez-vous pour commencer à utiliser HLEA."}
             </p>
 
             <div className="space-y-4">

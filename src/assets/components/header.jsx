@@ -44,7 +44,7 @@ const Header = ({openPopup}) => {
   return (
     <>
      {!isSignPage && !isResetPage && (
-        <header className="w-full sticky top-0 left-0 z-50 shadow-md bg-white dark:bg-gray-900 dark:text-white transition-all duration-300">
+        <header className="w-full sticky top-0 left-0 z-[1000] shadow-md bg-white dark:bg-gray-900 dark:text-white transition-all duration-300">
         {/* ===== Barre supérieure ===== */}
         <div className="hidden md:flex justify-between items-center px-6 py-2 bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300">
             <div className="flex items-center space-x-4">
@@ -52,7 +52,7 @@ const Header = ({openPopup}) => {
                 <FaPhoneAlt className="text-amber-500" /> +33 1 23 45 67 89
             </span>
             <span className="flex items-center gap-2">
-                <FaGlobe className="text-amber-500" /> FR | EUR €
+                <FaGlobe className="text-amber-500" /> Côte d'Ivoire | Fcfa
             </span>
             </div>
             <div className="flex items-center gap-4">
@@ -76,9 +76,12 @@ const Header = ({openPopup}) => {
             {/* Logo */}
             <h1 
               onClick={() => handleNavigation("/")} 
-              className="font-extrabold w-full lg:w-auto text-center lg:text-left text-3xl md:text-6xl text-amber-500 cursor-pointer select-none"
+              className="font-extrabold w-full flex items-center justify-center lg:w-auto text-center lg:text-left text-3xl md:text-6xl text-amber-500 cursor-pointer select-none"
             >
-              Filter<span className="text-gray-800 dark:text-white">Finder</span>
+              <div className="md:w-16 md:h-16 w-12 h-12">
+                <img src="/img/logo/favicon.svg" className="w-full" alt="" />
+              </div>
+              <span className="text-gray-800 dark:text-white">HLEA</span>
             </h1>
             {/* Barre de recherche (desktop) */}
             {!isHomePage && (
@@ -90,6 +93,20 @@ const Header = ({openPopup}) => {
                 placeholder="Rechercher un produit, une catégorie..."
                 className="bg-transparent outline-none w-full py-3 text-sm text-gray-700 dark:text-gray-200"
             />
+            </div>
+            )}
+
+            {/* Barre de navigation principale */}
+            {isHomePage && (
+            <div className="hidden md:flex justify-center  dark:bg-gray-800 py-3 ">
+                <nav className="flex space-x-8 font-medium text-gray-700 dark:text-gray-200">
+                <a href="/category" className="hover:text-amber-500">Nouveautés</a>
+                <a href="#" className="hover:text-amber-500">Promotions</a>
+                <a href="#" className="hover:text-amber-500">Filtres à air</a>
+                <a href="#" className="hover:text-amber-500">Filtres à huile</a>
+                <a href="#" className="hover:text-amber-500">Accessoires</a>
+                <a href="/contact" className="hover:text-amber-500">Contact</a>
+                </nav>
             </div>
             )}
 
@@ -120,17 +137,20 @@ const Header = ({openPopup}) => {
         </div>
 
         {/* Barre de navigation principale */}
+        {!isHomePage && (
         <div className="hidden md:flex justify-center bg-gray-50 dark:bg-gray-800 py-3 border-t border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-8 font-medium text-gray-700 dark:text-gray-200">
-            <a href="/category" className="hover:text-amber-500">Nouveautés</a>
-            <a href="#" className="hover:text-amber-500">Promotions</a>
-            <a href="#" className="hover:text-amber-500">Filtres à air</a>
-            <a href="#" className="hover:text-amber-500">Filtres à huile</a>
-            <a href="#" className="hover:text-amber-500">Accessoires</a>
-            <a href="/contact" className="hover:text-amber-500">Contact</a>
+              {!isHomePage && (
+                <a href="/" className="hover:text-amber-500">Accueil</a>
+              )}
+              <a href="#" className="hover:text-amber-500">Promotions</a>
+              <a href="#" className="hover:text-amber-500">Filtres à air</a>
+              <a href="#" className="hover:text-amber-500">Filtres à huile</a>
+              <a href="#" className="hover:text-amber-500">Accessoires</a>
+              <a href="/contact" className="hover:text-amber-500">Contact</a>
             </nav>
         </div>
-
+        )}
         {/* Menu mobile */}
         <div
             className={`md:hidden absolute w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 z-60 ${
@@ -138,12 +158,14 @@ const Header = ({openPopup}) => {
             }`}
         >
             <nav className="flex flex-col items-center py-4 space-y-3 text-gray-700 dark:text-gray-200 font-medium">
-            <a 
-              onClick={() => handleNavigation("/")}
-              className="hover:text-amber-500 transition-colors cursor-pointer"
-            >
-              Accueil
-            </a>
+              {!isHomePage && (
+                <a 
+                  onClick={() => handleNavigation("/")}
+                  className="hover:text-amber-500 transition-colors cursor-pointer"
+                >
+                  Accueil
+                </a>
+              )}
             <a href="/category" className="hover:text-amber-500 transition-colors">Produits</a>
             <a href="#" className="hover:text-amber-500 transition-colors">Catégories</a>
             <a href="#" className="hover:text-amber-500 transition-colors">Promotions</a>
