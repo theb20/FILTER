@@ -572,6 +572,7 @@ export default function CategoryPage() {
                       <img
                         src={product.image}
                         alt={product.name}
+                        loading="lazy"
                         className="w-full h-64 object-cover group-hover:scale-105 transition-transform"
                       />
                       {product.discount > 0 && (

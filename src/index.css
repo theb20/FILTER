@@ -37,7 +37,7 @@ input::placeholder {
 .auth-container {
   position: relative;
   min-height: 100vh;
-  background-image: url('../../../public/img/background/wall_sign.png');
+  background-image: url('/img/background/wall_sign.png');
   background-size: cover;
   background-position: center;
 }
@@ -52,7 +52,7 @@ input::placeholder {
 
 /* Côté illustration */
 .bg-side {
-  background-image: url('../../../public/img/background/bg_sign.png');
+  background-image: url('/img/background/bg_sign.webp');
   background-size: cover;
   background-position: center;
   position: relative;

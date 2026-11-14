@@ -110,7 +110,7 @@ export default function FilterFinderHome() {
             aria-hidden="true"
             className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto -translate-x-1/2 -translate-y-1/2 object-cover"
           >
-            <source src="/videos/hero.mp4" type="video/mp4" />
+            <source src="/videos/hero-web.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-transparent"></div>
         </div>
