@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNotify } from "../configurations/notificationContext.js";
+import { DEMO_NOTICE } from "../config/site.js";
 
 const AuthSplit = () => {
+  const notify = useNotify();
 
-     useState(()=>{
-        document.title = "Authentification";
-    });
+  useEffect(() => {
+    document.title = "Connexion — Filter Finder";
+  }, []);
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -13,7 +16,7 @@ const AuthSplit = () => {
     password: "",
   });
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const isLoading = false;
   const navigate = useNavigate();
 
   const toggleForm = () => {
@@ -25,17 +28,17 @@ const AuthSplit = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!isLogin && !formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
+      newErrors.fullName = "Le nom complet est obligatoire";
     }
     if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = "L'email est obligatoire";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+      newErrors.email = "L'email n'est pas valide";
     }
     if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = "Le mot de passe est obligatoire";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Le mot de passe doit contenir au moins 8 caractères";
     }
     return newErrors;
   };
@@ -47,19 +50,12 @@ const AuthSplit = () => {
       setErrors(newErrors);
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      alert(`${isLogin ? "Login" : "Sign up"} successful!`);
-    }, 1500);
+    // Aucune authentification réelle : on ne simule pas de succès.
+    notify(DEMO_NOTICE, "demo");
   };
 
   const handleGoogleAuth = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Google authentication successful!");
-    }, 1500);
+    notify(DEMO_NOTICE, "demo");
   };
 
   const handleInputChange = (e) => {
@@ -107,12 +103,17 @@ const AuthSplit = () => {
                 : "Inscrivez-vous pour commencer à utiliser Filter Finder."}
             </p>
 
-            <div className="space-y-4">
+            <p className="mb-4 rounded-lg bg-amber-100 text-amber-900 text-sm px-3 py-2" role="note">
+              {DEMO_NOTICE}
+            </p>
+
+            <form className="space-y-4" onSubmit={handleSubmit} noValidate>
               {!isLogin && (
                 <div>
                   <input
                     type="text"
                     name="fullName"
+                    aria-label="Nom complet"
                     placeholder="Nom complet"
                     value={formData.fullName}
                     onChange={handleInputChange}
@@ -129,6 +130,8 @@ const AuthSplit = () => {
                 <input
                   type="email"
                   name="email"
+                  aria-label="Email"
+                  autoComplete="email"
                   placeholder="Email"
                   value={formData.email}
                   onChange={handleInputChange}
@@ -144,6 +147,8 @@ const AuthSplit = () => {
                 <input
                   type="password"
                   name="password"
+                  aria-label="Mot de passe"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                   placeholder={isLogin ? "Mot de passe" : "Créer un mot de passe"}
                   value={formData.password}
                   onChange={handleInputChange}
@@ -169,8 +174,7 @@ const AuthSplit = () => {
               )}
 
               <button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
                 disabled={isLoading}
                 className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
               >
@@ -180,7 +184,7 @@ const AuthSplit = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Loading...
+                    Chargement...
                   </span>
                 ) : (
                   <>{isLogin ? "Se connecter" : "S'inscrire"}</>
@@ -224,11 +228,12 @@ const AuthSplit = () => {
                 </svg>
                 <span>Continuer avec Google</span>
               </button>
-            </div>
+            </form>
 
             <p className="mt-4 text-center text-gray-200 dark:text-gray-300">
               {isLogin ? "Vous n'avez pas de compte?" : "Vous avez déjà un compte?"}{" "}
               <button
+                type="button"
                 onClick={toggleForm}
                 className="text-amber-500 font-semibold hover:underline focus:outline-none"
               >

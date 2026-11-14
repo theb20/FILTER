@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { useNotify } from '../configurations/notificationContext.js';
+import { DEMO_NOTICE } from '../config/site.js';
 import { Search, ChevronDown, Package, Wrench } from 'lucide-react';
 
 export default function SearchModule() {
+  const notify = useNotify();
   const [searchType, setSearchType] = useState("");
   const [category, setCategory] = useState("");
   const [query, setQuery] = useState("");
@@ -58,11 +61,11 @@ export default function SearchModule() {
 
   const handleRfqSubmit = () => {
     if (!rfqProductName || !rfqDescription || !rfqQuantity) {
-      alert("Veuillez remplir les champs obligatoires (*)");
+      notify("Veuillez remplir les champs obligatoires (*)", "error");
       return;
     }
     
-    console.log("Demande de devis envoyée:", {
+    console.log("Demande de devis (non transmise, démo):", {
       productName: rfqProductName,
       description: rfqDescription,
       quantity: rfqQuantity,
@@ -158,8 +161,8 @@ export default function SearchModule() {
               /* Formulaire Demande de Devis */
               <div className="space-y-6">
                 {rfqSubmitted && (
-                  <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-                    ✓ Votre demande de devis a été envoyée avec succès !
+                  <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-lg" role="status">
+                    {DEMO_NOTICE} Votre demande n'a pas été transmise.
                   </div>
                 )}
                 

@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { DEMO_NOTICE } from "../config/site.js";
 import { FaUserCircle, FaEdit, FaLock, FaTrashAlt, FaMapMarkerAlt, FaEnvelope, FaPhoneAlt, FaBoxOpen } from "react-icons/fa";
 
 const ProfilePage = () => {
+  useEffect(() => {
+    document.title = "Mon profil — Filter Finder";
+  }, []);
+
   const [user, setUser] = useState({
     name: "John Doe",
     email: "john.doe@email.com",
@@ -27,7 +32,10 @@ const ProfilePage = () => {
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF" }).format(value);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 flex justify-center">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 flex flex-col items-center">
+      <p className="w-full max-w-6xl mb-4 rounded-lg bg-amber-100 text-amber-900 text-sm px-4 py-3" role="note">
+        Données de démonstration : ce profil et ces commandes sont fictifs. {DEMO_NOTICE}
+      </p>
       <div className="w-full max-w-6xl bg-white rounded-xl shadow-lg overflow-hidden">
 
         {/* HEADER DU PROFIL */}

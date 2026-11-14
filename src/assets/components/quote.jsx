@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { SITE } from "../config/site.js";
+import { SITE, DEMO_NOTICE } from "../config/site.js";
+import { useNotify } from "../configurations/notificationContext.js";
 import { 
   Building, User, Mail, Phone, MapPin, Calendar, Plus, Trash2, 
   Save, Send, Download, FileText, Calculator, CheckCircle, 
@@ -7,10 +8,9 @@ import {
 } from "lucide-react";
 
 const QuoteComponent = ({ closePopup }) => {
+  const notify = useNotify();
   const [showPreview, setShowPreview] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [quoteData, setQuoteData] = useState({
     clientType: "entreprise",
@@ -142,22 +142,14 @@ const QuoteComponent = ({ closePopup }) => {
 
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    }, 1500);
-  };
+  // Aucune sauvegarde, génération PDF ni envoi d'email n'est connectée.
+  const handleSave = () => notify(DEMO_NOTICE, "demo");
 
-  const handleDownload = () => {
-    alert("Téléchargement du devis PDF en cours...");
-  };
+  const handleDownload = () => notify(DEMO_NOTICE, "demo");
 
   const handleSend = () => {
     if (validateStep(1) && validateStep(2)) {
-      alert(`Devis envoyé à ${quoteData.clientEmail}`);
+      notify(DEMO_NOTICE, "demo");
     }
   };
 
@@ -851,7 +843,6 @@ const QuoteComponent = ({ closePopup }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <button
                     onClick={handleSave}
-                    disabled={isSaving}
                     className="flex items-center justify-center gap-2 px-6 py-4 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 shadow-md hover:shadow-lg"
                   >
                     <Save className="w-5 h-5" />
@@ -880,12 +871,9 @@ const QuoteComponent = ({ closePopup }) => {
                   </button>
                 </div>
                 
-                {saveSuccess && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Devis sauvegardé avec succès !</span>
-                  </div>
-                )}
+                <p className="mt-4 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  {DEMO_NOTICE}
+                </p>
               </div>
 
               <div className="flex justify-between">

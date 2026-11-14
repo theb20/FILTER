@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { SITE } from "../config/site.js";
+import { useState, useEffect } from "react";
+import { SITE, DEMO_NOTICE } from "../config/site.js";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, CheckCircle, ArrowLeft, Shield, Key } from "lucide-react";
 
 const PasswordResetFlow = () => {
-    useState(()=>{
-        document.title = "Réinitialisation de mot de passe";
-    });
+  useEffect(() => {
+    document.title = "Mot de passe oublié — Filter Finder";
+  }, []);
   const navigate = useNavigate();
   const [step, setStep] = useState("request");
   const [email, setEmail] = useState("");
@@ -16,7 +16,7 @@ const PasswordResetFlow = () => {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [showPassword, setShowPassword] = useState({ new: false, confirm: false });
 
   const validateEmail = () => {
@@ -59,12 +59,9 @@ const PasswordResetFlow = () => {
       setErrors(newErrors);
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setStep("email-sent");
-      setErrors({});
-    }, 1500);
+    // Aucun appel serveur : on avance seulement dans la démonstration.
+    setStep("email-sent");
+    setErrors({});
   };
 
   const handleVerifyCode = () => {
@@ -73,12 +70,9 @@ const PasswordResetFlow = () => {
       setErrors(newErrors);
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setStep("reset");
-      setErrors({});
-    }, 1500);
+    // Aucun appel serveur : on avance seulement dans la démonstration.
+    setStep("reset");
+    setErrors({});
   };
 
   const handleResetPassword = () => {
@@ -87,12 +81,9 @@ const PasswordResetFlow = () => {
       setErrors(newErrors);
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setStep("success");
-      setErrors({});
-    }, 1500);
+    // Aucun appel serveur : on avance seulement dans la démonstration.
+    setStep("success");
+    setErrors({});
   };
 
   const handleCodeChange = (index, value) => {
@@ -139,14 +130,6 @@ const PasswordResetFlow = () => {
         return updated;
       });
     }
-  };
-
-  const resetFlow = () => {
-    setStep("request");
-    setEmail("");
-    setCode(["", "", "", "", "", ""]);
-    setPasswords({ newPassword: "", confirmPassword: "" });
-    setErrors({});
   };
 
   const getPasswordStrength = () => {
@@ -223,6 +206,9 @@ const PasswordResetFlow = () => {
       {/* Right side - Form */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
+          <p className="mb-6 rounded-lg bg-amber-100 text-amber-900 text-sm px-3 py-2" role="note">
+            {DEMO_NOTICE} Aucun email n'est envoyé et aucun mot de passe n'est modifié.
+          </p>
           {step === "request" && (
             <div className="space-y-6 animate-fade-in">
               <div>
@@ -313,10 +299,10 @@ const PasswordResetFlow = () => {
                   <Mail className="w-8 h-8 text-blue-600" />
                 </div>
                 <h2 className="text-3xl font-bold text-slate-900 mb-3">
-                  Code de vérification envoyé
+                  Étape 2 sur 3 : saisie du code
                 </h2>
                 <p className="text-slate-600 text-lg mb-2">
-                  Un code à 6 chiffres a été envoyé à
+                  Dans la version réelle, un code à 6 chiffres sera envoyé à
                 </p>
                 <p className="text-slate-900 font-semibold text-lg bg-slate-100 rounded-lg py-2 px-4 inline-block">
                   {email}
@@ -554,10 +540,10 @@ const PasswordResetFlow = () => {
               </div>
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold text-slate-900">
-                  Mot de passe réinitialisé avec succès
+                  Fin de la démonstration
                 </h2>
                 <p className="text-slate-600 text-lg">
-                  Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter avec vos nouveaux identifiants.
+                  Votre mot de passe n'a pas été modifié : cette fonctionnalité n'est pas encore connectée.
                 </p>
               </div>
               <div className="pt-4">

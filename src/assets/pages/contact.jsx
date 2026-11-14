@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Mail, ArrowUpRight, Paperclip } from "lucide-react";
-import { SITE } from "../config/site.js";
+import { SITE, DEMO_NOTICE } from "../config/site.js";
 
 const ContactPage = () => {
   const [index, setIndex] = useState(0);
@@ -17,7 +17,7 @@ const ContactPage = () => {
     role: "",
     message: "",
     file: null,
-    consent: false,
+    consent: false ,
   };
   const inputClass =
     "w-full bg-white rounded-2xl px-5 py-4 text-sm outline-none focus:ring-2 focus:ring-amber-500";
@@ -34,8 +34,7 @@ const ContactPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: brancher l'envoi réel (API / EmailJS...)
-    console.log({ profile, ...formData });
+    // Aucun envoi réel : à brancher (API / EmailJS...). Rien n'est transmis.
     setFormData(emptyForm);
     setSent(true);
   };
@@ -138,10 +137,10 @@ const ContactPage = () => {
               {sent ? (
                 <div>
                   <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-4">
-                    Merci !
+                    Démonstration
                   </h2>
                   <p className="text-gray-500 text-lg leading-8 mb-8">
-                    Votre message a bien été envoyé. Nous vous répondrons très vite.
+                    {DEMO_NOTICE} Votre message n'a pas été envoyé.
                   </p>
                   <button
                     type="button"
@@ -157,9 +156,12 @@ const ContactPage = () => {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-8">
+                  <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-4">
                     {isCompany ? "Contact entreprise" : "Écrivez-nous"}
                   </h2>
+                  <p className="mb-6 rounded-lg bg-amber-100 text-amber-900 text-sm px-3 py-2" role="note">
+                    {DEMO_NOTICE}
+                  </p>
 
                   <div className="space-y-4">
                     {isCompany && (
