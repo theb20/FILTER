@@ -6,12 +6,8 @@ import Newsletter from "./Newsletter.jsx";
 import Footer from "./Footer.jsx";
 import HelpBubble from "./HelpBubble.jsx";
 import Cookie from "./Cookie.jsx";
-import { useLocation } from "react-router-dom";
 
 export default function Layout() {
-  const { pathname } = useLocation();
-  const bare = pathname === "/sign" || pathname === "/reset";
-
   return (
     <div className="min-h-screen bg-page">
       <Header />
@@ -22,9 +18,9 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {!bare && <Newsletter />}
+      <Newsletter />
       <Footer />
-      {!bare && <HelpBubble />}
+      <HelpBubble />
       <Cookie />
     </div>
   );

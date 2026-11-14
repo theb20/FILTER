@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
+import { I18nProvider } from "./assets/i18n/I18nProvider.jsx";
+import { useI18n } from "./assets/i18n/i18nContext.js";
 import { NotificationProvider } from "./assets/configurations/NotificationProvider.jsx";
 
 // Layout principal
@@ -16,59 +18,60 @@ const Home = lazy(() => import("./assets/pages/home.jsx"));
 const Profil = lazy(() => import("./assets/pages/profil.jsx"));
 const Quote = lazy(() => import("./assets/pages/quote.jsx"));
 const Privacy = lazy(() => import("./assets/pages/privacy.jsx"));
-
 const InfoPage = lazy(() => import("./assets/pages/info.jsx"));
 
-const NotFound = () => {
+function NotFound() {
+  const { t } = useI18n();
   useEffect(() => {
-    document.title = "Page introuvable — Filter Finder";
-  }, []);
+    document.title = t("meta.notFound");
+  }, [t]);
   return (
-    <div className="flex flex-col items-center justify-center h-screen text-center">
-      <h1 className="text-4xl font-bold mb-4 dark:text-white">404 - Page non trouvée</h1>
-      <p className="text-gray-600 dark:text-gray-400">
-        La page que vous cherchez n'existe pas.
-      </p>
+    <div className="mx-2.5 mt-2.5 rounded-[4px] bg-white p-10 text-center shadow-card">
+      <h1 className="text-[40px] font-bold">{t("notFound.title")}</h1>
+      <p className="mt-2">{t("notFound.text")}</p>
+      <Link to="/" className="mt-6 inline-flex rounded-[3px] bg-action px-5 py-2.5 font-bold hover:bg-action-dark">
+        {t("notFound.home")} <span aria-hidden="true">&nbsp;→</span>
+      </Link>
     </div>
   );
-};
+}
 
-const PageLoader = () => (
-  <div className="min-h-[50vh] flex items-center justify-center text-gray-500" role="status">
-    Chargement…
-  </div>
-);
+function PageLoader() {
+  const { t } = useI18n();
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center text-gray-500" role="status">
+      {t("loading")}
+    </div>
+  );
+}
 
 function App() {
   return (
-    <div className="min-h-screen relative h-full bg-white dark:bg-gray-900 transition-colors duration-300">
+    <I18nProvider>
       <NotificationProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Routes avec layout global */}
-              <Route element={<Layout />}>
-                <Route index element={<Home />} />
-                <Route path="/sign" element={<Sign />} />
-                <Route path="/reset" element={<Reset />} />
-                <Route path="/basket" element={<Basket />} />
-                <Route path="/category" element={<Category />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/card" element={<Card />} />
-                <Route path="/profil" element={<Profil />} />
-                <Route path="/quote" element={<Quote />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/blog" element={<InfoPage title="Blog" />} />
-                <Route path="/brands" element={<InfoPage title="Brands" />} />
-                <Route path="/terms" element={<InfoPage title="Terms & Conditions" />} />
-                <Route path="/refund" element={<InfoPage title="Refund policy" />} />
-              </Route>
-
-              {/* Page 404 */}
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="/sign" element={<Sign />} />
+              <Route path="/reset" element={<Reset />} />
+              <Route path="/basket" element={<Basket />} />
+              <Route path="/category" element={<Category />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/card" element={<Card />} />
+              <Route path="/profil" element={<Profil />} />
+              <Route path="/quote" element={<Quote />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/blog" element={<InfoPage titleKey="info.blog" />} />
+              <Route path="/brands" element={<InfoPage titleKey="info.brands" />} />
+              <Route path="/terms" element={<InfoPage titleKey="info.terms" />} />
+              <Route path="/refund" element={<InfoPage titleKey="info.refund" />} />
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+            </Route>
+          </Routes>
+        </Suspense>
       </NotificationProvider>
-    </div>
+    </I18nProvider>
   );
 }
 

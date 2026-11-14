@@ -1,166 +1,76 @@
-import React, { useState, useEffect } from "react";
-import { DEMO_NOTICE } from "../config/site.js";
-import { FaUserCircle, FaEdit, FaLock, FaTrashAlt, FaMapMarkerAlt, FaEnvelope, FaPhoneAlt, FaBoxOpen } from "react-icons/fa";
+import { useEffect } from "react";
+import { useNotify } from "../configurations/notificationContext.js";
+import { useI18n } from "../i18n/i18nContext.js";
 
-const ProfilePage = () => {
+// Données entièrement fictives (démonstration).
+const USER = { name: "John Doe", email: "john.doe@example.com", phone: "+00 000 000 000", address: "—" };
+const ORDERS = [
+  { id: "DEMO-4587", date: "2025-10-15", total: 450, status: "delivered" },
+  { id: "DEMO-4512", date: "2025-10-02", total: 1250, status: "progress" },
+  { id: "DEMO-4468", date: "2025-09-22", total: 750, status: "cancelled" },
+];
+
+export default function Profile() {
+  const { t, formatPrice, locale } = useI18n();
+  const notify = useNotify();
+
   useEffect(() => {
-    document.title = "Mon profil — Filter Finder";
-  }, []);
+    document.title = t("meta.profile");
+  }, [t]);
 
-  const [user, setUser] = useState({
-    name: "John Doe",
-    email: "john.doe@email.com",
-    phone: "+225 0707070707",
-    address: "Cocody, Abidjan, Côte d’Ivoire",
-    profileImage: null,
-  });
-
-  const [orders] = useState([
-    { id: "CMD-4587", date: "15 Oct 2025", total: 45000, status: "Livrée" },
-    { id: "CMD-4512", date: "02 Oct 2025", total: 125000, status: "En cours" },
-    { id: "CMD-4468", date: "22 Sept 2025", total: 75000, status: "Annulée" },
-  ]);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUser({ ...user, profileImage: URL.createObjectURL(file) });
-    }
-  };
-
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF" }).format(value);
+  const date = (iso) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(iso));
+  const info = [
+    ["profile.name", USER.name],
+    ["profile.email", USER.email],
+    ["profile.phone", USER.phone],
+    ["profile.address", USER.address],
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 flex flex-col items-center">
-      <p className="w-full max-w-6xl mb-4 rounded-lg bg-amber-100 text-amber-900 text-sm px-4 py-3" role="note">
-        Données de démonstration : ce profil et ces commandes sont fictifs. {DEMO_NOTICE}
-      </p>
-      <div className="w-full max-w-6xl bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="mx-2.5 mt-2.5 space-y-2.5">
+      <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="profile-title">
+        <h1 id="profile-title" className="text-[40px] font-bold leading-tight">{t("profile.title")}</h1>
+        <p className="mt-2 rounded-[3px] bg-info p-3 text-sm" role="note">{t("profile.demo")} {t("demo.notice")}</p>
 
-        {/* HEADER DU PROFIL */}
-        <div className="relative bg-gradient-to-r from-amber-500 to-amber-600 h-40">
-          <div className="absolute -bottom-14 left-6 flex items-center gap-4">
-            <div className="relative">
-              {user.profileImage ? (
-                <img
-                  src={user.profileImage}
-                  alt="Profil"
-                  className="w-28 h-28 rounded-full border-4 border-white object-cover"
-                />
-              ) : (
-                <FaUserCircle className="w-28 h-28 text-white drop-shadow-lg" />
-              )}
-              <label
-                htmlFor="upload"
-                className="absolute bottom-1 right-1 bg-white p-2 rounded-full shadow cursor-pointer hover:bg-slate-100"
-              >
-                <FaEdit className="text-amber-600" />
-              </label>
-              <input id="upload" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+        <h2 className="mt-6 text-[24px] font-semibold">{t("profile.info")}</h2>
+        <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+          {info.map(([key, value]) => (
+            <div key={key}>
+              <dt className="text-sm text-gray-600">{t(key)}</dt>
+              <dd className="font-medium">{value}</dd>
             </div>
-            <div className="text-white">
-              <h1 className="text-2xl font-bold">{user.name}</h1>
-              <p className="text-sm opacity-90">{user.email}</p>
-            </div>
-          </div>
+          ))}
+        </dl>
+        <button type="button" onClick={() => notify(t("demo.notice"), "demo")} className="mt-5 rounded-[3px] bg-action px-5 py-2.5 font-bold hover:bg-action-dark">
+          {t("profile.edit")}
+        </button>
+      </section>
+
+      <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="orders-title">
+        <h2 id="orders-title" className="text-[24px] font-semibold">{t("profile.orders")}</h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[480px] text-left">
+            <thead>
+              <tr className="text-sm text-gray-600">
+                <th className="py-2 pr-4 font-medium">{t("profile.order")}</th>
+                <th className="py-2 pr-4 font-medium">{t("profile.date")}</th>
+                <th className="py-2 pr-4 font-medium">{t("profile.total")}</th>
+                <th className="py-2 font-medium">{t("profile.status")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ORDERS.map((o) => (
+                <tr key={o.id} className="border-t border-gray-200">
+                  <td className="py-2.5 pr-4 font-medium">{o.id}</td>
+                  <td className="py-2.5 pr-4">{date(o.date)}</td>
+                  <td className="py-2.5 pr-4">{formatPrice(o.total)}</td>
+                  <td className="py-2.5">{t(`profile.s.${o.status}`)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {/* CONTENU */}
-        <div className="pt-20 px-6 sm:px-10 pb-10 space-y-10">
-          {/* INFOS PERSO */}
-          <section>
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Informations personnelles</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-lg">
-              <div className="flex items-center gap-3 text-slate-700">
-                <FaUserCircle className="text-amber-500" />
-                <div>
-                  <p className="text-sm text-slate-500">Nom complet</p>
-                  <p className="font-semibold">{user.name}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 text-slate-700">
-                <FaEnvelope className="text-amber-500" />
-                <div>
-                  <p className="text-sm text-slate-500">Email</p>
-                  <p className="font-semibold">{user.email}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 text-slate-700">
-                <FaPhoneAlt className="text-amber-500" />
-                <div>
-                  <p className="text-sm text-slate-500">Téléphone</p>
-                  <p className="font-semibold">{user.phone}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 text-slate-700">
-                <FaMapMarkerAlt className="text-amber-500" />
-                <div>
-                  <p className="text-sm text-slate-500">Adresse</p>
-                  <p className="font-semibold">{user.address}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* COMMANDES RÉCENTES */}
-          <section>
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Commandes récentes</h2>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100 text-slate-700 font-semibold">
-                  <tr>
-                    <th className="py-3 px-4">ID Commande</th>
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4">Montant</th>
-                    <th className="py-3 px-4">Statut</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className="border-t hover:bg-slate-50">
-                      <td className="py-3 px-4 font-medium text-slate-800">{order.id}</td>
-                      <td className="py-3 px-4">{order.date}</td>
-                      <td className="py-3 px-4 font-semibold text-slate-900">
-                        {formatCurrency(order.total)}
-                      </td>
-                      <td
-                        className={`py-3 px-4 font-semibold ${
-                          order.status === "Livrée"
-                            ? "text-green-600"
-                            : order.status === "En cours"
-                            ? "text-amber-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {order.status}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* PARAMÈTRES DU COMPTE */}
-          <section>
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Paramètres du compte</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <button className="flex items-center justify-center gap-2 bg-amber-500 text-white py-3 rounded-lg hover:bg-amber-600 transition font-medium">
-                <FaLock /> Changer le mot de passe
-              </button>
-              <button className="flex items-center justify-center gap-2 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition font-medium">
-                <FaTrashAlt /> Supprimer le compte
-              </button>
-            </div>
-          </section>
-        </div>
-      </div>
+      </section>
     </div>
   );
-};
-
-export default ProfilePage;
+}

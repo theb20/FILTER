@@ -23,4 +23,3 @@ export const CLAIMS = {
   freeShippingThreshold: "", // ex. "$500"
 };
 
-export const DEMO_NOTICE = "Demo mode: this action is not connected yet.";

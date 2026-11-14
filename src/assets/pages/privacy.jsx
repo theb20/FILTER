@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { SITE } from "../config/site.js";
+import { useI18n } from "../i18n/i18nContext.js";
 import {
   Shield,
   Cookie,
@@ -91,11 +92,12 @@ const InfoCard = ({ icon, title, description }) => (
 );
 
 export default function PrivacyPolicyPage() {
+  const { t, lang } = useI18n();
   const [expandedSection, setExpandedSection] = useState(null);
 
   useEffect(() => {
-    document.title = "Politique de confidentialité — Filter Finder";
-  }, []);
+    document.title = t("meta.privacy");
+  }, [t]);
   const lastUpdated = "17 octobre 2025";
 
   const toggleSection = (id) => {
@@ -104,6 +106,9 @@ export default function PrivacyPolicyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {lang !== "fr" && (
+        <p className="bg-info px-4 py-2 text-center text-sm" role="note">{t("privacy.notice")}</p>
+      )}
       {/* Header Sticky */}
       <header className="bg-white border-b border-gray-200 sticky lg:top-42 top-15  z-10 backdrop-blur-sm bg-white/95 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

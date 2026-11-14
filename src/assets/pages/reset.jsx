@@ -1,570 +1,114 @@
-import { useState, useEffect } from "react";
-import { SITE, DEMO_NOTICE } from "../config/site.js";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, CheckCircle, ArrowLeft, Shield, Key } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useI18n } from "../i18n/i18nContext.js";
 
-const PasswordResetFlow = () => {
-  useEffect(() => {
-    document.title = "Mot de passe oublié — Filter Finder";
-  }, []);
-  const navigate = useNavigate();
-  const [step, setStep] = useState("request");
+const field =
+  "w-full rounded-[3px] border bg-white px-4 py-2.5 outline-none focus:ring-2 focus:ring-action";
+const btn = "w-full rounded-[3px] bg-action px-5 py-3 font-bold text-black hover:bg-action-dark";
+
+// Parcours de démonstration : aucun email n'est envoyé, aucun mot de passe modifié.
+export default function Reset() {
+  const { t } = useI18n();
+  const [step, setStep] = useState("request"); // request | code | password | done
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [passwords, setPasswords] = useState({
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [errors, setErrors] = useState({});
-  const [isLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState({ new: false, confirm: false });
+  const [code, setCode] = useState("");
+  const [pw, setPw] = useState({ next: "", confirm: "" });
+  const [err, setErr] = useState(null);
 
-  const validateEmail = () => {
-    const newErrors = {};
-    if (!email.trim()) {
-      newErrors.email = "L'email est requis";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Email invalide";
-    }
-    return newErrors;
+  useEffect(() => {
+    document.title = t("meta.reset");
+  }, [t]);
+
+  const submitEmail = (e) => {
+    e.preventDefault();
+    if (!email.trim()) return setErr("auth.err.email");
+    if (!/\S+@\S+\.\S+/.test(email)) return setErr("auth.err.emailInvalid");
+    setErr(null);
+    setStep("code");
   };
 
-  const validateCode = () => {
-    const newErrors = {};
-    const fullCode = code.join("");
-    if (fullCode.length !== 6) {
-      newErrors.code = "Veuillez entrer les 6 chiffres";
-    }
-    return newErrors;
+  const submitCode = (e) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(code)) return setErr("reset.err.codeLen");
+    setErr(null);
+    setStep("password");
   };
 
-  const validatePasswords = () => {
-    const newErrors = {};
-    if (!passwords.newPassword) {
-      newErrors.newPassword = "Le mot de passe est requis";
-    } else if (passwords.newPassword.length < 8) {
-      newErrors.newPassword = "Minimum 8 caractères requis";
-    }
-    if (!passwords.confirmPassword) {
-      newErrors.confirmPassword = "Confirmez votre mot de passe";
-    } else if (passwords.newPassword !== passwords.confirmPassword) {
-      newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
-    }
-    return newErrors;
+  const submitPassword = (e) => {
+    e.preventDefault();
+    if (pw.next.length < 8) return setErr("reset.err.short");
+    if (pw.next !== pw.confirm) return setErr("reset.err.mismatch");
+    setErr(null);
+    setStep("done");
   };
 
-  const handleRequestReset = () => {
-    const newErrors = validateEmail();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    // Aucun appel serveur : on avance seulement dans la démonstration.
-    setStep("email-sent");
-    setErrors({});
-  };
-
-  const handleVerifyCode = () => {
-    const newErrors = validateCode();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    // Aucun appel serveur : on avance seulement dans la démonstration.
-    setStep("reset");
-    setErrors({});
-  };
-
-  const handleResetPassword = () => {
-    const newErrors = validatePasswords();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    // Aucun appel serveur : on avance seulement dans la démonstration.
-    setStep("success");
-    setErrors({});
-  };
-
-  const handleCodeChange = (index, value) => {
-    if (value.length > 1) value = value[0];
-    if (!/^\d*$/.test(value)) return;
-
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode);
-
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`code-${index + 1}`);
-      if (nextInput) nextInput.focus();
-    }
-
-    if (errors.code) {
-      setErrors((prev) => {
-        const updated = { ...prev };
-        delete updated.code;
-        return updated;
-      });
-    }
-  };
-
-  const handleCodeKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !code[index] && index > 0) {
-      const prevInput = document.getElementById(`code-${index - 1}`);
-      if (prevInput) prevInput.focus();
-    }
-  };
-
-  const handlePasswordChange = (e) => {
-    const name = e.target.name;
-    const value = e.target.value;
-    setPasswords((prev) => {
-      const updated = { ...prev };
-      updated[name] = value;
-      return updated;
-    });
-    if (errors[name]) {
-      setErrors((prev) => {
-        const updated = { ...prev };
-        delete updated[name];
-        return updated;
-      });
-    }
-  };
-
-  const getPasswordStrength = () => {
-    const pass = passwords.newPassword;
-    let strength = 0;
-    if (pass.length >= 8) strength++;
-    if (/[a-z]/.test(pass) && /[A-Z]/.test(pass)) strength++;
-    if (/\d/.test(pass)) strength++;
-    if (/[^a-zA-Z0-9]/.test(pass)) strength++;
-    return strength;
-  };
-
-  const strengthColors = ["bg-red-600", "bg-orange-500", "bg-yellow-500", "bg-emerald-600"];
-  const strengthLabels = ["Faible", "Moyen", "Bon", "Excellent"];
+  const Error = () =>
+    err ? (
+      <p role="alert" className="text-sm text-red-600">{t(err)}</p>
+    ) : null;
 
   return (
-    <div className="min-h-screen flex bg-slate-50"> 
+    <div className="mx-2.5 mt-2.5 flex justify-center py-10">
+      <section className="w-full max-w-md rounded-[4px] bg-white p-8 shadow-card" aria-labelledby="reset-title">
+        <h1 id="reset-title" className="text-[40px] font-bold leading-tight">
+          {step === "done" ? t("reset.done") : t("reset.title")}
+        </h1>
+        <p className="mt-4 rounded-[3px] bg-info p-3 text-sm" role="note">{t("demo.notice")}</p>
 
-
-      {/* Left side - Image/Brand */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="white" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-          }}></div>
-        </div>
-        
-        <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
-          <div>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-17 h-17 rounded-lg flex items-center justify-center">
-                <img src="/img/logo/favicon-light.png" alt="Filter Finder" className="w-full" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold"><span className="text-amber-500">Filter Finder</span></h1>
-                <p className="text-slate-400 text-sm"> Bring ideas into reality.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
+        {step === "request" && (
+          <form onSubmit={submitEmail} noValidate className="mt-5 space-y-4">
+            <p>{t("reset.lead")}</p>
             <div>
-              <h2 className="text-4xl font-bold mb-4 leading-tight">
-                Sécurité et confidentialité<br />au cœur de nos priorités
-              </h2>
-              <p className="text-slate-300 text-lg leading-relaxed">
-                Protégez votre compte avec un système de réinitialisation 
-                sécurisé et conforme aux normes bancaires.
-              </p>
+              <label htmlFor="reset-email" className="mb-1 block text-sm font-medium">{t("reset.email")}</label>
+              <input id="reset-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={`${field} border-gray-300`} autoComplete="email" />
             </div>
+            <Error />
+            <button type="submit" className={btn}>{t("reset.send")} <span aria-hidden="true">→</span></button>
+          </form>
+        )}
 
-            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-slate-700">
-              <div>
-                <div className="text-3xl font-bold text-amber-500">256-bit</div>
-                <div className="text-slate-400 text-sm mt-1">Chiffrement SSL</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-amber-500">2FA</div>
-                <div className="text-slate-400 text-sm mt-1">Authentification</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-amber-500">RGPD</div>
-                <div className="text-slate-400 text-sm mt-1">Conformité</div>
-              </div>
+        {step === "code" && (
+          <form onSubmit={submitCode} noValidate className="mt-5 space-y-4">
+            <h2 className="text-[24px] font-semibold">{t("reset.step2")}</h2>
+            <p className="text-sm text-gray-700">{t("reset.codeHelp", { email })}</p>
+            <div>
+              <label htmlFor="reset-code" className="mb-1 block text-sm font-medium">{t("reset.code")}</label>
+              <input id="reset-code" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className={`${field} border-gray-300 tracking-[0.4em]`} autoComplete="one-time-code" />
             </div>
-          </div>
+            <Error />
+            <button type="submit" className={btn}>{t("reset.verify")} <span aria-hidden="true">→</span></button>
+          </form>
+        )}
 
-          <div className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} Filter Finder — édité par Holding Ledan Et Associé (HLEA). Tous droits réservés.
-          </div>
-        </div>
-      </div>
+        {step === "password" && (
+          <form onSubmit={submitPassword} noValidate className="mt-5 space-y-4">
+            <h2 className="text-[24px] font-semibold">{t("reset.step3")}</h2>
+            <div>
+              <label htmlFor="pw-new" className="mb-1 block text-sm font-medium">{t("reset.new")}</label>
+              <input id="pw-new" type="password" value={pw.next} onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))} className={`${field} border-gray-300`} autoComplete="new-password" />
+            </div>
+            <div>
+              <label htmlFor="pw-confirm" className="mb-1 block text-sm font-medium">{t("reset.confirm")}</label>
+              <input id="pw-confirm" type="password" value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))} className={`${field} border-gray-300`} autoComplete="new-password" />
+            </div>
+            <Error />
+            <button type="submit" className={btn}>{t("reset.save")} <span aria-hidden="true">→</span></button>
+          </form>
+        )}
 
-      {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
-          <p className="mb-6 rounded-lg bg-amber-100 text-amber-900 text-sm px-3 py-2" role="note">
-            {DEMO_NOTICE} Aucun email n'est envoyé et aucun mot de passe n'est modifié.
+        {step === "done" && (
+          <div className="mt-5 space-y-4">
+            <p>{t("reset.doneText")}</p>
+            <Link to="/sign" className={`${btn} block text-center`}>{t("reset.backSign")}</Link>
+          </div>
+        )}
+
+        {step !== "done" && (
+          <p className="mt-6 text-center text-sm">
+            <Link to="/sign" className="text-link hover:underline">{t("reset.backSign")}</Link>
           </p>
-          {step === "request" && (
-            <div className="space-y-6 animate-fade-in">
-              <div>
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-xl mb-6">
-                  <Lock className="w-8 h-8 text-amber-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-3">
-                  Réinitialiser le mot de passe
-                </h2>
-                <p className="text-slate-600 text-lg">
-                  Saisissez votre adresse email professionnelle pour recevoir un code de vérification sécurisé.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Adresse email
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input
-                      type="email"
-                      placeholder="votre.email@entreprise.com"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (errors.email) {
-                          setErrors((prev) => {
-                            const updated = { ...prev };
-                            delete updated.email;
-                            return updated;
-                          });
-                        }
-                      }}
-                      className={`w-full pl-12 pr-4 py-3.5 border ${
-                        errors.email ? "border-red-500 bg-red-50" : "border-slate-300 bg-white"
-                      } rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all`}
-                    />
-                  </div>
-                  {errors.email && (
-                    <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
-                      <span className="font-medium">⚠</span> {errors.email}
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleRequestReset}
-                  disabled={isLoading}
-                  className="w-full py-3.5 bg-amber-500 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Envoi en cours...
-                    </span>
-                  ) : (
-                    "Envoyer le code de vérification"
-                  )}
-                </button>
-
-                <button
-                  onClick={() => navigate("/sign")}
-                  className="w-full flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors py-2 font-medium"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Retour à la connexion
-                </button>
-              </div>
-
-              <div className="pt-6 border-t border-slate-200">
-                <p className="text-slate-500 text-sm text-center">
-                  Besoin d'aide? Contactez notre support {" "} <br/>
-                  <span className="text-amber-600 font-semibold">{SITE.email || "Adresse de contact bientôt disponible"}</span>
-                </p>
-              </div>
-            </div>
-          )}
-
-          {step === "email-sent" && (
-            <div className="space-y-6 animate-fade-in">
-              <div>
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-xl mb-6">
-                  <Mail className="w-8 h-8 text-blue-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-3">
-                  Étape 2 sur 3 : saisie du code
-                </h2>
-                <p className="text-slate-600 text-lg mb-2">
-                  Dans la version réelle, un code à 6 chiffres sera envoyé à
-                </p>
-                <p className="text-slate-900 font-semibold text-lg bg-slate-100 rounded-lg py-2 px-4 inline-block">
-                  {email}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3">
-                  Code de vérification
-                </label>
-                <div className="flex justify-center gap-3 mb-2">
-                  {code.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`code-${index}`}
-                      type="text"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleCodeChange(index, e.target.value)}
-                      onKeyDown={(e) => handleCodeKeyDown(index, e)}
-                      className="w-14 h-14 text-center text-2xl font-bold border-2 border-slate-300 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
-                    />
-                  ))}
-                </div>
-                {errors.code && (
-                  <p className="text-red-600 text-sm mt-2 text-center flex items-center justify-center gap-1">
-                    <span className="font-medium">⚠</span> {errors.code}
-                  </p>
-                )}
-              </div>
-
-              <button
-                onClick={handleVerifyCode}
-                disabled={isLoading}
-                className="w-full py-3.5 bg-amber-500 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Vérification...
-                  </span>
-                ) : (
-                  "Vérifier le code"
-                )}
-              </button>
-
-              <div className="text-center">
-                <button
-                  onClick={handleRequestReset}
-                  className="text-amber-600 hover:text-amber-700 text-sm transition-colors font-medium"
-                >
-                  Code non reçu? Renvoyer le code
-                </button>
-              </div>
-
-              <div className="pt-4 border-t border-slate-200">
-                <p className="text-slate-500 text-sm text-center">
-                  Le code expire dans <span className="font-semibold text-slate-900">10 minutes</span>
-                </p>
-              </div>
-            </div>
-          )}
-
-          {step === "reset" && (
-            <div className="space-y-6 animate-fade-in">
-              <div>
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-xl mb-6">
-                  <Shield className="w-8 h-8 text-emerald-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-3">
-                  Créer un nouveau mot de passe
-                </h2>
-                <p className="text-slate-600 text-lg">
-                  Choisissez un mot de passe robuste pour sécuriser votre compte.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Nouveau mot de passe
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword.new ? "text" : "password"}
-                      name="newPassword"
-                      placeholder="••••••••"
-                      value={passwords.newPassword}
-                      onChange={handlePasswordChange}
-                      className={`w-full px-4 py-3.5 border ${
-                        errors.newPassword ? "border-red-500 bg-red-50" : "border-slate-300 bg-white"
-                      } rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword.new ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                  {errors.newPassword && (
-                    <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
-                      <span className="font-medium">⚠</span> {errors.newPassword}
-                    </p>
-                  )}
-                </div>
-
-                {passwords.newPassword && (
-                  <div className="space-y-2 animate-fade-in">
-                    <div className="flex gap-2">
-                      {[...Array(4)].map((_, i) => (
-                        <div
-                          key={i}
-                          className={`h-2 flex-1 rounded-full transition-all duration-300 ${
-                            i < getPasswordStrength() ? strengthColors[getPasswordStrength() - 1] : "bg-slate-200"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-slate-700 text-sm font-medium">
-                      Force: {strengthLabels[getPasswordStrength() - 1] || "Très faible"}
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Confirmer le mot de passe
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword.confirm ? "text" : "password"}
-                      name="confirmPassword"
-                      placeholder="••••••••"
-                      value={passwords.confirmPassword}
-                      onChange={handlePasswordChange}
-                      className={`w-full px-4 py-3.5 border ${
-                        errors.confirmPassword ? "border-red-500 bg-red-50" : "border-slate-300 bg-white"
-                      } rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword.confirm ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
-                      <span className="font-medium">⚠</span> {errors.confirmPassword}
-                    </p>
-                  )}
-                </div>
-
-                <div className="bg-slate-100 rounded-lg p-4 border border-slate-200">
-                  <p className="font-semibold text-slate-900 text-sm mb-2">
-                    Exigences de sécurité:
-                  </p>
-                  <ul className="space-y-1.5 text-sm">
-                    <li className="flex items-center gap-2">
-                      <span className={passwords.newPassword.length >= 8 ? "text-emerald-600" : "text-slate-400"}>
-                        {passwords.newPassword.length >= 8 ? "✓" : "○"}
-                      </span>
-                      <span className={passwords.newPassword.length >= 8 ? "text-slate-900" : "text-slate-600"}>
-                        Au moins 8 caractères
-                      </span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className={/[A-Z]/.test(passwords.newPassword) && /[a-z]/.test(passwords.newPassword) ? "text-emerald-600" : "text-slate-400"}>
-                        {/[A-Z]/.test(passwords.newPassword) && /[a-z]/.test(passwords.newPassword) ? "✓" : "○"}
-                      </span>
-                      <span className={/[A-Z]/.test(passwords.newPassword) && /[a-z]/.test(passwords.newPassword) ? "text-slate-900" : "text-slate-600"}>
-                        Majuscules et minuscules
-                      </span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className={/\d/.test(passwords.newPassword) ? "text-emerald-600" : "text-slate-400"}>
-                        {/\d/.test(passwords.newPassword) ? "✓" : "○"}
-                      </span>
-                      <span className={/\d/.test(passwords.newPassword) ? "text-slate-900" : "text-slate-600"}>
-                        Au moins un chiffre
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-
-                <button
-                  onClick={handleResetPassword}
-                  disabled={isLoading}
-                  className="w-full py-3.5 bg-amber-500 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Sauvegarde en cours...
-                    </span>
-                  ) : (
-                    "Réinitialiser le mot de passe"
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === "success" && (
-            <div className="space-y-6 text-center animate-fade-in">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 rounded-xl mb-4">
-                <CheckCircle className="w-12 h-12 text-emerald-600" />
-              </div>
-              <div className="space-y-3">
-                <h2 className="text-3xl font-bold text-slate-900">
-                  Fin de la démonstration
-                </h2>
-                <p className="text-slate-600 text-lg">
-                  Votre mot de passe n'a pas été modifié : cette fonctionnalité n'est pas encore connectée.
-                </p>
-              </div>
-              <div className="pt-4">
-                <button
-                  onClick={() => navigate("/sign")}
-                  className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  Se connecter maintenant
-                </button>
-              </div>
-              <div className="pt-4 border-t border-slate-200">
-                <p className="text-slate-500 text-sm">
-                  Pour votre sécurité, vous serez déconnecté de tous vos appareils.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        )}
+      </section>
     </div>
   );
-};
-
-export default PasswordResetFlow;
+}

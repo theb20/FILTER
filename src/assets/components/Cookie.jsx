@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '../i18n/i18nContext.js';
 
 const STORAGE_KEY = "ff_cookie_consent";
 const COOKIE_NAME = "ff_cookie_consent";
 
 export default function CookiePopup() {
+  const { t } = useI18n();
   const [isVisible, setIsVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [preferences, setPreferences] = useState({
@@ -119,13 +121,13 @@ export default function CookiePopup() {
     {/* Flou de la page derrière la bannière */}
     <div
       aria-hidden="true"
-      className={`fixed inset-0 z-[1099] bg-black/20 backdrop-blur-md transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[999] bg-black/20 backdrop-blur-md transition-opacity duration-300 ${
         isAnimating ? 'opacity-100' : 'opacity-0'
       }`}
     />
     <div
       role="dialog"
-      aria-label="Cookies"
+      aria-label={t("cookie.aria")}
       className={`fixed bottom-4 left-4 right-4 sm:right-auto sm:w-[22rem] z-[1100] bg-white border border-gray-200 shadow-xl p-5 transition-all duration-300 ${
         isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
       }`}
@@ -133,9 +135,9 @@ export default function CookiePopup() {
       {!showSettings ? (
         <>
           <p className="text-sm text-slate-600 leading-6 mb-4">
-            Ce site utilise des cookies pour fonctionner et, avec votre accord, mesurer l'audience.{' '}
+            {t("cookie.text")}{' '}
             <Link to="/privacy" className="underline text-slate-900 hover:text-amber-600">
-              En savoir plus
+              {t("cookie.more")}
             </Link>
           </p>
 
@@ -146,21 +148,21 @@ export default function CookiePopup() {
               onClick={handleAcceptAll}
               className="px-4 py-2 bg-slate-900 hover:bg-amber-500 text-white text-sm font-medium transition-colors"
             >
-              Accepter
+              {t("cookie.accept")}
             </button>
             <button
               type="button"
               onClick={handleRejectAll}
               className="px-4 py-2 border border-gray-300 hover:border-slate-900 text-slate-700 text-sm font-medium transition-colors"
             >
-              Refuser
+              {t("cookie.refuse")}
             </button>
             <button
               type="button"
               onClick={() => setShowSettings(true)}
               className="ml-auto text-sm text-slate-500 hover:text-slate-900 underline"
             >
-              Choisir
+              {t("cookie.choose")}
             </button>
           </div>
         </>
@@ -168,27 +170,27 @@ export default function CookiePopup() {
         <>
           <div className="space-y-2 mb-4">
             <CookieOption
-              title="Nécessaires"
-              description="Fonctionnement du site"
+              title={t("cookie.necessary")}
+              description={t("cookie.necessaryD")}
               checked={preferences.necessary}
               disabled={true}
               onChange={() => {}}
             />
             <CookieOption
-              title="Fonctionnels"
-              description="Préférences"
+              title={t("cookie.functional")}
+              description={t("cookie.functionalD")}
               checked={preferences.functional}
               onChange={() => togglePreference('functional')}
             />
             <CookieOption
-              title="Analytiques"
-              description="Mesure d'audience"
+              title={t("cookie.analytics")}
+              description={t("cookie.analyticsD")}
               checked={preferences.analytics}
               onChange={() => togglePreference('analytics')}
             />
             <CookieOption
-              title="Marketing"
-              description="Publicités personnalisées"
+              title={t("cookie.marketing")}
+              description={t("cookie.marketingD")}
               checked={preferences.marketing}
               onChange={() => togglePreference('marketing')}
             />
@@ -201,14 +203,14 @@ export default function CookiePopup() {
               onClick={handleAcceptSelected}
               className="px-4 py-2 bg-slate-900 hover:bg-amber-500 text-white text-sm font-medium transition-colors"
             >
-              Enregistrer
+              {t("cookie.save")}
             </button>
             <button
               type="button"
               onClick={() => setShowSettings(false)}
               className="text-sm text-slate-500 hover:text-slate-900 underline"
             >
-              Retour
+              {t("cookie.back")}
             </button>
           </div>
         </>
