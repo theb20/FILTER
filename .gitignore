@@ -12,11 +12,9 @@ dist
 dist-ssr
 *.local
 .env
-.env.test
-.env.development
-.env.production
-.gitignore
-.vite/*
+.env.*
+!.env.example
+.vite/
 
 # Editor directories and files
 .vscode/*

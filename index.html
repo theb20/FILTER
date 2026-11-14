@@ -54,7 +54,7 @@
     <!-- ========================================
          SECURITY
          ======================================== -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.filter-finder.com;" />
+    <!-- Content-Security-Policy : injectée au build par vite.config.js (le mode dev a besoin de scripts inline pour le HMR) -->
     
     <!-- ========================================
          PERFORMANCE OPTIMIZATION
@@ -220,49 +220,8 @@
     <!-- Main Application Script -->
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Loading Screen Controller -->
-    <script>
-      (function() {
-        'use strict';
-        
-        const LOADING_CONFIG = {
-          minDisplayTime: 1000,    // Minimum display duration (ms)
-          maxDisplayTime: 5000,    // Maximum fallback timeout (ms)
-          fadeOutDelay: 500        // Fade out animation duration (ms)
-        };
-        
-        /**
-         * Hide the loading screen with animation
-         */
-        function hideLoadingScreen() {
-          const loadingScreen = document.getElementById('loading-screen');
-          if (!loadingScreen || loadingScreen.classList.contains('hidden')) {
-            return;
-          }
-          
-          loadingScreen.classList.add('hidden');
-          
-          // Remove from DOM after animation completes
-          setTimeout(function() {
-            if (loadingScreen.parentNode) {
-              loadingScreen.remove();
-            }
-          }, LOADING_CONFIG.fadeOutDelay);
-        }
-        
-        /**
-         * Initialize loading screen auto-hide on page load
-         */
-        window.addEventListener('load', function() {
-          setTimeout(hideLoadingScreen, LOADING_CONFIG.minDisplayTime);
-        });
-        
-        /**
-         * Fallback: Force hide if load event doesn't fire
-         */
-        setTimeout(hideLoadingScreen, LOADING_CONFIG.maxDisplayTime);
-      })();
-    </script>
+    <!-- Loading Screen Controller (fichier externe : compatible CSP sans unsafe-inline) -->
+    <script src="/loader.js"></script>
     
     <!-- ========================================
          NO JAVASCRIPT FALLBACK
