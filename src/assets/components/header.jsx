@@ -21,6 +21,7 @@ const Header = ({openPopup}) => {
     const isSignPage = location.pathname === "/sign";
     const isResetPage = location.pathname === "/reset";
     const isHomePage = location.pathname === "/";
+    const isContactPage = location.pathname === "/contact";
 
     // Fonction pour fermer tous les menus
     const closeAllMenus = () => {
@@ -43,7 +44,7 @@ const Header = ({openPopup}) => {
     
   return (
     <>
-     {!isSignPage && !isResetPage && (
+     {!isSignPage && !isResetPage && !isContactPage && (
         <header className="w-full sticky top-0 left-0 z-[1000] shadow-md bg-white dark:bg-gray-900 dark:text-white transition-all duration-300">
         {/* ===== Barre supérieure ===== */}
         <div className="hidden md:flex justify-between items-center px-6 py-2 bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300">
@@ -230,6 +231,14 @@ const Header = ({openPopup}) => {
         </div>
         </header>
      )}
+      {/* barre for contact */}
+        {isContactPage && (
+          <div className="absolute top-0 left-0 w-full dark:bg-gray-800 text-black dark:text-white py-10 px-24 flex items-center justify-between z-[1000]">
+              <div className="logo">
+                <img src="/img/logo/favicon.svg" className="w-22" alt="" />
+              </div>
+          </div>
+        )}
     </>
   );
 };
