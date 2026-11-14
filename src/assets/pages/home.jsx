@@ -1,290 +1,200 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import {
-  Search,
-  Car,
-  Wrench,
-  Truck,
-  ShieldCheck,
-  Clock,
-  Heart,
-  ArrowRight,
-  Phone,
-  Info,
-} from "lucide-react";
-import SearchModule from "../components/Search";
-import { DEMO_PRODUCTS, formatFcfa } from "../data/demoProducts.js";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import LineArt from "../components/LineArt.jsx";
+import Todo from "../components/Todo.jsx";
+import { SearchField } from "../components/header.jsx";
+import { CATEGORIES } from "../data/demoProducts.js";
+import { CLAIMS, SITE } from "../config/site.js";
 
-const WORDS = [
-  "pour votre véhicule",
-  "à huile, à air, à carburant",
-  "compatibles avec votre modèle",
-  "livrés en Côte d'Ivoire",
+const btnPrimary =
+  "inline-flex items-center gap-2 rounded-[3px] bg-action px-5 py-2.5 font-bold text-black hover:bg-action-dark transition-colors";
+
+const SECTORS = [
+  ["Aerospace", "Filtration for aircraft and ground-support systems."],
+  ["Defense", "Filtration for demanding defense equipment."],
+  ["Medical", "Clean fluids and air for medical equipment."],
+  ["Energy", "Filters for power generation and energy systems."],
+  ["Marine", "Filtration for vessels and offshore equipment."],
+  ["Data Centers", "Air filtration for critical cooling environments."],
+  ["Industry", "Filters for production lines and heavy machinery."],
+  ["Transport", "Filtration for rail, road and logistics fleets."],
+  ["R&D", "Filtration for laboratories and test benches."],
 ];
 
-const FEATURES = [
-  {
-    icon: Search,
-    title: "Recherche par référence",
-    description:
-      "Retrouvez un filtre à partir de sa référence constructeur ou de votre véhicule.",
-  },
-  {
-    icon: Car,
-    title: "Compatibilité véhicule",
-    description:
-      "Vérifiez qu'un filtre correspond à votre marque, modèle et motorisation.",
-  },
-  {
-    icon: Wrench,
-    title: "Devis professionnel",
-    description:
-      "Garagistes et flottes : demandez un devis pour vos besoins en volume, en FCFA.",
-  },
-  {
-    icon: Truck,
-    title: "Livraison en Côte d'Ivoire",
-    description: "Une offre pensée pour le marché ivoirien (modalités à confirmer).",
-  },
-];
+function RoundArrow({ to, label, light = false }) {
+  return (
+    <Link
+      to={to}
+      aria-label={label}
+      className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+        light ? "border-white text-white hover:bg-white/15" : "border-black text-black hover:bg-black/5"
+      }`}
+    >
+      <ArrowRight size={18} />
+    </Link>
+  );
+}
 
-export default function FilterFinderHome() {
-  const videoRef = useRef(null);
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [displayedText, setDisplayedText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
+function PhotoCard({ title, subtitle, to }) {
+  return (
+    <div className="relative flex min-h-[150px] md:aspect-[2.5/1] flex-col justify-between overflow-hidden rounded-[4px] bg-gradient-to-br from-navy to-night p-5 text-white">
+      <LineArt className="pointer-events-none absolute -right-6 -top-4 h-[120%] opacity-20" opacity={1} />
+      <div className="relative">
+        <h2 className="text-[24px] font-semibold leading-tight">{title}</h2>
+        <p className="text-sm text-white/85">{subtitle}</p>
+      </div>
+      <div className="relative flex justify-end">
+        <RoundArrow to={to} label={title} light />
+      </div>
+    </div>
+  );
+}
+
+export default function Home() {
+  const carousel = useRef(null);
 
   useEffect(() => {
-    document.title = "Filter Finder — Filtres automobiles en Côte d'Ivoire";
+    document.title = "FilterFinder — Industrial filters, cross references and stock";
   }, []);
 
-  useEffect(() => {
-    const currentWord = WORDS[currentWordIndex];
-    let pause;
-    const timeout = setTimeout(
-      () => {
-        if (!isDeleting) {
-          if (displayedText.length < currentWord.length) {
-            setDisplayedText(currentWord.substring(0, displayedText.length + 1));
-          } else {
-            pause = setTimeout(() => setIsDeleting(true), 2500);
-          }
-        } else if (displayedText.length > 0) {
-          setDisplayedText(currentWord.substring(0, displayedText.length - 1));
-        } else {
-          setIsDeleting(false);
-          setCurrentWordIndex((prev) => (prev + 1) % WORDS.length);
-        }
-      },
-      isDeleting ? 40 : 120,
-    );
-
-    return () => {
-      clearTimeout(timeout);
-      clearTimeout(pause);
-    };
-  }, [displayedText, isDeleting, currentWordIndex]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video && video.paused) {
-      video.play().catch(() => {
-        /* lecture automatique refusée par le navigateur : le poster reste affiché */
-      });
-    }
-  }, []);
+  const scrollCarousel = (dir) => {
+    carousel.current?.scrollBy({ left: dir * 340, behavior: "smooth" });
+  };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero */}
-      <section className="relative py-32 text-white">
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <video
-            ref={videoRef}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            poster="/img/background/hero-poster.webp"
-            aria-hidden="true"
-            className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto -translate-x-1/2 -translate-y-1/2 object-cover"
-          >
-            <source src="/videos/hero-web.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-transparent"></div>
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-6 px-6 py-3 rounded-full bg-white border border-gray-200 shadow-sm">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-gray-600" />
-                <span className="text-xs font-medium text-gray-600">Qualité</span>
-              </div>
-              <div className="w-px h-4 bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <Car className="w-4 h-4 text-gray-600" />
-                <span className="text-xs font-medium text-gray-600">Filtres auto</span>
-              </div>
-              <div className="w-px h-4 bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-600" />
-                <span className="text-xs font-medium text-gray-600">Côte d'Ivoire</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h1 className="text-4xl min-h-[130px] lg:min-h-[160px] sm:text-5xl lg:text-6xl font-light text-gray-100 mb-6 leading-tight tracking-tight">
-              Trouvez le bon filtre{" "}
-              <br className="hidden sm:block" />
-              <span className="relative inline-block">
-                <span className="font-normal text-amber-500">{displayedText}</span>
-                <span
-                  aria-hidden="true"
-                  className="inline-block w-0.5 h-12 sm:h-14 lg:h-16 bg-gray-400 ml-1 align-middle animate-cursor"
-                ></span>
-              </span>
-            </h1>
-
-            <p className="text-lg sm:text-xl text-gray-100 max-w-3xl mx-auto font-light leading-relaxed mb-8">
-              Filter Finder vous aide à identifier et commander les filtres
-              automobiles adaptés à votre véhicule, avec des prix en FCFA.
-            </p>
-          </div>
-
-          <div className="max-w-5xl relative z-100 rounded-24 mx-auto">
-            <SearchModule />
-          </div>
+    <div className="space-y-2.5 pb-0 pt-2.5">
+      {/* 1. Hero */}
+      <section className="relative mx-2.5 overflow-hidden rounded-[4px] bg-navy text-white" aria-labelledby="hero-title">
+        <LineArt className="pointer-events-none absolute -right-16 top-1/2 hidden h-[130%] -translate-y-1/2 md:block" />
+        <div className="relative max-w-3xl px-6 py-10 md:min-h-[300px] md:px-12">
+          <h1 id="hero-title" className="text-[40px] font-bold leading-tight">
+            Get Started &amp; <span className="text-action">Find Your Filters</span>
+          </h1>
+          <p className="mt-3 max-w-xl">
+            {CLAIMS.crossReferences ? CLAIMS.crossReferences : <Todo>number</Todo>}{" "}
+            cross references,{" "}
+            {CLAIMS.stockValue ? CLAIMS.stockValue : <Todo>stock value</Todo>} of stock.
+          </p>
+          <SearchField id="hero-search" className="mt-6 max-w-xl" dark />
         </div>
       </section>
 
-      {/* Sélection (données de démonstration) */}
-      <section className="py-12 sm:py-16 lg:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 sm:mb-12 gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-                Filtres à la une
-              </h2>
-              <p className="text-gray-600">Aperçu de la sélection du catalogue</p>
-            </div>
-            <Link
-              to="/category"
-              className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-gray-300 hover:border-amber-500 rounded-lg font-semibold text-gray-700 hover:text-amber-600 transition-all"
+      {/* 2. Trois cartes */}
+      <section className="mx-2.5 grid gap-2.5 md:grid-cols-3" aria-label="Shortcuts">
+        <PhotoCard title="Worldwide Shipping" subtitle="Delivery options for your region" to="/contact" />
+        <PhotoCard title="Connect To Your Account" subtitle="Orders, quotes and saved lists" to="/sign" />
+        <PhotoCard title="Get Help By Chat" subtitle="Talk to our team" to="/contact" />
+      </section>
+
+      {/* 3. Partenaires + catégories */}
+      <section className="mx-2.5 rounded-[4px] bg-white p-6 shadow-card md:p-10" aria-labelledby="partners-title">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 id="partners-title" className="text-[37px] font-bold leading-tight">Our Key Partners</h2>
+          <Link to="/brands" className="whitespace-nowrap font-medium text-link hover:underline">
+            All brands →
+          </Link>
+        </div>
+
+        <ul className="mx-auto mt-8 grid max-w-5xl grid-cols-3 gap-x-6 gap-y-8 sm:grid-cols-4 lg:grid-cols-7">
+          {Array.from({ length: 14 }, (_, i) => (
+            <li
+              key={i}
+              className="flex h-14 items-center justify-center rounded-[3px] border border-dashed border-gray-300 text-xs text-gray-400"
+              title="Partner logo to be added"
             >
-              Voir tout le catalogue
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
+              Logo
+            </li>
+          ))}
+        </ul>
 
-          <p className="mb-6 flex items-center gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-            <Info className="w-4 h-4 shrink-0" />
-            Données de démonstration : produits, références et prix sont fictifs.
-          </p>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {DEMO_PRODUCTS.map((product) => (
-              <Link
-                key={product.id}
-                to="/card"
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow group"
-              >
-                <div className="relative h-48 sm:h-56 overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  {product.isNew && (
-                    <span className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      Nouveau
-                    </span>
-                  )}
-                  <span className="absolute top-4 right-4 bg-white/90 p-2 rounded-full">
-                    <Heart className="w-5 h-5 text-gray-700" aria-hidden="true" />
-                  </span>
+        <ul className="mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
+          {CATEGORIES.map((c) => (
+            <li key={c.slug}>
+              <Link to={`/category?cat=${c.slug}`} className="block text-center hover:text-link">
+                <div className="flex aspect-square items-center justify-center rounded-[3px] bg-white">
+                  <LineArt stroke="#9ca3af" className="h-4/5" />
                 </div>
-                <div className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-2xl font-bold text-amber-600">
-                      {formatFcfa(product.price)}
-                    </span>
-                    <span className="text-sm text-gray-500">{product.category}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-600">Réf. {product.reference}</p>
-                </div>
+                <span className="mt-2 block font-medium">{c.label}</span>
               </Link>
-            ))}
-          </div>
-        </div>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      {/* Pourquoi Filter Finder */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Pourquoi choisir Filter Finder ?
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Une plateforme dédiée aux filtres automobiles, pour particuliers et professionnels.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {FEATURES.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className="bg-white p-6 sm:p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow"
-                >
-                  <div className="inline-flex items-center justify-center w-14 h-14 bg-amber-100 rounded-xl mb-4">
-                    <Icon className="w-7 h-7 text-amber-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-amber-500 to-amber-700 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-            Un filtre à trouver ?
-          </h2>
-          <p className="text-lg sm:text-xl text-amber-50 mb-8 sm:mb-10">
-            Parcourez le catalogue ou contactez l'équipe Filter Finder.
+      {/* 4. Secteurs */}
+      <section className="mx-2.5 grid gap-8 overflow-hidden py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-labelledby="sectors-title">
+        <div className="px-4 lg:px-10">
+          <p className="font-medium text-link">Industries</p>
+          <h2 id="sectors-title" className="mt-1 text-[37px] font-bold leading-tight">Filtration For Every Sector</h2>
+          <p className="mt-4">
+            From aerospace to data centers, find the filters your application needs.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/category"
-              className="px-8 py-4 bg-white text-amber-700 font-bold rounded-lg hover:bg-amber-50 transition-colors flex items-center justify-center gap-2 shadow-xl"
-            >
-              Voir le catalogue
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              to="/contact"
-              className="px-8 py-4 border-2 border-white text-white font-bold rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <Phone className="w-5 h-5" />
-              Nous contacter
-            </Link>
+          <div className="mt-6 flex gap-3">
+            <button type="button" aria-label="Previous sectors" onClick={() => scrollCarousel(-1)} className="flex h-10 w-10 items-center justify-center rounded-full border border-black hover:bg-black/5">
+              <ChevronLeft size={18} />
+            </button>
+            <button type="button" aria-label="Next sectors" onClick={() => scrollCarousel(1)} className="flex h-10 w-10 items-center justify-center rounded-full border border-black hover:bg-black/5">
+              <ChevronRight size={18} />
+            </button>
           </div>
         </div>
+
+        <ul ref={carousel} className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:-mr-[10vw]">
+          {SECTORS.map(([title, text]) => (
+            <li key={title} className="w-[280px] shrink-0 snap-start overflow-hidden rounded-[4px] bg-white shadow-card">
+              <div className="flex h-40 items-center justify-center bg-gray-100" title="Sector photo to be added">
+                <LineArt stroke="#cbd5e1" className="h-32" />
+              </div>
+              <div className="p-4">
+                <h3 className="text-[24px] font-semibold leading-tight">{title}</h3>
+                <p className="mt-1 text-sm text-gray-700">{text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* 5. Histoire */}
+      <section className="relative mx-2.5 overflow-hidden rounded-[4px] bg-navy text-white" aria-labelledby="story-title">
+        <LineArt className="pointer-events-none absolute -left-10 top-0 h-full opacity-10" />
+        <div className="relative grid gap-8 md:grid-cols-2">
+          <div className="px-6 py-12 md:px-12">
+            <h2 id="story-title" className="text-[37px] font-bold leading-tight">
+              Innovating Filtration{" "}
+              <span className="text-action">
+                {CLAIMS.foundedYear ? `Since ${CLAIMS.foundedYear}` : <Todo>Since year</Todo>}
+              </span>
+            </h2>
+            <div className="mt-4 space-y-3">
+              <p><Todo>Company story, paragraph 1</Todo></p>
+              <p><Todo>Company story, paragraph 2</Todo></p>
+              <p><Todo>Company story, paragraph 3</Todo></p>
+            </div>
+            <Link to="/contact" className={`${btnPrimary} mt-6`}>
+              Our Story <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+          <div className="flex min-h-[260px] items-center justify-center bg-slate/60 text-sm text-white/70 md:-mr-10" title="Archive photo to be added">
+            <Todo>Archive photo</Todo>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Avis */}
+      <section className="mx-2.5 px-4 py-12 md:px-10" aria-labelledby="reviews-title">
+        <p className="font-medium text-link">Reviews</p>
+        <h2 id="reviews-title" className="mt-1 text-[37px] font-bold leading-tight">What Our Customers Say</h2>
+        <p className="mt-3 max-w-xl">
+          Read what other professionals think about working with {SITE.name}.
+        </p>
+        {SITE.reviewsUrl ? (
+          <a href={SITE.reviewsUrl} target="_blank" rel="noopener noreferrer" className={`${btnPrimary} mt-6`}>
+            See Our Reviews <span aria-hidden="true">→</span>
+          </a>
+        ) : (
+          <p className="mt-6"><Todo>Reviews link</Todo></p>
+        )}
       </section>
     </div>
   );

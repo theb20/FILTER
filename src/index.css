@@ -1,19 +1,46 @@
 @import "tailwindcss";
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* Roboto auto-hébergée (la CSP n'autorise pas les polices externes) */
+@font-face { font-family: "Roboto"; font-weight: 400; font-style: normal; font-display: swap; src: url("/fonts/roboto-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Roboto"; font-weight: 500; font-style: normal; font-display: swap; src: url("/fonts/roboto-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Roboto"; font-weight: 600; font-style: normal; font-display: swap; src: url("/fonts/roboto-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Roboto"; font-weight: 700; font-style: normal; font-display: swap; src: url("/fonts/roboto-latin-700-normal.woff2") format("woff2"); }
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #ffffff;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Design system FilterFinder */
+@theme {
+  --font-sans: "Roboto", system-ui, sans-serif;
+  --color-night: #131921;
+  --color-navy: #232F3E;
+  --color-action: #F7BE14;
+  --color-action-dark: #e0a900;
+  --color-link: #0275C8;
+  --color-teal: #0E7FA8;
+  --color-page: #F8F8F8;
+  --color-info: #FDF9C9;
+  --color-news: #A8B8D5;
+  --color-slate: #3E4861;
+  --color-brand-red: #E8472B;
+  --color-trust: #00B67A;
+  --radius-ff: 4px;
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
+
+html { font-size: 17px; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  color: #000;
+  background-color: var(--color-page);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
 /* ✅ Active le dark mode basé sur la classe */
 @custom-variant dark (&:where(.dark, .dark *));
 

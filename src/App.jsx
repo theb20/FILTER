@@ -17,6 +17,8 @@ const Profil = lazy(() => import("./assets/pages/profil.jsx"));
 const Quote = lazy(() => import("./assets/pages/quote.jsx"));
 const Privacy = lazy(() => import("./assets/pages/privacy.jsx"));
 
+const InfoPage = lazy(() => import("./assets/pages/info.jsx"));
+
 const NotFound = () => {
   useEffect(() => {
     document.title = "Page introuvable — Filter Finder";
@@ -55,6 +57,10 @@ function App() {
                 <Route path="/profil" element={<Profil />} />
                 <Route path="/quote" element={<Quote />} />
                 <Route path="/privacy" element={<Privacy />} />
+                <Route path="/blog" element={<InfoPage title="Blog" />} />
+                <Route path="/brands" element={<InfoPage title="Brands" />} />
+                <Route path="/terms" element={<InfoPage title="Terms & Conditions" />} />
+                <Route path="/refund" element={<InfoPage title="Refund policy" />} />
               </Route>
 
               {/* Page 404 */}

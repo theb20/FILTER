@@ -1,73 +1,22 @@
 // DONNÉES DE DÉMONSTRATION — aucune référence, aucun prix ni aucun stock réel.
-// Ces valeurs servent uniquement à illustrer l'interface.
-export const DEMO_PRODUCTS = [
-  {
-    id: 1,
-    name: "Filtre à huile — exemple A",
-    category: "Filtres à huile",
-    reference: "DEMO-HUI-001",
-    compatibility: "Compatibilité à renseigner",
-    price: 6500,
-    stock: "En stock (démo)",
-    image: "/img/products/placeholder.svg",
-    isNew: true,
-  },
-  {
-    id: 2,
-    name: "Filtre à air — exemple B",
-    category: "Filtres à air",
-    reference: "DEMO-AIR-002",
-    compatibility: "Compatibilité à renseigner",
-    price: 8000,
-    stock: "En stock (démo)",
-    image: "/img/products/placeholder.svg",
-    isNew: false,
-  },
-  {
-    id: 3,
-    name: "Filtre à carburant — exemple C",
-    category: "Filtres à carburant",
-    reference: "DEMO-CAR-003",
-    compatibility: "Compatibilité à renseigner",
-    price: 12000,
-    stock: "Sur commande (démo)",
-    image: "/img/products/placeholder.svg",
-    isNew: false,
-  },
-  {
-    id: 4,
-    name: "Filtre d'habitacle — exemple D",
-    category: "Filtres d'habitacle",
-    reference: "DEMO-HAB-004",
-    compatibility: "Compatibilité à renseigner",
-    price: 5000,
-    stock: "En stock (démo)",
-    image: "/img/products/placeholder.svg",
-    isNew: true,
-  },
-  {
-    id: 5,
-    name: "Kit d'entretien — exemple E",
-    category: "Accessoires",
-    reference: "DEMO-KIT-005",
-    compatibility: "Compatibilité à renseigner",
-    price: 25000,
-    stock: "En stock (démo)",
-    image: "/img/products/placeholder.svg",
-    isNew: false,
-  },
-  {
-    id: 6,
-    name: "Filtre à huile — exemple F",
-    category: "Filtres à huile",
-    reference: "DEMO-HUI-006",
-    compatibility: "Compatibilité à renseigner",
-    price: 9500,
-    stock: "En stock (démo)",
-    image: "/img/products/placeholder.svg",
-    isNew: false,
-  },
+export const CATEGORIES = [
+  { slug: "hydraulic", label: "Hydraulic Filters" },
+  { slug: "oil", label: "Oil Filters" },
+  { slug: "air", label: "Air Filters" },
+  { slug: "compressed-air", label: "Compressed Air Filters" },
+  { slug: "process", label: "Process Filters" },
 ];
 
-export const formatFcfa = (n) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n) + " FCFA";
+export const DEMO_PRODUCTS = [
+  { id: 1, name: "Hydraulic Pressure Filter Element", brand: "Brand A", reference: "DEMO-HYD-001", category: "hydraulic", price: 128.5, stock: "In stock", crossRefs: ["DEMO-X-1001", "DEMO-X-1002"] },
+  { id: 2, name: "Hydraulic Return Line Filter", brand: "Brand B", reference: "DEMO-HYD-002", category: "hydraulic", price: 84.0, stock: "In stock", crossRefs: ["DEMO-X-2001"] },
+  { id: 3, name: "Spin-On Oil Filter", brand: "Brand A", reference: "DEMO-OIL-003", category: "oil", price: 24.9, stock: "In stock", crossRefs: ["DEMO-X-3001", "DEMO-X-3002"] },
+  { id: 4, name: "Oil Filter Cartridge", brand: "Brand C", reference: "DEMO-OIL-004", category: "oil", price: 31.75, stock: "Backorder", crossRefs: [] },
+  { id: 5, name: "Panel Air Filter", brand: "Brand B", reference: "DEMO-AIR-005", category: "air", price: 42.2, stock: "In stock", crossRefs: ["DEMO-X-5001"] },
+  { id: 6, name: "Compressed Air Coalescing Filter", brand: "Brand D", reference: "DEMO-CAF-006", category: "compressed-air", price: 215.0, stock: "In stock", crossRefs: ["DEMO-X-6001"] },
+  { id: 7, name: "Process Filter Bag", brand: "Brand C", reference: "DEMO-PRO-007", category: "process", price: 18.4, stock: "In stock", crossRefs: [] },
+  { id: 8, name: "Process Filter Cartridge", brand: "Brand D", reference: "DEMO-PRO-008", category: "process", price: 56.0, stock: "In stock", crossRefs: ["DEMO-X-8001"] },
+];
+
+export const formatUsd = (n) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);

@@ -1,28 +1,31 @@
-import { Outlet, useLocation } from 'react-router-dom';
-import Header from './header.jsx';
-import Footer from './Footer.jsx';
-import Cookie from './Cookie.jsx';
+import { Outlet } from "react-router-dom";
+import TopBar from "./TopBar.jsx";
+import Header from "./header.jsx";
+import GeoBanner from "./GeoBanner.jsx";
+import Newsletter from "./Newsletter.jsx";
+import Footer from "./Footer.jsx";
+import HelpBubble from "./HelpBubble.jsx";
+import Cookie from "./Cookie.jsx";
+import { useLocation } from "react-router-dom";
 
 export default function Layout() {
-  const location = useLocation();
-
-  // Routes où le header et le footer doivent être cachés
-  const noHeaderFooterRoutes = ['/admin', '/login', '/dashboard'];
-
-  const shouldHideHeaderFooter = noHeaderFooterRoutes.some((path) =>
-    location.pathname.startsWith(path)
-  );
+  const { pathname } = useLocation();
+  const bare = pathname === "/sign" || pathname === "/reset";
 
   return (
-    <div className="min-h-screen relative h-full">
-      {!shouldHideHeaderFooter && <Header />}
+    <div className="min-h-screen bg-page">
+      <Header />
+      <TopBar />
+      <GeoBanner />
 
       <main>
         <Outlet />
       </main>
 
-      {!shouldHideHeaderFooter && <Cookie />}
-      {!shouldHideHeaderFooter && <Footer />}
+      {!bare && <Newsletter />}
+      <Footer />
+      {!bare && <HelpBubble />}
+      <Cookie />
     </div>
   );
 }

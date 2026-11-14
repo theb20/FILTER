@@ -1,68 +1,70 @@
 import { Link, useLocation } from "react-router-dom";
+import Logo from "./Logo.jsx";
+import Todo from "./Todo.jsx";
 import { SITE } from "../config/site.js";
 
-const Footer = () => {
-  const location = useLocation();
-  const isSignPage = location.pathname === "/sign";
-  const isResetPage = location.pathname === "/reset";
+const LINKS = [
+  ["/blog", "Blog"],
+  ["/terms", "Terms & Conditions"],
+  ["/privacy", "Privacy Policy"],
+  ["/refund", "Refund policy"],
+  ["/quote", "Request a quote"],
+];
 
-  if (isSignPage || isResetPage) return null;
+function Section({ title, children }) {
+  // Accordéon sur mobile (details), colonne fixe sur desktop
+  return (
+    <details className="group border-b border-white/20 py-3 md:border-0 md:py-0 md:[&>summary]:pointer-events-none" open>
+      <summary className="flex cursor-pointer list-none items-center justify-between text-base font-bold md:cursor-default">
+        {title}
+        <span className="text-xl leading-none md:hidden group-open:rotate-45 transition-transform" aria-hidden="true">+</span>
+      </summary>
+      <div className="mt-3">{children}</div>
+    </details>
+  );
+}
+
+export default function Footer() {
+  const { pathname } = useLocation();
+  if (pathname === "/sign" || pathname === "/reset") return null;
 
   return (
-    <footer className="bg-dark text-gray-300 mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          <div>
-            <Link
-              to="/"
-              className="flex items-center text-2xl font-extrabold text-amber-500 select-none"
-              aria-label="Filter Finder — accueil"
-            >
-              <div className="md:w-10 md:h-10 w-9 h-9">
-                <img src="/img/logo/favicon.svg" className="w-full" alt="" />
-              </div>
-              <span className="text-gray-800 dark:text-white">Filter Finder</span>
-            </Link>
-            <p className="text-sm text-sub leading-relaxed mt-3">
-              Votre spécialiste des filtres automobiles en Côte d'Ivoire.
-            </p>
-          </div>
-
-          <nav aria-label="Catalogue" className="text-dark">
-            <h2 className="font-semibold text-dark mb-4">Catalogue</h2>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/category" className="hover:text-amber-600 transition-colors">Tous les filtres</Link></li>
-              <li><Link to="/category?q=huile" className="hover:text-amber-600 transition-colors">Filtres à huile</Link></li>
-              <li><Link to="/category?q=air" className="hover:text-amber-600 transition-colors">Filtres à air</Link></li>
-              <li><Link to="/basket" className="hover:text-amber-600 transition-colors">Panier</Link></li>
-            </ul>
-          </nav>
-
-          <nav aria-label="Aide" className="text-dark">
-            <h2 className="font-semibold text-dark mb-4">Support</h2>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/contact" className="hover:text-amber-600 transition-colors">Contact</Link></li>
-              <li><Link to="/sign" className="hover:text-amber-600 transition-colors">Mon compte</Link></li>
-            </ul>
-          </nav>
-
-          <nav aria-label="Légal" className="text-dark">
-            <h2 className="font-semibold text-dark mb-4">Légal</h2>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/privacy" className="hover:text-amber-600 transition-colors">Politique de confidentialité</Link></li>
-              <li><Link to="/privacy" className="hover:text-amber-600 transition-colors">Cookies</Link></li>
-            </ul>
-          </nav>
+    <footer className="mx-2.5 my-2.5 bg-slate text-white">
+      <div className="mx-auto grid max-w-[1500px] gap-6 px-6 py-10 md:grid-cols-4">
+        <div>
+          <Logo />
+          <address className="mt-4 text-sm not-italic text-white/90">
+            {SITE.address || <Todo>Head office address</Todo>}
+          </address>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 text-center sm:text-left">
-          <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} {SITE.name} — édité par {SITE.publisher}. Tous droits réservés.
-          </p>
-        </div>
+        <Section title="Follow us on">
+          {SITE.linkedinUrl ? (
+            <a href={SITE.linkedinUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              LinkedIn
+            </a>
+          ) : (
+            <Todo>LinkedIn</Todo>
+          )}
+        </Section>
+
+        <Section title="Information">
+          <ul className="space-y-2 text-sm">
+            {LINKS.map(([to, label]) => (
+              <li key={to}>
+                <Link to={to} className="hover:underline">{label}</Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <Section title="We accept">
+          <Todo>Payment methods</Todo>
+        </Section>
       </div>
+      <p className="border-t border-white/20 px-6 py-4 text-center text-sm text-white/80">
+        © {new Date().getFullYear()} {SITE.name} — operated by {SITE.publisher}. All rights reserved.
+      </p>
     </footer>
   );
-};
-
-export default Footer;
+}
