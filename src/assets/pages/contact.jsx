@@ -3,6 +3,12 @@ import { useState, useEffect } from "react";
 import { Mail, ArrowUpRight, Paperclip } from "lucide-react";
 import { SITE, DEMO_NOTICE } from "../config/site.js";
 
+const WORDS = [
+  "Vous avez des questions ?",
+  "Besoin d'assistance ?",
+  "Parlons de votre projet.",
+];
+
 const ContactPage = () => {
   const [index, setIndex] = useState(0);
   const [showForm, setShowForm] = useState(false);
@@ -43,24 +49,14 @@ const ContactPage = () => {
     document.title = "Contact - Filter Finder";
   }, []);
 
-  const words = [
-    "Vous avez des questions ?",
-    "Besoin d'assistance ?",
-    "Parlons de votre projet.",
-  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % words.length);
+      setIndex((prev) => (prev + 1) % WORDS.length);
     }, 2500);
 
     return () => clearInterval(interval);
   }, []);
-
-  const isOpen = () => {
-    const hour = new Date().getHours();
-    return hour >= 9 && hour < 18;
-  };
 
   return (
     <main className="min-h-screen bg-white px-4 py-4 sm:px-6 lg:px-10">
@@ -291,8 +287,8 @@ const ContactPage = () => {
             <div className="relative z-10 px-8 py-16 sm:px-12 lg:px-12 xl:px-16 max-w-2xl">
 
               <h1 className="text-5xl sm:text-6xl xl:text-[68px] leading-[1.05] font-semibold tracking-[-0.055em] text-black mb-8">
-                <span key={words[index]} className="word-change">
-                  {words[index]}
+                <span key={WORDS[index]} className="word-change">
+                  {WORDS[index]}
                 </span>
               </h1>
 

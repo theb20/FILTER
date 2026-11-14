@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { usePopup } from '../configurations/PopupContext.jsx';
+import { usePopup } from '../configurations/popupContext.js';
 import Header from './header.jsx';
 import Footer from './Footer.jsx';
 import Quote from './quote.jsx';

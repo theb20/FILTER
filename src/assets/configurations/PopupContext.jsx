@@ -1,6 +1,5 @@
-import { createContext, useContext, useState } from 'react';
-
-const PopupContext = createContext();
+import { useState } from 'react';
+import { PopupContext } from './popupContext.js';
 
 export const PopupProvider = ({ children }) => {
   const [activePopup, setActivePopup] = useState(null);
@@ -29,14 +28,4 @@ export const PopupProvider = ({ children }) => {
       {children}
     </PopupContext.Provider>
   );
-};
-
-export const usePopup = () => {
-  const context = useContext(PopupContext);
-  
-  if (!context) {
-    throw new Error('usePopup doit être utilisé à l\'intérieur de PopupProvider');
-  }
-  
-  return context;
 };

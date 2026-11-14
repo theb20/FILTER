@@ -27,7 +27,9 @@ export default function CookiePopup() {
         if (parsed?.consented === true || parsed?.decisionDate) {
           return;
         }
-      } catch (e) {}
+      } catch {
+      // stockage ou cookie indisponible : on continue sans persister
+    }
     }
 
     previouslyFocused.current = document.activeElement;
@@ -73,7 +75,9 @@ export default function CookiePopup() {
       const expires = new Date();
       expires.setFullYear(expires.getFullYear() + 1);
       document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(payload))}; expires=${expires.toUTCString()}; path=/; samesite=lax`;
-    } catch (e) {}
+    } catch {
+      // stockage ou cookie indisponible : on continue sans persister
+    }
   };
 
   const handleAcceptAll = () => {

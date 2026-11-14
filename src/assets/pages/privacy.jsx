@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SITE } from "../config/site.js";
 import {
   Shield,
@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 
 const PolicySection = ({
-  id,
   icon,
   title,
   badge,
@@ -93,6 +92,10 @@ const InfoCard = ({ icon, title, description }) => (
 
 export default function PrivacyPolicyPage() {
   const [expandedSection, setExpandedSection] = useState(null);
+
+  useEffect(() => {
+    document.title = "Politique de confidentialité — Filter Finder";
+  }, []);
   const lastUpdated = "17 octobre 2025";
 
   const toggleSection = (id) => {
