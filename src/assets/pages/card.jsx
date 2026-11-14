@@ -118,7 +118,7 @@ export default function ProductCard() {
 
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Colonne principale */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
               <div className="border-b border-gray-200 p-4 sm:p-6">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">

@@ -88,9 +88,9 @@ const Header = ({openPopup}) => {
               to="/"
               onClick={closeAllMenus}
               aria-label="Filter Finder — accueil"
-              className="font-extrabold w-full flex items-center justify-center lg:w-auto text-center lg:text-left text-3xl md:text-6xl text-amber-500 select-none"
+              className="font-extrabold w-full flex items-center justify-center lg:w-auto text-center lg:text-left text-2xl md:text-3xl lg:text-4xl text-amber-500 select-none"
             >
-              <div className="md:w-16 md:h-16 w-12 h-12">
+              <div className="md:w-12 md:h-12 w-10 h-10">
                 <img src="/img/logo/favicon.svg" className="w-full" alt="" />
               </div>
               <span className="text-gray-800 dark:text-white">Filter Finder</span>
