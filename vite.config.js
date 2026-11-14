@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'node:path'
 
 // CSP injectée uniquement au build : en développement, Vite/React Refresh
 // injectent des scripts inline. Idéalement, la CSP est aussi posée en
@@ -37,6 +38,11 @@ export default defineConfig({
     }),
     cspPlugin(),
   ],
+  resolve: {
+    alias: {
+      '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
   server: {
     host: 'localhost', // plus d'exposition sur le réseau local
     port: 3001,
