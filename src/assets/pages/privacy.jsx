@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { SITE } from "../config/site.js";
 import {
   Shield,
   Cookie,
@@ -465,10 +466,10 @@ export default function PrivacyPolicyPage() {
                   Contactez notre délégué à la protection des données :
                 </p>
                 <a 
-                  href="mailto:privacy@filterfinder.com"
+                  href={SITE.email ? `mailto:${SITE.email}` : undefined}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
                 >
-                  privacy@filterfinder.com
+                  {SITE.email || "Adresse bientôt disponible"}
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
@@ -578,8 +579,8 @@ export default function PrivacyPolicyPage() {
                 <div className="bg-green-50 border border-green-200 rounded-lg p-5">
                   <Mail className="w-6 h-6 text-green-600 mb-3" />
                   <h5 className="font-semibold text-green-900 mb-2">Email</h5>
-                  <a href="mailto:privacy@filterfinder.com" className="text-sm text-green-700 hover:text-green-800 underline">
-                    privacy@filterfinder.com
+                  <a href={SITE.email ? `mailto:${SITE.email}` : undefined} className="text-sm text-green-700 hover:text-green-800 underline">
+                    {SITE.email || "Adresse bientôt disponible"}
                   </a>
                 </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { SITE } from "../config/site.js";
 import {
   FaSearch,
   FaShoppingCart,
@@ -50,7 +51,7 @@ const Header = ({openPopup}) => {
         <div className="hidden md:flex justify-between items-center px-6 py-2 bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300">
             <div className="flex items-center space-x-4">
             <span className="flex items-center gap-2">
-                <FaPhoneAlt className="text-amber-500" /> +33 1 23 45 67 89
+                <FaPhoneAlt className="text-amber-500" /> {SITE.phone || "Téléphone bientôt disponible"}
             </span>
             <span className="flex items-center gap-2">
                 <FaGlobe className="text-amber-500" /> Côte d'Ivoire | Fcfa
@@ -82,7 +83,7 @@ const Header = ({openPopup}) => {
               <div className="md:w-16 md:h-16 w-12 h-12">
                 <img src="/img/logo/favicon.svg" className="w-full" alt="" />
               </div>
-              <span className="text-gray-800 dark:text-white">HLEA</span>
+              <span className="text-gray-800 dark:text-white">Filter Finder</span>
             </h1>
             {/* Barre de recherche (desktop) */}
             {!isHomePage && (

@@ -1,0 +1,73 @@
+// DONNÉES DE DÉMONSTRATION — aucune référence, aucun prix ni aucun stock réel.
+// Ces valeurs servent uniquement à illustrer l'interface.
+export const DEMO_PRODUCTS = [
+  {
+    id: 1,
+    name: "Filtre à huile — exemple A",
+    category: "Filtres à huile",
+    reference: "DEMO-HUI-001",
+    compatibility: "Compatibilité à renseigner",
+    price: 6500,
+    stock: "En stock (démo)",
+    image: "/img/products/placeholder.svg",
+    isNew: true,
+  },
+  {
+    id: 2,
+    name: "Filtre à air — exemple B",
+    category: "Filtres à air",
+    reference: "DEMO-AIR-002",
+    compatibility: "Compatibilité à renseigner",
+    price: 8000,
+    stock: "En stock (démo)",
+    image: "/img/products/placeholder.svg",
+    isNew: false,
+  },
+  {
+    id: 3,
+    name: "Filtre à carburant — exemple C",
+    category: "Filtres à carburant",
+    reference: "DEMO-CAR-003",
+    compatibility: "Compatibilité à renseigner",
+    price: 12000,
+    stock: "Sur commande (démo)",
+    image: "/img/products/placeholder.svg",
+    isNew: false,
+  },
+  {
+    id: 4,
+    name: "Filtre d'habitacle — exemple D",
+    category: "Filtres d'habitacle",
+    reference: "DEMO-HAB-004",
+    compatibility: "Compatibilité à renseigner",
+    price: 5000,
+    stock: "En stock (démo)",
+    image: "/img/products/placeholder.svg",
+    isNew: true,
+  },
+  {
+    id: 5,
+    name: "Kit d'entretien — exemple E",
+    category: "Accessoires",
+    reference: "DEMO-KIT-005",
+    compatibility: "Compatibilité à renseigner",
+    price: 25000,
+    stock: "En stock (démo)",
+    image: "/img/products/placeholder.svg",
+    isNew: false,
+  },
+  {
+    id: 6,
+    name: "Filtre à huile — exemple F",
+    category: "Filtres à huile",
+    reference: "DEMO-HUI-006",
+    compatibility: "Compatibilité à renseigner",
+    price: 9500,
+    stock: "En stock (démo)",
+    image: "/img/products/placeholder.svg",
+    isNew: false,
+  },
+];
+
+export const formatFcfa = (n) =>
+  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n) + " FCFA";

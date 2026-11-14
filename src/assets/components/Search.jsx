@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Search, ChevronDown, Building2, Package, Wrench, Cpu } from 'lucide-react';
+import { Search, ChevronDown, Package, Wrench } from 'lucide-react';
 
 export default function SearchModule() {
   const [searchType, setSearchType] = useState("");
   const [category, setCategory] = useState("");
   const [query, setQuery] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [budget, setBudget] = useState("1 000 €");
+  const [budget, setBudget] = useState("50 000 FCFA");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState([]);
   
@@ -21,31 +21,27 @@ export default function SearchModule() {
   // Simuler des résultats pour chaque type
   const allResults = {
     products: [
-      { name: "Imprimante laser HP LaserJet Pro", category: "tech", price: 450 },
-      { name: "Bureau professionnel en chêne", category: "all", price: 890 },
-      { name: "Chaise ergonomique Herman Miller", category: "all", price: 1200 },
-      { name: "Tablette graphique Wacom", category: "tech", price: 350 },
-      { name: "Perceuse sans fil Makita", category: "tools", price: 180 },
-      { name: "Échafaudage aluminium 6m", category: "industrial", price: 2500 },
-      { name: "Ordinateur portable Dell", category: "tech", price: 1100 },
-      { name: "Marteau-piqueur Bosch", category: "tools", price: 650 }
+      { name: "Filtre à huile — exemple A (démo)", category: "oil", price: 6500 },
+      { name: "Filtre à air — exemple B (démo)", category: "air", price: 8000 },
+      { name: "Filtre à carburant — exemple C (démo)", category: "fuel", price: 12000 },
+      { name: "Filtre d'habitacle — exemple D (démo)", category: "cabin", price: 5000 },
+      { name: "Kit d'entretien — exemple E (démo)", category: "all", price: 25000 },
     ],
     suppliers: [
-      { name: "TechPro Supplies", category: "tech", rating: 4.8 },
-      { name: "Outillage Expert", category: "tools", rating: 4.6 },
-      { name: "Industrie Solutions", category: "industrial", rating: 4.9 },
-      { name: "Bureau & Co", category: "all", rating: 4.5 }
+      { name: "Fournisseur exemple 1 (démo)", category: "oil" },
+      { name: "Fournisseur exemple 2 (démo)", category: "air" },
     ],
   };
   
   const categories = [
     { id: "all", label: "Toutes les catégories", icon: Package },
-    { id: "tools", label: "Outils & Matériel", icon: Wrench },
-    { id: "tech", label: "Électronique & IT", icon: Cpu },
-    { id: "industrial", label: "Industrie & BTP", icon: Building2 },
+    { id: "oil", label: "Filtres à huile", icon: Wrench },
+    { id: "air", label: "Filtres à air", icon: Wrench },
+    { id: "fuel", label: "Filtres à carburant", icon: Wrench },
+    { id: "cabin", label: "Filtres d'habitacle", icon: Wrench },
   ];
 
-  const filterOptions = ["Stock immédiat", "Livraison rapide", "Remise volume", "Made in France"];
+  const filterOptions = ["Stock immédiat", "Livraison rapide", "Remise volume"];
 
   const toggleFilter = (filter) => {
     setActiveFilters(prev => 
@@ -175,7 +171,7 @@ export default function SearchModule() {
                     type="text"
                     value={rfqProductName}
                     onChange={(e) => setRfqProductName(e.target.value)}
-                    placeholder="Ex: Imprimante laser couleur professionnelle"
+                    placeholder="Ex: Filtre à huile pour Toyota Corolla"
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-opacity-10 bg-white transition-all"
                   />
                 </div>
@@ -216,7 +212,7 @@ export default function SearchModule() {
                       type="text"
                       value={rfqBudget}
                       onChange={(e) => setRfqBudget(e.target.value)}
-                      placeholder="Ex: 5 000 € - 10 000 €"
+                      placeholder="Ex: 50 000 FCFA - 100 000 FCFA"
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-opacity-10 bg-white transition-all"
                     />
                   </div>
@@ -380,7 +376,7 @@ export default function SearchModule() {
                       <span className="text-gray-900 font-medium">{item.name}</span>
                     </div>
                     <div className="text-sm text-gray-600">
-                      {searchType === 'products' ? `${item.price} €` : `★ ${item.rating}`}
+                      {searchType === 'products' ? `${new Intl.NumberFormat('fr-FR').format(item.price)} FCFA` : 'Exemple'}
                     </div>
                   </li>
                 ))}

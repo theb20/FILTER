@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SITE } from "../config/site.js";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, CheckCircle, ArrowLeft, Shield, Key } from "lucide-react";
 
@@ -177,10 +178,10 @@ const PasswordResetFlow = () => {
           <div>
             <div className="flex items-center gap-3 mb-8">
               <div className="w-17 h-17 rounded-lg flex items-center justify-center">
-                <img src="/img/logo/favicon-light.png" alt="HLEA" className="w-full" />
+                <img src="/img/logo/favicon-light.png" alt="Filter Finder" className="w-full" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold"><span className="text-amber-500">HLEA</span></h1>
+                <h1 className="text-2xl font-bold"><span className="text-amber-500">Filter Finder</span></h1>
                 <p className="text-slate-400 text-sm"> Bring ideas into reality.</p>
               </div>
             </div>
@@ -214,7 +215,7 @@ const PasswordResetFlow = () => {
           </div>
 
           <div className="text-slate-500 text-sm">
-            © 2025 Holding Ledan Et Associe. Tous droits réservés.
+            © {new Date().getFullYear()} Filter Finder — édité par Holding Ledan Et Associé (HLEA). Tous droits réservés.
           </div>
         </div>
       </div>
@@ -299,7 +300,7 @@ const PasswordResetFlow = () => {
               <div className="pt-6 border-t border-slate-200">
                 <p className="text-slate-500 text-sm text-center">
                   Besoin d'aide? Contactez notre support {" "} <br/>
-                  <span className="text-amber-600 font-semibold">ledan.associe@gmail.com</span>
+                  <span className="text-amber-600 font-semibold">{SITE.email || "Adresse de contact bientôt disponible"}</span>
                 </p>
               </div>
             </div>

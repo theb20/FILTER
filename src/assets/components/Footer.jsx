@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { SITE } from "../config/site.js";
 import {useLocation} from "react-router-dom";
 import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 
@@ -20,12 +21,12 @@ const Footer = () => {
                 <div className="md:w-10 md:h-10 w-9 h-9">
                   <img src="/img/logo/favicon.svg" className="w-full" alt="" />
                 </div>
-                <span className="text-gray-800 dark:text-white">HLEA</span>
+                <span className="text-gray-800 dark:text-white">Filter Finder</span>
                 </a>
             </div>              
             
               <p className="text-sm text-sub leading-relaxed">
-                Donner vie aux idées pour illuminer votre vision.
+                Votre spécialiste des filtres automobiles en Côte d'Ivoire.
               </p>
             </div>
             <div className="text-dark">
@@ -63,7 +64,7 @@ const Footer = () => {
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-500">
-              © {new Date().getFullYear()} HLEA. Tous droits réservés.
+              © {new Date().getFullYear()} Filter Finder — édité par {SITE.publisher}. Tous droits réservés.
             </p>
             <div className="flex items-center text-dark gap-4 text-sm">
               <a href="#" className="hover:text-amber-600 transition-colors">Politique de confidentialité</a>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SITE } from "../config/site.js";
 import { 
   Building, User, Mail, Phone, MapPin, Calendar, Plus, Trash2, 
   Save, Send, Download, FileText, Calculator, CheckCircle, 
@@ -347,7 +348,7 @@ const QuoteComponent = ({ closePopup }) => {
                       type="tel"
                       value={quoteData.clientPhone}
                       onChange={(e) => handleInputChange("clientPhone", e.target.value)}
-                      placeholder="+33 6 12 34 56 78"
+                      placeholder="+225 ..."
                       className={`w-full pl-11 pr-4 py-3 border ${
                         errors.clientPhone ? "border-red-500 bg-red-50" : "border-slate-300"
                       } rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500`}
@@ -928,15 +929,14 @@ const QuoteComponent = ({ closePopup }) => {
                       <Building className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold text-slate-900">Votre Entreprise</h1>
-                      <p className="text-slate-600">Plateforme Professionnelle</p>
+                      <h1 className="text-2xl font-bold text-slate-900">{SITE.name}</h1>
+                      <p className="text-slate-600">Filtres automobiles — Côte d'Ivoire</p>
                     </div>
                   </div>
                   <div className="text-sm text-slate-600 space-y-1">
-                    <p>123 Avenue des Champs-Élysées</p>
-                    <p>75008 Paris, France</p>
-                    <p>contact@entreprise.com</p>
-                    <p>+33 1 23 45 67 89</p>
+                    <p>{SITE.country}</p>
+                    <p>{SITE.email || "Email à renseigner"}</p>
+                    <p>{SITE.phone || "Téléphone à renseigner"}</p>
                   </div>
                 </div>
                 <div className="text-right">

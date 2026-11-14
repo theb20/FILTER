@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Mail, ArrowUpRight, Paperclip } from "lucide-react";
+import { SITE } from "../config/site.js";
 
 const ContactPage = () => {
   const [index, setIndex] = useState(0);
@@ -367,13 +368,19 @@ const ContactPage = () => {
             et vous accompagner dans vos démarches.
           </p>
 
-          <a
-            href="mailto:contact@filterfinder.com"
-            className="inline-flex items-center gap-3 mt-8 bg-black text-white px-7 py-4 rounded-full hover:bg-amber-500 transition"
-          >
-            <Mail size={18} />
-            Nous envoyer un email
-          </a>
+          {SITE.email ? (
+            <a
+              href={`mailto:${SITE.email}`}
+              className="inline-flex items-center gap-3 mt-8 bg-black text-white px-7 py-4 rounded-full hover:bg-amber-500 transition"
+            >
+              <Mail size={18} />
+              Nous envoyer un email
+            </a>
+          ) : (
+            <p className="mt-8 text-sm text-gray-500">
+              Adresse email de contact bientôt disponible.
+            </p>
+          )}
 
         </div>
       </section>

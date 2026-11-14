@@ -89,8 +89,8 @@ const AuthSplit = () => {
           </div>
           <div className="m-8 p-4 text-white flex flex-col space-y-3 h-full z-10 relative">
             <div>
-              <h2 className="text-3xl font-bold mb-2">Bienvenue chez <br/>HLEA</h2>
-              <p className="text-white/90 text-sm">HOLDING LEDAN ET ASSOCIE | Bring ideas into reality.</p>
+              <h2 className="text-3xl font-bold mb-2">Bienvenue chez <br/>Filter Finder</h2>
+              <p className="text-white/90 text-sm">Votre spécialiste des filtres automobiles.</p>
             </div>
             
           </div>
@@ -103,8 +103,8 @@ const AuthSplit = () => {
             </h1>
             <p className="text-gray-200 dark:text-gray-300 mb-6">
               {isLogin
-                ? "Connectez-vous pour accéder à toutes les fonctionnalités de HLEA."
-                : "Inscrivez-vous pour commencer à utiliser HLEA."}
+                ? "Connectez-vous pour accéder à toutes les fonctionnalités de Filter Finder."
+                : "Inscrivez-vous pour commencer à utiliser Filter Finder."}
             </p>
 
             <div className="space-y-4">

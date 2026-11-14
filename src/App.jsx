@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { PopupProvider } from "./assets/configurations/PopupContext.jsx";
+import { NotificationProvider } from "./assets/configurations/NotificationProvider.jsx";
 
 // Layout principal
 import Layout from "./assets/components/layout.jsx";
@@ -29,6 +30,7 @@ const NotFound = () => (
 function App() {
   return (
     <div className="min-h-screen relative h-full bg-white dark:bg-gray-900 transition-colors duration-300">
+      <NotificationProvider>
       <PopupProvider>
         <Routes>
           {/* Routes avec layout global */}
@@ -48,6 +50,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </PopupProvider>
+      </NotificationProvider>
     </div>
   );
 }

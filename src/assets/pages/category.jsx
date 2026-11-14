@@ -1,22 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SlidersHorizontal, X, ChevronDown, ChevronUp, Star, Heart,
   ShoppingCart, Eye, Filter, Grid, List, ArrowUpDown, Search,
   MapPin, Truck, Shield, CheckCircle, TrendingUp, Award, Package
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { formatFcfa } from '../data/demoProducts.js';
 
 export default function CategoryPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     
   const [selectedFilters, setSelectedFilters] = useState({
     categories: [],
     brands: [],
-    priceRange: [0, 500],
+    priceRange: [0, 50000],
     ratings: [],
     availability: [],
     features: []
   });
+
+  useEffect(() => {
+    document.title = 'Catalogue — Filter Finder';
+  }, []);
 
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('popularity');
@@ -30,14 +36,14 @@ export default function CategoryPage() {
     features: true
   });
 
-  const products = [
+  const allProducts = [
     {
       id: 1,
       name: "Filtre à Air Premium K&N",
       category: "Filtres à Air",
       brand: "K&N",
-      price: 89.99,
-      originalPrice: 120.00,
+      price: 9000,
+      originalPrice: 12000,
       rating: 4.8,
       reviews: 245,
       image: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&h=400&fit=crop",
@@ -51,8 +57,8 @@ export default function CategoryPage() {
       name: "Filtre à Huile Bosch Pro",
       category: "Filtres à Huile",
       brand: "Bosch",
-      price: 24.99,
-      originalPrice: 29.99,
+      price: 2500,
+      originalPrice: 3000,
       rating: 4.6,
       reviews: 189,
       image: "https://images.unsplash.com/photo-1625047509248-ec889cbff17f?w=400&h=400&fit=crop",
@@ -66,7 +72,7 @@ export default function CategoryPage() {
       name: "Filtre à Carburant Mann",
       category: "Filtres à Carburant",
       brand: "Mann-Filter",
-      price: 34.99,
+      price: 3500,
       rating: 4.7,
       reviews: 156,
       image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400&h=400&fit=crop",
@@ -80,8 +86,8 @@ export default function CategoryPage() {
       name: "Filtre d'Habitacle Mahle",
       category: "Filtres d'Habitacle",
       brand: "Mahle",
-      price: 19.99,
-      originalPrice: 25.99,
+      price: 2000,
+      originalPrice: 2500,
       rating: 4.5,
       reviews: 203,
       image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=400&h=400&fit=crop",
@@ -95,8 +101,8 @@ export default function CategoryPage() {
       name: "Kit Filtration Complet Pro",
       category: "Kits",
       brand: "FilterPro",
-      price: 149.99,
-      originalPrice: 199.99,
+      price: 15000,
+      originalPrice: 20000,
       rating: 4.9,
       reviews: 312,
       image: "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=400&h=400&fit=crop",
@@ -110,7 +116,7 @@ export default function CategoryPage() {
       name: "Filtre à Air Sport Airaid",
       category: "Filtres à Air",
       brand: "Airaid",
-      price: 119.99,
+      price: 12000,
       rating: 4.7,
       reviews: 178,
       image: "https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=400&h=400&fit=crop",
@@ -124,8 +130,8 @@ export default function CategoryPage() {
       name: "Filtre à Huile Mobile 1",
       category: "Filtres à Huile",
       brand: "Mobile 1",
-      price: 29.99,
-      originalPrice: 35.99,
+      price: 3000,
+      originalPrice: 3500,
       rating: 4.8,
       reviews: 267,
       image: "https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=400&h=400&fit=crop",
@@ -139,7 +145,7 @@ export default function CategoryPage() {
       name: "Filtre à Carburant Fram",
       category: "Filtres à Carburant",
       brand: "Fram",
-      price: 27.99,
+      price: 3000,
       rating: 4.4,
       reviews: 134,
       image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=400&fit=crop",
@@ -149,6 +155,14 @@ export default function CategoryPage() {
       features: ["Efficacité Maximum", "Durable"]
     }
   ];
+
+  // Recherche venant du header : /category?q=terme
+  const query = (searchParams.get('q') || '').trim().toLowerCase();
+  const products = query
+    ? allProducts.filter((p) =>
+        [p.name, p.category, p.brand].some((v) => v.toLowerCase().includes(query)),
+      )
+    : allProducts;
 
   const filterOptions = {
     categories: [
@@ -210,7 +224,7 @@ export default function CategoryPage() {
     setSelectedFilters({
       categories: [],
       brands: [],
-      priceRange: [0, 500],
+      priceRange: [0, 50000],
       ratings: [],
       availability: [],
       features: []
@@ -237,34 +251,14 @@ export default function CategoryPage() {
             Trouvez le filtre parfait pour votre véhicule parmi notre sélection premium
           </p>
           
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <Package className="w-6 h-6 mb-2" />
-              <p className="text-2xl font-bold">700+</p>
-              <p className="text-sm text-amber-100">Produits</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <Award className="w-6 h-6 mb-2" />
-              <p className="text-2xl font-bold">50+</p>
-              <p className="text-sm text-amber-100">Marques</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <Truck className="w-6 h-6 mb-2" />
-              <p className="text-2xl font-bold">24h</p>
-              <p className="text-sm text-amber-100">Livraison</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <Shield className="w-6 h-6 mb-2" />
-              <p className="text-2xl font-bold">100%</p>
-              <p className="text-sm text-amber-100">Garantie</p>
-            </div>
-          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        
+        <p className="mb-4 flex items-center gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          Données de démonstration : produits, marques, prix, notes et avis sont fictifs.
+          {query && <span className="ml-auto font-medium">Recherche : « {searchParams.get('q')} »</span>}
+        </p>
 
         {/* Toolbar */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -435,7 +429,8 @@ export default function CategoryPage() {
                       <input
                         type="range"
                         min="0"
-                        max="500"
+                        max="50000"
+                        step="500"
                         value={selectedFilters.priceRange[1]}
                         onChange={(e) => setSelectedFilters(prev => ({
                           ...prev,
@@ -444,8 +439,8 @@ export default function CategoryPage() {
                         className="w-full"
                       />
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span>0 €</span>
-                        <span className="font-semibold">{selectedFilters.priceRange[1]} €</span>
+                        <span>0 FCFA</span>
+                        <span className="font-semibold">{formatFcfa(selectedFilters.priceRange[1])}</span>
                       </div>
                     </div>
                   )}
@@ -543,7 +538,7 @@ export default function CategoryPage() {
           </aside>
 
           {/* Products Grid */}
-          <main className="flex-1">
+          <div className="flex-1">
             <div className={`grid gap-6 ${
               viewMode === 'grid' 
                 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
@@ -649,11 +644,11 @@ export default function CategoryPage() {
                         <div>
                           {product.originalPrice && (
                             <span className="text-sm text-gray-500 line-through mr-2">
-                              {product.originalPrice.toFixed(2)} €
+                              {formatFcfa(product.originalPrice)}
                             </span>
                           )}
                           <span className="text-2xl font-bold text-gray-900">
-                            {product.price.toFixed(2)} €
+                            {formatFcfa(product.price)}
                           </span>
                         </div>
                         {product.inStock && (
@@ -681,7 +676,7 @@ export default function CategoryPage() {
                 ))
               )}
             </div>
-          </main>
+          </div>
         </div>
 
 
@@ -773,7 +768,8 @@ export default function CategoryPage() {
                       <input
                         type="range"
                         min="0"
-                        max="500"
+                        max="50000"
+                        step="500"
                         value={selectedFilters.priceRange[1]}
                         onChange={(e) => setSelectedFilters(prev => ({
                           ...prev,
@@ -782,8 +778,8 @@ export default function CategoryPage() {
                         className="w-full"
                       />
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span>0 €</span>
-                        <span className="font-semibold">{selectedFilters.priceRange[1]} €</span>
+                        <span>0 FCFA</span>
+                        <span className="font-semibold">{formatFcfa(selectedFilters.priceRange[1])}</span>
                       </div>
                     </div>
                   )}
