@@ -171,7 +171,7 @@ const QuoteComponent = ({ closePopup }) => {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Créer un Devis</h1>
+              <h2 className="text-xl font-bold">Créer un Devis</h2>
               <p className="text-sm text-slate-300">Gestion professionnelle de devis</p>
             </div>
           </div>
@@ -917,7 +917,7 @@ const QuoteComponent = ({ closePopup }) => {
                       <Building className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold text-slate-900">{SITE.name}</h1>
+                      <h2 className="text-2xl font-bold text-slate-900">{SITE.name}</h2>
                       <p className="text-slate-600">Filtres automobiles — Côte d'Ivoire</p>
                     </div>
                   </div>

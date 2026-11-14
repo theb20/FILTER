@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Cookie, X, Shield, ChevronDown, CheckCircle2, Info } from 'lucide-react';
 
 const STORAGE_KEY = "ff_cookie_consent";
@@ -250,13 +251,13 @@ export default function CookiePopup() {
 
           <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-500 text-center">
-              <a href="/privacy" className="text-amber-600 hover:text-amber-700 font-medium hover:underline transition-colors">
+              <Link to="/privacy" className="text-amber-600 hover:text-amber-700 font-medium hover:underline transition-colors">
                 Politique de confidentialité
-              </a>
+              </Link>
               {' • '}
-              <a href="/privacy" className="text-amber-600 hover:text-amber-700 font-medium hover:underline transition-colors">
+              <Link to="/privacy" className="text-amber-600 hover:text-amber-700 font-medium hover:underline transition-colors">
                 Politique des cookies
-              </a>
+              </Link>
             </p>
           </div>
         </div>

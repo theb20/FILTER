@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { SITE } from "../config/site.js";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { SITE, DEMO_NOTICE } from "../config/site.js";
+import { useNotify } from "../configurations/notificationContext.js";
 import {
   FaSearch,
   FaShoppingCart,
@@ -15,6 +16,8 @@ import {
 const Header = ({openPopup}) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const notify = useNotify();
+    const [searchTerm, setSearchTerm] = useState("");
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
@@ -30,9 +33,11 @@ const Header = ({openPopup}) => {
       setShowSearch(false);
     };
 
-    // Fonction pour gérer la navigation et fermer les menus
-    const handleNavigation = (path) => {
-      navigate(path);
+    // Recherche : envoie vers /category?q=<terme>
+    const handleSearch = (e) => {
+      e.preventDefault();
+      const term = searchTerm.trim();
+      navigate(term ? `/category?q=${encodeURIComponent(term)}` : "/category");
       closeAllMenus();
     };
 
@@ -58,14 +63,17 @@ const Header = ({openPopup}) => {
             </span>
             </div>
             <div className="flex items-center gap-4">
-            <a onClick={() => openPopup('quote')} className="dark:text-gray-300 hover:text-amber-500 cursor-pointer">Demander un devis</a>
-            <a href="#" className="dark:text-gray-300 hover:text-amber-500">Suivre ma commande</a>
+            <button type="button" onClick={() => openPopup('quote')} className="dark:text-gray-300 hover:text-amber-500 cursor-pointer">Demander un devis</button>
+            <Link to="/profil" className="dark:text-gray-300 hover:text-amber-500">Mes commandes</Link>
             </div>
         </div>
 
         {/* ===== Barre principale ===== */}
         <div className="flex items-center justify-between px-4 md:px-8 py-3">
             <button
+                type="button"
+                aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+                aria-expanded={menuOpen}
                 className="md:hidden text-2xl cursor-pointer hover:text-amber-500 border-0 transition-transform hover:scale-110"
                 onClick={() => {
                   setMenuOpen(!menuOpen);
@@ -75,66 +83,92 @@ const Header = ({openPopup}) => {
                 {menuOpen ? <FaTimes /> : <FaBars />}
             </button>
             
-            {/* Logo */}
-            <h1 
-              onClick={() => handleNavigation("/")} 
-              className="font-extrabold w-full flex items-center justify-center lg:w-auto text-center lg:text-left text-3xl md:text-6xl text-amber-500 cursor-pointer select-none"
+            {/* Logo (lien, pas un titre : un seul h1 par page) */}
+            <Link
+              to="/"
+              onClick={closeAllMenus}
+              aria-label="Filter Finder — accueil"
+              className="font-extrabold w-full flex items-center justify-center lg:w-auto text-center lg:text-left text-3xl md:text-6xl text-amber-500 select-none"
             >
               <div className="md:w-16 md:h-16 w-12 h-12">
                 <img src="/img/logo/favicon.svg" className="w-full" alt="" />
               </div>
               <span className="text-gray-800 dark:text-white">Filter Finder</span>
-            </h1>
+            </Link>
             {/* Barre de recherche (desktop) */}
             {!isHomePage && (
             
-            <div className="hidden md:flex items-center bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-full w-1/2 focus-within:ring-2 focus-within:ring-amber-400">
-            <FaSearch className="text-gray-400 mr-2" />
+            <form
+              role="search"
+              onSubmit={handleSearch}
+              className="hidden md:flex items-center bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-full w-1/2 focus-within:ring-2 focus-within:ring-amber-400"
+            >
+            <FaSearch className="text-gray-400 mr-2" aria-hidden="true" />
             <input
-                type="text"
-                placeholder="Rechercher un produit, une catégorie..."
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Rechercher un filtre, une référence ou une catégorie"
+                placeholder="Rechercher un filtre, une référence..."
                 className="bg-transparent outline-none w-full py-3 text-sm text-gray-700 dark:text-gray-200"
             />
-            </div>
+            </form>
             )}
 
             {/* Barre de navigation principale */}
             {isHomePage && (
             <div className="hidden md:flex justify-center  dark:bg-gray-800 py-3 ">
                 <nav className="flex space-x-8 font-medium text-gray-700 dark:text-gray-200">
-                <a href="/category" className="hover:text-amber-500">Nouveautés</a>
-                <a href="#" className="hover:text-amber-500">Promotions</a>
-                <a href="#" className="hover:text-amber-500">Filtres à air</a>
-                <a href="#" className="hover:text-amber-500">Filtres à huile</a>
-                <a href="#" className="hover:text-amber-500">Accessoires</a>
-                <a href="/contact" className="hover:text-amber-500">Contact</a>
+                <Link to="/category" className="hover:text-amber-500">Catalogue</Link>
+                <Link to="/category?q=air" className="hover:text-amber-500">Filtres à air</Link>
+                <Link to="/category?q=huile" className="hover:text-amber-500">Filtres à huile</Link>
+                <Link to="/category?q=carburant" className="hover:text-amber-500">Filtres à carburant</Link>
+                <Link to="/contact" className="hover:text-amber-500">Contact</Link>
                 </nav>
             </div>
             )}
 
             <div className="flex items-center md:space-x-4 space-x-3">
-                <FaHeart className="text-xl hidden md:flex cursor-pointer hover:text-amber-500 transition-transform hover:scale-110" />
-                
+                <button
+                  type="button"
+                  aria-label="Favoris"
+                  onClick={() => notify(DEMO_NOTICE, "demo")}
+                  className="text-xl hidden md:flex cursor-pointer hover:text-amber-500 transition-transform hover:scale-110"
+                >
+                  <FaHeart aria-hidden="true" />
+                </button>
+
                 {/* Icône recherche mobile */}
                 <button
+                    type="button"
+                    aria-label="Rechercher"
+                    aria-expanded={showSearch}
                     className="md:hidden text-xl cursor-pointer hover:text-amber-500 transition-transform hover:scale-110"
                     onClick={() => {
                       setShowSearch(!showSearch);
                       if (menuOpen) setMenuOpen(false);
                     }}
                 >
-                    <FaSearch />
+                    <FaSearch aria-hidden="true" />
                 </button>
-                
-                <FaShoppingCart 
-                  onClick={() => handleNavigation("/basket")} 
-                  className="text-xl cursor-pointer hover:text-amber-500 transition-transform hover:scale-110" 
-                />
-                
-                <FaUser 
-                  onClick={() => handleNavigation("/sign")} 
-                  className="text-xl hidden md:flex cursor-pointer hover:text-amber-500 transition-transform hover:scale-110" 
-                />
+
+                <Link
+                  to="/basket"
+                  aria-label="Panier"
+                  onClick={closeAllMenus}
+                  className="text-xl cursor-pointer hover:text-amber-500 transition-transform hover:scale-110"
+                >
+                  <FaShoppingCart aria-hidden="true" />
+                </Link>
+
+                <Link
+                  to="/sign"
+                  aria-label="Mon compte"
+                  onClick={closeAllMenus}
+                  className="text-xl hidden md:flex cursor-pointer hover:text-amber-500 transition-transform hover:scale-110"
+                >
+                  <FaUser aria-hidden="true" />
+                </Link>
             </div>
         </div>
 
@@ -142,14 +176,11 @@ const Header = ({openPopup}) => {
         {!isHomePage && (
         <div className="hidden md:flex justify-center bg-gray-50 dark:bg-gray-800 py-3 border-t border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-8 font-medium text-gray-700 dark:text-gray-200">
-              {!isHomePage && (
-                <a href="/" className="hover:text-amber-500">Accueil</a>
-              )}
-              <a href="#" className="hover:text-amber-500">Promotions</a>
-              <a href="#" className="hover:text-amber-500">Filtres à air</a>
-              <a href="#" className="hover:text-amber-500">Filtres à huile</a>
-              <a href="#" className="hover:text-amber-500">Accessoires</a>
-              <a href="/contact" className="hover:text-amber-500">Contact</a>
+              <Link to="/" className="hover:text-amber-500">Accueil</Link>
+              <Link to="/category?q=air" className="hover:text-amber-500">Filtres à air</Link>
+              <Link to="/category?q=huile" className="hover:text-amber-500">Filtres à huile</Link>
+              <Link to="/category?q=carburant" className="hover:text-amber-500">Filtres à carburant</Link>
+              <Link to="/contact" className="hover:text-amber-500">Contact</Link>
             </nav>
         </div>
         )}
@@ -161,34 +192,12 @@ const Header = ({openPopup}) => {
         >
             <nav className="flex flex-col items-center py-4 space-y-3 text-gray-700 dark:text-gray-200 font-medium">
               {!isHomePage && (
-                <a 
-                  onClick={() => handleNavigation("/")}
-                  className="hover:text-amber-500 transition-colors cursor-pointer"
-                >
-                  Accueil
-                </a>
+                <Link to="/" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Accueil</Link>
               )}
-            <a href="/category" className="hover:text-amber-500 transition-colors">Produits</a>
-            <a href="#" className="hover:text-amber-500 transition-colors">Catégories</a>
-            <a href="#" className="hover:text-amber-500 transition-colors">Promotions</a>
-            <a 
-              onClick={() => handleOpenPopup('quote')} 
-              className="hover:text-amber-500 transition-colors cursor-pointer"
-            >
-              Devis
-            </a>
-            <a 
-              onClick={() => handleNavigation("/sign")}
-              className="hover:text-amber-500 transition-colors cursor-pointer"
-            >
-              Se connecter
-            </a>
-            <a 
-              onClick={() => handleNavigation("/contact")}
-              className="hover:text-amber-500 transition-colors cursor-pointer"
-            >
-              Contact
-            </a>
+              <Link to="/category" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Catalogue</Link>
+              <button type="button" onClick={() => handleOpenPopup('quote')} className="hover:text-amber-500 transition-colors cursor-pointer">Devis</button>
+              <Link to="/sign" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Se connecter</Link>
+              <Link to="/contact" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Contact</Link>
             </nav>
         </div>
 
@@ -200,7 +209,7 @@ const Header = ({openPopup}) => {
                 : "max-h-0 opacity-0 -translate-y-4"
             }`}
         >
-            <div className="p-4 flex items-center justify-center">
+            <form role="search" onSubmit={handleSearch} className="p-4 flex items-center justify-center">
             <div className={`bg-gray-100 dark:bg-gray-800 backdrop-blur-lg rounded-full px-4 py-2 flex items-center w-full transition-all duration-500 ${
                 showSearch 
                 ? "scale-100 opacity-100" 
@@ -212,12 +221,17 @@ const Header = ({openPopup}) => {
                     : "rotate-90 scale-0"
                 }`} />
                 <input
-                type="text"
-                placeholder="Rechercher un produit..."
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Rechercher un filtre"
+                placeholder="Rechercher un filtre..."
                 className="bg-transparent py-3 outline-none w-full text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
                 autoFocus={showSearch}
                 />
                 <button
+                type="button"
+                aria-label="Fermer la recherche"
                 onClick={() => setShowSearch(false)}
                 className={`ml-2 text-gray-400 hover:text-amber-500 transition-all duration-300 ${
                     showSearch 
@@ -228,16 +242,16 @@ const Header = ({openPopup}) => {
                 <FaTimes />
                 </button>
             </div>
-            </div>
+            </form>
         </div>
         </header>
      )}
       {/* barre for contact */}
         {isContactPage && (
           <div className="absolute top-0 left-0 w-full dark:bg-gray-800 text-black dark:text-white py-10 px-24 flex items-center justify-between z-[1000]">
-              <div className="logo">
+              <Link to="/" className="logo" aria-label="Filter Finder — accueil">
                 <img src="/img/logo/favicon.svg" className="w-22" alt="" />
-              </div>
+              </Link>
           </div>
         )}
     </>

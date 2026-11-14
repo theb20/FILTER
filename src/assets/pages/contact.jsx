@@ -91,9 +91,9 @@ const ContactPage = () => {
 
           {showForm && !profile ? (
             <div className="word-change relative z-10 w-full px-8 py-16 sm:px-12 lg:px-12 xl:px-16 max-w-2xl">
-              <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-3">
+              <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-3">
                 Vous êtes ?
-              </h2>
+              </h1>
               <p className="text-gray-500 mb-8">
                 Choisissez votre profil pour un formulaire adapté.
               </p>
@@ -136,9 +136,9 @@ const ContactPage = () => {
             >
               {sent ? (
                 <div>
-                  <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-4">
+                  <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-4">
                     Démonstration
-                  </h2>
+                  </h1>
                   <p className="text-gray-500 text-lg leading-8 mb-8">
                     {DEMO_NOTICE} Votre message n'a pas été envoyé.
                   </p>
@@ -156,9 +156,9 @@ const ContactPage = () => {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-4">
+                  <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-black mb-4">
                     {isCompany ? "Contact entreprise" : "Écrivez-nous"}
-                  </h2>
+                  </h1>
                   <p className="mb-6 rounded-lg bg-amber-100 text-amber-900 text-sm px-3 py-2" role="note">
                     {DEMO_NOTICE}
                   </p>
