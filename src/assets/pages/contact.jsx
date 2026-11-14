@@ -99,6 +99,7 @@ const ContactPage = () => {
                   { id: "particulier", label: "Particulier", desc: "Une question, un besoin personnel" },
                   { id: "entreprise", label: "Entreprise", desc: "Un projet ou un partenariat professionnel" },
                 ].map((opt) => (
+                   
                   <button
                     key={opt.id}
                     type="button"

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { SITE, DEMO_NOTICE } from "../config/site.js";
 import { useNotify } from "../configurations/notificationContext.js";
 import { 
@@ -7,8 +8,14 @@ import {
   AlertCircle, X, Eye, Edit2, Percent, Euro
 } from "lucide-react";
 
-const QuoteComponent = ({ closePopup }) => {
+const QuoteComponent = () => {
   const notify = useNotify();
+  const navigate = useNavigate();
+  const closePage = () => navigate("/");
+
+  useEffect(() => {
+    document.title = "Demande de devis — Filter Finder";
+  }, []);
   const [showPreview, setShowPreview] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -162,23 +169,24 @@ const QuoteComponent = ({ closePopup }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="w-full max-w-7xl bg-white rounded-2xl shadow-2xl max-h-[95vh] overflow-y-auto my-8">
+    <div className="min-h-screen bg-slate-50 px-4 py-8">
+      <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-lg">
         {/* Header avec bouton fermer */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 flex items-center justify-between rounded-t-2xl shadow-lg">
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 flex items-center justify-between rounded-t-2xl shadow-lg">
           <div className="flex items-center gap-3">
             <div className="bg-amber-500 p-2 rounded-lg">
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Créer un Devis</h2>
+              <h1 className="text-xl font-bold">Demande de devis</h1>
               <p className="text-sm text-slate-300">Gestion professionnelle de devis</p>
             </div>
           </div>
           <button
-            onClick={closePopup}
+            onClick={closePage}
             className="w-10 h-10 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
             title="Fermer"
+            aria-label="Fermer et revenir à l'accueil"
           >
             <X className="w-6 h-6" />
           </button>
@@ -884,7 +892,7 @@ const QuoteComponent = ({ closePopup }) => {
                   ← Précédent
                 </button>
                 <button
-                  onClick={closePopup}
+                  onClick={closePage}
                   className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors shadow-md hover:shadow-lg"
                 >
                   Terminer

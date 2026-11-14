@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import { PopupProvider } from "./assets/configurations/PopupContext.jsx";
 import { NotificationProvider } from "./assets/configurations/NotificationProvider.jsx";
 
 // Layout principal
@@ -15,6 +14,7 @@ const Category = lazy(() => import("./assets/pages/category.jsx"));
 const Card = lazy(() => import("./assets/pages/card.jsx"));
 const Home = lazy(() => import("./assets/pages/home.jsx"));
 const Profil = lazy(() => import("./assets/pages/profil.jsx"));
+const Quote = lazy(() => import("./assets/pages/quote.jsx"));
 const Privacy = lazy(() => import("./assets/pages/privacy.jsx"));
 
 const NotFound = () => {
@@ -41,7 +41,6 @@ function App() {
   return (
     <div className="min-h-screen relative h-full bg-white dark:bg-gray-900 transition-colors duration-300">
       <NotificationProvider>
-        <PopupProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Routes avec layout global */}
@@ -54,6 +53,7 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/card" element={<Card />} />
                 <Route path="/profil" element={<Profil />} />
+                <Route path="/quote" element={<Quote />} />
                 <Route path="/privacy" element={<Privacy />} />
               </Route>
 
@@ -61,7 +61,6 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </PopupProvider>
       </NotificationProvider>
     </div>
   );

@@ -13,7 +13,7 @@ import {
   FaPhoneAlt,
 } from "react-icons/fa";
 
-const Header = ({openPopup}) => {
+const Header = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const notify = useNotify();
@@ -41,13 +41,6 @@ const Header = ({openPopup}) => {
       closeAllMenus();
     };
 
-    // Fonction pour ouvrir le popup et fermer les menus
-    const handleOpenPopup = (type) => {
-      openPopup(type);
-      closeAllMenus();
-    };
-
-    
   return (
     <>
      {!isSignPage && !isResetPage && !isContactPage && (
@@ -63,7 +56,7 @@ const Header = ({openPopup}) => {
             </span>
             </div>
             <div className="flex items-center gap-4">
-            <button type="button" onClick={() => openPopup('quote')} className="dark:text-gray-300 hover:text-amber-500 cursor-pointer">Demander un devis</button>
+            <Link to="/quote" className="dark:text-gray-300 hover:text-amber-500">Demander un devis</Link>
             <Link to="/profil" className="dark:text-gray-300 hover:text-amber-500">Mes commandes</Link>
             </div>
         </div>
@@ -195,7 +188,7 @@ const Header = ({openPopup}) => {
                 <Link to="/" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Accueil</Link>
               )}
               <Link to="/category" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Catalogue</Link>
-              <button type="button" onClick={() => handleOpenPopup('quote')} className="hover:text-amber-500 transition-colors cursor-pointer">Devis</button>
+              <Link to="/quote" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Devis</Link>
               <Link to="/sign" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Se connecter</Link>
               <Link to="/contact" onClick={closeAllMenus} className="hover:text-amber-500 transition-colors">Contact</Link>
             </nav>
