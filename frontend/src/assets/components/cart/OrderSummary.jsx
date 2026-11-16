@@ -23,10 +23,10 @@ export default function OrderSummary({
         {totals.discount > 0 && <Row label={t("cart.discount")} className="text-green-700">−{formatPrice(totals.discount)}</Row>}
         <Row label={t("cart.shipping")}>{totals.freeShipping ? <span className="font-medium text-green-700">{t("cart.free")}</span> : formatPrice(totals.shipping)}</Row>
         <Row label={t("cart.ht")} className="border-t border-gray-200 pt-2 font-medium">{formatPrice(totals.ht)}</Row>
-        <Row label={t("cart.vat", { rate: Math.round(vatRate * 100) })} className="text-gray-600">{formatPrice(totals.vat)}</Row>
-        <Row label={t("cart.ttc")} className="border-t border-gray-200 pt-3 text-[20px] font-bold">{formatPrice(totals.ttc)}</Row>
+        {vatRate !== null && <Row label={t("cart.vat", { rate: Math.round(vatRate * 100) })} className="text-gray-600">{formatPrice(totals.vat)}</Row>}
+        <Row label={vatRate !== null ? t("cart.ttc") : t("cart.ht")} className="border-t border-gray-200 pt-3 text-[20px] font-bold">{formatPrice(vatRate !== null ? totals.ttc : totals.ht)}</Row>
       </dl>
-      <p className="mt-1 text-xs text-gray-500">{t("cart.vatNote")}</p>
+      {vatRate !== null && <p className="mt-1 text-xs text-gray-500">{t("cart.vatNote")}</p>}
 
       <div className="mt-5">
         <label htmlFor="order-note" className="block text-sm font-medium">
@@ -61,9 +61,9 @@ export default function OrderSummary({
             <Download size={16} aria-hidden="true" /> {t("cart.quotePdf")}
           </button>
         </div>
-      ) : (
+      ) : quoteThresholds.minItems === null && quoteThresholds.minAmount === null ? null : (
         <p className="mt-3 rounded-[3px] bg-gray-50 p-3 text-sm text-gray-700" aria-live="polite">
-          {t("cart.quote.locked", { items: quoteThresholds.minItems, amount: formatPrice(quoteThresholds.minAmount) })}
+          {t("cart.quote.locked", { items: quoteThresholds.minItems ?? "—", amount: quoteThresholds.minAmount === null ? "—" : formatPrice(quoteThresholds.minAmount) })}
           {!empty && (
             <span className="mt-1 block font-medium">
               {t("cart.quote.remaining", { items: quote.remainingItems, amount: formatPrice(quote.remainingAmount) })}
@@ -77,7 +77,6 @@ export default function OrderSummary({
         <PaymentMethods />
       </div>
 
-      <p className="mt-4 rounded-[3px] bg-info p-2 text-sm">{t("demo.notice")}</p>
     </aside>
   );
 }

@@ -1,23 +1,25 @@
 import { useState } from "react";
 import { BadgeCheck } from "lucide-react";
 import Stars from "../Stars.jsx";
-import { DEMO_REVIEWS, REVIEWS_PREVIEW } from "../../data/productMocks.js";
+import { REVIEWS, REVIEWS_PREVIEW } from "../../data/catalog.js";
 import { ratingStats } from "../../lib/productUtils.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 
-// Avis clients (DÉMONSTRATION) : note moyenne, répartition, 3 avis puis « Voir tous les avis ».
+// Avis clients RÉELS uniquement : note moyenne, répartition, 3 avis puis « Voir tous les avis ».
 export default function ReviewsPanel() {
   const { t, locale } = useI18n();
   const [all, setAll] = useState(false);
-  const stats = ratingStats(DEMO_REVIEWS);
-  const shown = all ? DEMO_REVIEWS : DEMO_REVIEWS.slice(0, REVIEWS_PREVIEW);
+  const stats = ratingStats(REVIEWS);
+  const shown = all ? REVIEWS : REVIEWS.slice(0, REVIEWS_PREVIEW);
   const date = (iso) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(`${iso}T12:00:00`));
 
   return (
     <section id="reviews" aria-labelledby="pd-reviews-title" className="rounded-[8px] bg-white p-5 shadow-card">
       <h2 id="pd-reviews-title" className="text-[20px] font-bold">{t("pd.reviews")}</h2>
-      <p className="mt-1 rounded-[3px] bg-info px-2 py-1 text-xs" role="note">{t("pd.reviews.demo")}</p>
 
+      {REVIEWS.length === 0 ? (
+        <p className="mt-3 text-gray-700">{t("pd.reviews.none")}</p>
+      ) : (<>
       <div className="mt-3 flex items-center gap-3">
         <p className="text-[40px] font-bold leading-none">{stats.average.toLocaleString(locale)}</p>
         <div>
@@ -49,11 +51,12 @@ export default function ReviewsPanel() {
         ))}
       </ul>
 
-      {DEMO_REVIEWS.length > REVIEWS_PREVIEW && (
+      {REVIEWS.length > REVIEWS_PREVIEW && (
         <button type="button" onClick={() => setAll((v) => !v)} aria-expanded={all} className="mt-2 w-full rounded-[4px] border border-gray-300 py-2 font-medium text-link hover:bg-gray-50">
           {all ? t("pd.reviews.less") : t("pd.reviews.all")}
         </button>
       )}
+      </>)}
     </section>
   );
 }

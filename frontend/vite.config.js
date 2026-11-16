@@ -44,9 +44,11 @@ export default defineConfig({
     },
   },
   server: {
-    host: '0.0.0.0', // plus d'exposition sur le réseau local
-    port: 3001,
-    open: true,
-    strictPort: false,
+    host: '127.0.0.1', // développement : pas d'exposition sur le réseau local
+    port: 5173,
+    open: false,
+    strictPort: true, // port fixe : il figure dans la liste blanche CORS/CSRF du gateway
+    // Même origine que le site : pas de CORS, et le cookie de session (SameSite=Strict) reste attaché.
+    proxy: { '/v1': { target: process.env.API_URL ?? 'http://127.0.0.1:8080', changeOrigin: false } },
   },
 })

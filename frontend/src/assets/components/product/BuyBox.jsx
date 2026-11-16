@@ -4,7 +4,7 @@ import { CalendarCheck, ShoppingCart } from "lucide-react";
 import PaymentMethods from "../PaymentMethods.jsx";
 import QtyStepper from "../cart/QtyStepper.jsx";
 import StockBadge from "../cart/StockBadge.jsx";
-import { LOW_STOCK_THRESHOLD, SHIPPING_ZONES, VAT_RATE } from "../../data/cartMocks.js";
+import { LOW_STOCK_THRESHOLD, SHIPPING_ZONES, VAT_RATE } from "../../data/commerce.js";
 import { clampQty, stockStatus } from "../../lib/cartMath.js";
 import { deliveryWindow } from "../../lib/cartTotals.js";
 import { tierRows } from "../../lib/productUtils.js";

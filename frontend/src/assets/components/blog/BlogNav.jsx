@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { BLOG_CATEGORIES } from "../../data/blogMocks.js";
+import { BLOG_CATEGORIES } from "../../data/blog.js";
 import { buildBlogQuery } from "../../lib/blogFilters.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 

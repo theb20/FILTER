@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Clock } from "lucide-react";
-import { BLOG_TAGS, fetchBlogArticles } from "../data/blogMocks.js";
-import { DEMO_PRODUCTS } from "../data/demoProducts.js";
+import { BLOG_TAGS, fetchBlogArticles } from "../data/blog.js";
+import { PRODUCTS } from "../data/catalog.js";
 import { adjacentArticles, relatedArticles } from "../lib/blogFilters.js";
 import { usePageMeta } from "../lib/usePageMeta.js";
 import { useI18n } from "../i18n/i18nContext.js";
@@ -47,7 +47,7 @@ export default function BlogDetail() {
   if (state.status === "error") return wrap(<div className="mx-2.5 mt-2.5"><BlogState kind="error" onRetry={() => setState({ status: "loading", articles: [] })} /></div>);
   if (!article) return wrap(<div className="mx-2.5 mt-2.5"><BlogState kind="notFound" /></div>);
 
-  const products = article.products.map((id) => DEMO_PRODUCTS.find((p) => p.id === id)).filter(Boolean);
+  const products = article.products.map((id) => PRODUCTS.find((p) => p.id === id)).filter(Boolean);
   const related = relatedArticles(article, state.articles, 3);
   const { older, newer } = adjacentArticles(article, state.articles);
   const lastIndex = article.sections.length - 1;
@@ -137,7 +137,6 @@ export default function BlogDetail() {
         </div>
       </article>
 
-      <p className="mx-2.5 mt-2.5 rounded-[3px] bg-info p-2.5 text-sm" role="note">{t("blog.demo")}</p>
       <CitedProducts products={products} titleKey="blog.products" id="post-products-title" />
 
       {related.length > 0 && (

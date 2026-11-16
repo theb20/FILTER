@@ -1,7 +1,7 @@
 // @ts-check
 // Filtrage, pagination et URL du blog : FONCTIONS PURES (testées dans blogFilters.test.js).
 
-/** @typedef {import("../data/blogMocks.js").BlogArticle} BlogArticle */
+/** @typedef {import("../data/blog.js").BlogArticle} BlogArticle */
 /** @typedef {{ cat: string | null, kind: string | null, tag: string | null, page: number }} BlogParams */
 
 export const PAGE_SIZE = 5; // 1 grande carte + 4 articles en liste

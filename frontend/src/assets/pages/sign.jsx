@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Building2, Check, Eye, EyeOff, User } from "lucide-react";
 import LanguageSwitcher from "../components/LanguageSwitcher.jsx";
 import AccountForm from "../components/AccountForm.jsx";
@@ -7,6 +7,7 @@ import { useNotify } from "../configurations/notificationContext.js";
 import { useI18n } from "../i18n/i18nContext.js";
 import { SITE } from "../config/site.js";
 import Logo from "../components/Logo.jsx";
+import { useAuth } from "../store/authStore.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,6 +36,10 @@ function GoogleIcon() {
 export default function Sign() {
   const { t } = useI18n();
   const notify = useNotify();
+  const navigate = useNavigate();
+  const login = useAuth((a) => a.login);
+  const [pending, setPending] = useState(false);
+  const [formError, setFormError] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [accountType, setAccountType] = useState("particulier"); // "particulier" | "entreprise"
   const [data, setData] = useState({ email: "", password: "" });
@@ -53,7 +58,7 @@ export default function Sign() {
     setShowPassword(false);
   };
 
-  const onSubmit = (ev) => {
+  const onSubmit = async (ev) => {
     ev.preventDefault();
     const e = {};
     const email = data.email.trim();
@@ -66,8 +71,12 @@ export default function Sign() {
       (e.email ? emailRef : passwordRef).current?.focus();
       return;
     }
-    // Aucune authentification réelle : on ne simule pas de succès.
-    notify(t("demo.notice"), "demo");
+    setPending(true);
+    setFormError("");
+    const r = await login(email, data.password);
+    setPending(false);
+    if (r.ok) return navigate("/profil");
+    setFormError(t(r.error, { s: r.retryAfter ?? 60 }));
   };
 
   const change = (ev) => {
@@ -137,6 +146,7 @@ export default function Sign() {
 
             {isLogin ? (
               <form onSubmit={onSubmit} noValidate className="space-y-5">
+                {formError && <p role="alert" className="rounded-[8px] border border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{formError}</p>}
                 <div>
                   <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
                     {t("auth.email")}
@@ -208,9 +218,10 @@ export default function Sign() {
 
                 <button
                   type="submit"
-                  className="w-full rounded-[8px] bg-night px-5 py-3 font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+                  disabled={pending}
+                  className="w-full rounded-[8px] bg-night px-5 py-3 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
                 >
-                  {t("auth.signin")}
+                  {pending ? t("auth.pending") : t("auth.signin")}
                 </button>
               </form>
             ) : (

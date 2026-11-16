@@ -1,7 +1,5 @@
 import { useSearchParams, Link } from "react-router-dom";
-import { DEMO_PRODUCTS } from "../data/demoProducts.js";
-import { CART_PRODUCT_MOCKS } from "../data/cartMocks.js";
-import { DEMO_REVIEWS } from "../data/productMocks.js";
+import { PRODUCTS, PRODUCT_EXTRAS, REVIEWS } from "../data/catalog.js";
 import { ratingStats, relatedProducts } from "../lib/productUtils.js";
 import { usePageMeta } from "../lib/usePageMeta.js";
 import { useI18n } from "../i18n/i18nContext.js";
@@ -19,12 +17,24 @@ import ReassuranceStrip from "../components/sections/ReassuranceStrip.jsx";
 export default function ProductDetail() {
   const { t } = useI18n();
   const [params] = useSearchParams();
-  const product = DEMO_PRODUCTS.find((p) => String(p.id) === params.get("id")) ?? DEMO_PRODUCTS[0];
-  const mock = CART_PRODUCT_MOCKS[product.id];
-  const name = t(`prod.${product.id}`);
-  const stats = ratingStats(DEMO_REVIEWS);
+  const product = PRODUCTS.find((p) => String(p.id) === params.get("id"));
+  const mock = product ? PRODUCT_EXTRAS[product.id] : undefined;
+  const name = product ? t(`prod.${product.id}`) : "";
+  const stats = ratingStats(REVIEWS);
 
-  usePageMeta(t("meta.product", { name }), t("pd.meta.desc", { name, ref: product.reference, brand: product.brand }));
+  usePageMeta(product ? t("meta.product", { name }) : t("meta.notFound"), product ? t("pd.meta.desc", { name, ref: product.reference, brand: product.brand }) : "");
+
+  if (!product || !mock) {
+    return (
+      <div className="mx-2.5 mt-2.5 rounded-[4px] bg-white p-10 text-center shadow-card">
+        <h1 className="text-[32px] font-bold">{t("prod.notFound")}</h1>
+        <p className="mt-2">{t("prod.notFound.text")}</p>
+        <Link to="/category" className="mt-6 inline-flex rounded-[3px] bg-action px-5 py-2.5 font-bold hover:bg-action-dark">
+          {t("cart.browse")} <span aria-hidden="true">&nbsp;→</span>
+        </Link>
+      </div>
+    );
+  }
 
   const faq = [1, 2, 3, 4].map((n) => ({ q: t(`pd.faq.q${n}`), a: t(`pd.faq.a${n}`) }));
   const crumbs = [
@@ -54,13 +64,13 @@ export default function ProductDetail() {
         <div>
           <h1 className="text-[32px] font-bold leading-tight sm:text-[36px]">{name}</h1>
           <p className="mt-1 text-gray-700">{t("prod.reference")} : <strong>{product.reference}</strong> · {product.brand}</p>
-          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-            <Stars value={stats.average} />
-            <a href="#reviews" className="text-link hover:underline">{t("pd.reviews.count", { n: stats.count })}</a>
-            <span className="text-gray-500">({t("pd.reviews.demoShort")})</span>
-          </p>
+          {stats.count > 0 && (
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <Stars value={stats.average} />
+              <a href="#reviews" className="text-link hover:underline">{t("pd.reviews.count", { n: stats.count })}</a>
+            </p>
+          )}
           <div className="mt-4"><BuyBox product={product} mock={mock} name={name} /></div>
-          <p className="mt-4 text-sm text-amber-800">{t("prod.demoNote")}</p>
         </div>
       </section>
 
@@ -75,7 +85,7 @@ export default function ProductDetail() {
         </section>
       </div>
 
-      <RelatedProducts products={relatedProducts(product, DEMO_PRODUCTS, 6)} />
+      <RelatedProducts products={relatedProducts(product, PRODUCTS, 6)} />
     </div>
   );
 }

@@ -67,5 +67,4 @@ describe("devises", () => {
   it("arrondit le XOF au franc", () => expect(flat(formatMoney(1234.6, "XOF", "fr-FR"))).toBe("1 235 F CFA"));
   it("convertit en EUR à la parité fixe 655,957", () => expect(convertFromXof(655957, "EUR")).toBeCloseTo(1000, 6));
   it("formate l'EUR avec 2 décimales", () => expect(formatMoney(655957, "EUR", "en-US")).toBe("€1,000.00"));
-  it("convertit en USD au taux fictif", () => expect(convertFromXof(77000, "USD")).toBeCloseTo(128.33, 2));
 });

@@ -3,7 +3,7 @@
 // exprimés en XOF, les autres devises sont converties depuis le XOF pour l'affichage uniquement.
 
 /**
- * @typedef {"XOF" | "EUR" | "USD"} CurrencyCode
+ * @typedef {"XOF" | "EUR"} CurrencyCode
  * @typedef {{ code: CurrencyCode, xofPerUnit: number, decimals: number, fictional: boolean }} Currency
  */
 
@@ -15,8 +15,6 @@ export const CURRENCIES = {
   XOF: { code: "XOF", xofPerUnit: 1, decimals: 0, fictional: false },
   // Parité fixe officielle : 1 EUR = 655,957 XOF.
   EUR: { code: "EUR", xofPerUnit: 655.957, decimals: 2, fictional: false },
-  // TAUX FICTIF (démonstration) : à remplacer par un taux réel (API de change).
-  USD: { code: "USD", xofPerUnit: 600, decimals: 2, fictional: true },
 };
 
 /** @param {string} code @returns {code is CurrencyCode} */

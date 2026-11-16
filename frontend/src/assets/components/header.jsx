@@ -8,9 +8,11 @@ import SearchBar from "./SearchBar.jsx";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
 import { useCartCount } from "../store/cartStore.js";
+import { useAuth } from "../store/authStore.js";
 
 export default function Header() {
   const { t, currency, setCurrency, currencies } = useI18n();
+  const user = useAuth((a) => a.user);
   const count = useCartCount();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -81,8 +83,8 @@ export default function Header() {
           <Link to="/contact" className={`${iconLink} hidden lg:flex`}>
             <Mail size={20} aria-hidden="true" /> {t("nav.contact")}
           </Link>
-          <Link to="/sign" className={`${iconLink} hidden lg:flex`}>
-            <User size={20} aria-hidden="true" /> {t("nav.signin")}
+          <Link to={user ? "/profil" : "/sign"} className={`${iconLink} hidden lg:flex`}>
+            <User size={20} aria-hidden="true" /> {user ? (user.firstName || t("nav.account")) : t("nav.signin")}
           </Link>
           <Link to="/basket" aria-label={t("nav.cartN", { n: count })} className={iconLink}>
             <span ref={cartRef} data-cart-icon className="relative">
@@ -111,7 +113,7 @@ export default function Header() {
               ["/brands", "nav.brands"],
               ["/blog", "nav.blog"],
               ["/contact", "nav.contact"],
-              ["/sign", "nav.signin"],
+              [user ? "/profil" : "/sign", user ? "nav.account" : "nav.signin"],
             ].map(([to, key]) => (
               <li key={to}>
                 <Link to={to} onClick={() => setMenuOpen(false)} className="block py-1 hover:text-action">

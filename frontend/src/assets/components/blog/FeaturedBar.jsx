@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BLOG_ARTICLES, BLOG_HEADLINE } from "../../data/blogMocks.js";
+import { BLOG_ARTICLES, BLOG_HEADLINE } from "../../data/blog.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 import { postPath } from "./format.js";
 

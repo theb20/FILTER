@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ratingStats, relatedProducts, tierRows } from "./productUtils.js";
-import { DEMO_REVIEWS } from "../data/productMocks.js";
-import { DEMO_PRODUCTS } from "../data/demoProducts.js";
+import { FIXTURE_PRODUCTS as PRODUCTS, FIXTURE_REVIEWS as REVIEWS } from "./__fixtures__/fixtures.js";
 
 describe("ratingStats", () => {
   it("calcule moyenne, nombre et répartition", () => {
@@ -13,20 +12,20 @@ describe("ratingStats", () => {
   });
   it("sans avis : tout à 0", () => expect(ratingStats([])).toMatchObject({ average: 0, count: 0 }));
   it("la répartition totalise le nombre d'avis", () => {
-    const s = ratingStats(DEMO_REVIEWS);
-    expect(s.distribution.reduce((n, d) => n + d.count, 0)).toBe(DEMO_REVIEWS.length);
+    const s = ratingStats(REVIEWS);
+    expect(s.distribution.reduce((n, d) => n + d.count, 0)).toBe(REVIEWS.length);
   });
 });
 
 describe("relatedProducts", () => {
   it("exclut le produit courant et privilégie la catégorie", () => {
-    const p = DEMO_PRODUCTS[0]; // hydraulic
-    const r = relatedProducts(p, DEMO_PRODUCTS, 4);
+    const p = PRODUCTS[0];
+    const r = relatedProducts(p, PRODUCTS, 4);
     expect(r).toHaveLength(4);
     expect(r.some((x) => x.id === p.id)).toBe(false);
     expect(r[0].category).toBe(p.category);
   });
-  it("respecte la limite", () => expect(relatedProducts(DEMO_PRODUCTS[0], DEMO_PRODUCTS, 2)).toHaveLength(2));
+  it("respecte la limite", () => expect(relatedProducts(PRODUCTS[0], PRODUCTS, 2)).toHaveLength(2));
 });
 
 describe("tierRows", () => {

@@ -3,8 +3,8 @@
 // Montants entiers en XOF. Les prix du panier sont HORS TAXES (HT).
 
 /**
- * @typedef {import("../data/cartMocks.js").PromoCode} PromoCode
- * @typedef {import("../data/cartMocks.js").ShippingZone} ShippingZone
+ * @typedef {import("../data/commerce.js").PromoCode} PromoCode
+ * @typedef {import("../data/commerce.js").ShippingZone} ShippingZone
  * @typedef {{ status: "valid", promo: PromoCode }
  *   | { status: "invalid" | "expired" }
  *   | { status: "minimum", promo: PromoCode }} PromoResult
@@ -67,21 +67,23 @@ export function deliveryWindow(now, zone) {
 /**
  * Calcule tous les montants du récapitulatif.
  * @param {{
- *   subtotal: number, promo: PromoCode | null, zone: ShippingZone,
- *   freeThreshold: number, vatRate: number
+ *   subtotal: number, promo: PromoCode | null, zone: ShippingZone | null,
+ *   freeThreshold: number | null, vatRate: number | null
  * }} input
  */
 export function computeTotals({ subtotal, promo, zone, freeThreshold, vatRate }) {
   const discount = promoDiscount(promo, subtotal);
   const afterDiscount = subtotal - discount;
   const hasItems = subtotal > 0;
-  const freeShipping = hasItems && zone.freeEligible && afterDiscount >= freeThreshold;
-  const shipping = !hasItems || freeShipping ? 0 : zone.fee;
+  // Règle non renseignée (null) : on ne l'applique pas et on n'invente aucune valeur.
+  const freeKnown = zone !== null && zone.freeEligible && freeThreshold !== null;
+  const freeShipping = hasItems && freeKnown && afterDiscount >= freeThreshold;
+  const shipping = !hasItems || freeShipping || zone === null ? 0 : zone.fee;
   const ht = afterDiscount + shipping;
-  const vat = Math.round(ht * vatRate);
+  const vat = vatRate === null ? 0 : Math.round(ht * vatRate);
   const ttc = ht + vat;
-  const remainingForFree = zone.freeEligible ? Math.max(0, freeThreshold - afterDiscount) : 0;
-  const progress = zone.freeEligible && freeThreshold > 0 ? Math.min(1, afterDiscount / freeThreshold) : 0;
+  const remainingForFree = freeKnown ? Math.max(0, freeThreshold - afterDiscount) : 0;
+  const progress = freeKnown && freeThreshold > 0 ? Math.min(1, afterDiscount / freeThreshold) : 0;
   return { subtotal, discount, afterDiscount, shipping, freeShipping, ht, vat, ttc, remainingForFree, progress };
 }
 
@@ -90,13 +92,14 @@ export function computeTotals({ subtotal, promo, zone, freeThreshold, vatRate })
  * (nombre d'articles OU montant HT). Renvoie aussi ce qu'il manque pour y accéder.
  * @param {number} count nombre total d'unités dans le panier
  * @param {number} subtotal sous-total HT (avant remise)
- * @param {{ minItems: number, minAmount: number }} thresholds
+ * @param {{ minItems: number | null, minAmount: number | null }} thresholds seuil null = non renseigné (jamais atteint)
  */
 export function quoteEligibility(count, subtotal, thresholds) {
-  const eligible = count >= thresholds.minItems || subtotal >= thresholds.minAmount;
+  const { minItems, minAmount } = thresholds;
+  const eligible = (minItems !== null && count >= minItems) || (minAmount !== null && subtotal >= minAmount);
   return {
     eligible,
-    remainingItems: Math.max(0, thresholds.minItems - count),
-    remainingAmount: Math.max(0, thresholds.minAmount - subtotal),
+    remainingItems: minItems === null ? 0 : Math.max(0, minItems - count),
+    remainingAmount: minAmount === null ? 0 : Math.max(0, minAmount - subtotal),
   };
 }

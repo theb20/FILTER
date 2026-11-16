@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { CATEGORIES, DEMO_PRODUCTS } from "../data/demoProducts.js";
+import { CATEGORIES, PRODUCTS } from "../data/catalog.js";
 import { useI18n } from "../i18n/i18nContext.js";
 import ProductCard from "../components/ProductCard.jsx";
 
@@ -33,11 +33,11 @@ export default function Category() {
     setCats(catParam ? [catParam] : []);
   }, [catParam]);
 
-  const allBrands = [...new Set(DEMO_PRODUCTS.map((p) => p.brand))];
+  const allBrands = [...new Set(PRODUCTS.map((p) => p.brand))];
   const toggle = (list, setList, v) =>
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-  const results = DEMO_PRODUCTS.filter((p) => {
+  const results = PRODUCTS.filter((p) => {
     // La recherche porte sur le nom traduit, la référence, la marque et les équivalences
     if (q && ![t(`prod.${p.id}`), p.reference, p.brand, ...p.crossRefs].some((v) => v.toLowerCase().includes(q))) return false;
     if (cats.length && !cats.includes(p.category)) return false;
@@ -82,7 +82,7 @@ export default function Category() {
             {rawQ ? t("list.resultsFor", { q: rawQ }) : t("list.title")}
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            {t(results.length === 1 ? "list.count.one" : "list.count.other", { n: results.length })} · {t("demo.data")}
+            {t(results.length === 1 ? "list.count.one" : "list.count.other", { n: results.length })}
           </p>
         </div>
 

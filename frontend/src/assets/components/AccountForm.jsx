@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import PasswordInput from "./PasswordInput.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
 import { useNotify } from "../configurations/notificationContext.js";
+import { useAuth } from "../store/authStore.js";
 
 // [nom, clé i18n, type d'input, obligatoire, autocomplete]
 const FIELDS = {
@@ -54,6 +55,9 @@ const input = "w-full rounded-[6px] border bg-white px-3.5 py-2.5 outline-none f
 export default function AccountForm({ type }) {
   const { t, lang } = useI18n();
   const notify = useNotify();
+  const register = useAuth((a) => a.register);
+  const [pending, setPending] = useState(false);
+  const [formError, setFormError] = useState("");
   const fields = FIELDS[type];
   const [data, setData] = useState({ country: DEFAULT_COUNTRY });
   const [terms, setTerms] = useState(false);
@@ -79,15 +83,27 @@ export default function AccountForm({ type }) {
     return e;
   };
 
-  const onSubmit = (ev) => {
+  const onSubmit = async (ev) => {
     ev.preventDefault();
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length) return;
-    // Aucun backend : on ne crée pas de compte et on ne simule pas de succès.
-    const payload = { accountType: type, ...data, ...(data.phone ? { phone: DIAL_CODE + data.phone.trim() } : {}) }; // prêt à être envoyé au backend
-    void payload;
-    notify(t("demo.notice"), "demo");
+    const phone = data.phone ? DIAL_CODE + data.phone.trim() : null;
+    const payload =
+      type === "entreprise"
+        ? {
+            kind: "company", email: data.email.trim(), password: data.password, acceptTerms: true, locale: lang, phone,
+            // Un seul champ « nom du contact » dans le formulaire : il est transmis comme prénom (le nom reste vide).
+            firstName: data.contactName.trim(),
+            company: { legalName: data.companyName.trim(), taxId: data.taxId.trim(), country: data.country || DEFAULT_COUNTRY, ...(data.jobTitle?.trim() ? { jobTitle: data.jobTitle.trim() } : {}) },
+          }
+        : { kind: "individual", email: data.email.trim(), password: data.password, acceptTerms: true, locale: lang, phone, firstName: data.firstName.trim(), lastName: data.lastName.trim() };
+    setPending(true);
+    setFormError("");
+    const r = await register(payload);
+    setPending(false);
+    if (r.ok) return notify(t("auth.created"), "success", 8000);
+    setFormError(t(r.error, { s: r.retryAfter ?? 60 }));
   };
 
   const change = (name, value) => {
@@ -98,6 +114,7 @@ export default function AccountForm({ type }) {
   return (
     <>
       <form onSubmit={onSubmit} noValidate className="mt-5 grid gap-4 sm:grid-cols-2">
+        {formError && <p role="alert" className="rounded-[6px] border border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 sm:col-span-2">{formError}</p>}
         {fields.map(([name, label, kind, required, auto]) => {
           const wide = ["email", "phone", "companyName", "taxId", "country"].includes(name) || kind === "password";
           const id = `acc-${type}-${name}`;
@@ -174,8 +191,8 @@ export default function AccountForm({ type }) {
         </div>
 
         <div className="flex gap-3 sm:col-span-2">
-          <button type="submit" className="flex-1 rounded-[6px] bg-night px-5 py-3 font-medium text-white hover:bg-navy">
-            {t("auth.signup")}
+          <button type="submit" disabled={pending} className="flex-1 rounded-[6px] bg-night px-5 py-3 font-medium text-white hover:bg-navy disabled:opacity-60">
+            {pending ? t("auth.pending") : t("auth.signup")}
           </button>
         </div>
       </form>

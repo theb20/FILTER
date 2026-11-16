@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { DEFAULT_ZONE, DEMO_INITIAL_CART } from "../data/cartMocks.js";
+import { DEFAULT_ZONE, INITIAL_CART } from "../data/commerce.js";
 import { clampQty, itemCount } from "../lib/cartMath.js";
 import { getProduct, getStock } from "../lib/cartLines.js";
 
@@ -29,8 +29,8 @@ import { getProduct, getStock } from "../lib/cartLines.js";
  */
 
 // Clé versionnée : si la structure persistée change, incrémenter la version et adapter `migrate`.
-export const CART_STORAGE_KEY = "ff_cart_v1";
-export const CART_STORAGE_VERSION = 1;
+export const CART_STORAGE_KEY = "ff_cart_v2"; // v2 : abandonne les paniers de démonstration persistés par la v1
+export const CART_STORAGE_VERSION = 2;
 
 /** @param {number} id @param {number} quantity @returns {CartEntry | null} */
 const makeEntry = (id, quantity) => {
@@ -38,7 +38,7 @@ const makeEntry = (id, quantity) => {
   return product ? { id, quantity: clampQty(quantity, getStock(id)), priceAtAdd: product.price } : null;
 };
 
-const seed = () => DEMO_INITIAL_CART.map((i) => makeEntry(i.id, i.quantity)).filter((e) => e !== null);
+const seed = () => INITIAL_CART.map((i) => makeEntry(i.id, i.quantity)).filter((e) => e !== null);
 
 export const useCartStore = create(
   persist(
@@ -47,7 +47,7 @@ export const useCartStore = create(
       items: seed(),
       saved: [],
       promoCode: null,
-      zone: DEFAULT_ZONE,
+      zone: DEFAULT_ZONE ?? "",
       note: "",
 
       applyPromo: (code) => set({ promoCode: code.trim().toUpperCase() }),

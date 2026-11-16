@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BLOG_TAGS } from "../../data/blogMocks.js";
+import { BLOG_TAGS } from "../../data/blog.js";
 import { buildBlogQuery } from "../../lib/blogFilters.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 

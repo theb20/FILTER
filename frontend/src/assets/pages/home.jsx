@@ -6,7 +6,7 @@ import Todo from "../components/Todo.jsx";
 import SearchBar from "../components/SearchBar.jsx";
 import Reviews from "../components/Reviews.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
-import { CATEGORIES } from "../data/demoProducts.js";
+import { CATEGORIES } from "../data/catalog.js";
 import { CLAIMS } from "../config/site.js";
 
 const btnPrimary =
@@ -162,7 +162,7 @@ export default function Home() {
           ))}
         </ul>
 
-        <ul className="mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
+        {CATEGORIES.length > 0 && <ul className="mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
           {CATEGORIES.map((c) => (
             <li key={c.slug}>
               <Link to={`/category?cat=${c.slug}`} className="block text-center hover:text-link">
@@ -173,7 +173,7 @@ export default function Home() {
               </Link>
             </li>
           ))}
-        </ul>
+        </ul>}
       </section>
 
       {/* 4. Secteurs */}

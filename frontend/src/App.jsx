@@ -3,6 +3,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import { I18nProvider } from "./assets/i18n/I18nProvider.jsx";
 import { useI18n } from "./assets/i18n/i18nContext.js";
 import { NotificationProvider } from "./assets/configurations/NotificationProvider.jsx";
+import { useAuth } from "./assets/store/authStore.js";
 
 // Layout principal
 import Layout from "./assets/components/layout.jsx";
@@ -48,6 +49,9 @@ function PageLoader() {
 }
 
 function App() {
+  useEffect(() => {
+    useAuth.getState().init(); // restaure la session via le cookie de rafraîchissement
+  }, []);
   return (
     <I18nProvider>
       <NotificationProvider>

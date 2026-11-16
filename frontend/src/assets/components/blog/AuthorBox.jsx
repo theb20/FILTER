@@ -1,9 +1,9 @@
-import { BLOG_AUTHOR_BIO } from "../../data/blogMocks.js";
+import { BLOG_AUTHOR_BIO } from "../../data/blog.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 
 const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 
-// « À propos de l'auteur » (contenu fictif de démonstration).
+// « À propos de l'auteur » : la biographie vient du service content (absente tant qu'il n'existe pas).
 export default function AuthorBox({ author }) {
   const { t } = useI18n();
   return (
@@ -12,7 +12,7 @@ export default function AuthorBox({ author }) {
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("blog.author")}</p>
         <p className="text-[18px] font-bold">{author}</p>
-        <p className="mt-1 text-[15px] text-gray-700">{BLOG_AUTHOR_BIO}</p>
+        {BLOG_AUTHOR_BIO && <p className="mt-1 text-[15px] text-gray-700">{BLOG_AUTHOR_BIO}</p>}
       </div>
     </aside>
   );

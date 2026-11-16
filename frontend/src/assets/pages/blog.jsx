@@ -3,8 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import {
   BLOG_CATEGORIES, BLOG_CITED_PRODUCTS, BLOG_DOSSIERS, BLOG_GUIDES, BLOG_KINDS, BLOG_MOSAIC,
   BLOG_POPULAR, BLOG_TAGS, BLOG_TOPICS, fetchBlogArticles,
-} from "../data/blogMocks.js";
-import { DEMO_PRODUCTS } from "../data/demoProducts.js";
+} from "../data/blog.js";
+import { PRODUCTS } from "../data/catalog.js";
 import { filterArticles, PAGE_SIZE, paginate, parseBlogParams, pickArticles, sortByDateDesc } from "../lib/blogFilters.js";
 import { usePageMeta } from "../lib/usePageMeta.js";
 import { useI18n } from "../i18n/i18nContext.js";
@@ -61,12 +61,18 @@ export default function Blog() {
   return (
     <div>
       <BlogNav params={params} asH1 />
-      <p className="mx-2.5 mt-2.5 rounded-[3px] bg-info p-2.5 text-sm" role="note">{t("blog.demo")}</p>
 
       {status === "loading" && <BlogSkeleton />}
       {status === "error" && <div className="mx-2.5 mt-2.5"><BlogState kind="error" onRetry={load} /></div>}
 
-      {status === "ready" && (
+      {status === "ready" && articles.length === 0 && (
+        <div role="status" className="mx-2.5 mt-2.5 rounded-[8px] bg-white p-8 text-center shadow-card">
+          <h2 className="text-[20px] font-semibold">{t("blog.nothing.title")}</h2>
+          <p className="mt-1 text-gray-700">{t("blog.nothing.text")}</p>
+        </div>
+      )}
+
+      {status === "ready" && articles.length > 0 && (
         <>
           <JsonLd data={{
             "@context": "https://schema.org",
@@ -91,7 +97,7 @@ export default function Blog() {
 
           <GuidesRow articles={pickArticles(articles, BLOG_GUIDES)} />
           <DossiersSection articles={pickArticles(articles, BLOG_DOSSIERS)} />
-          <CitedProducts products={BLOG_CITED_PRODUCTS.map((id) => DEMO_PRODUCTS.find((p) => p.id === id)).filter(Boolean)} />
+          <CitedProducts products={BLOG_CITED_PRODUCTS.map((id) => PRODUCTS.find((p) => p.id === id)).filter(Boolean)} />
           <TagCloud params={params} />
         </>
       )}

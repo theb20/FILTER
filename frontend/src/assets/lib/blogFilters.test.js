@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BLOG_ARTICLES, BLOG_CATEGORIES, BLOG_KINDS, BLOG_TAGS } from "../data/blogMocks.js";
+import { BLOG_KINDS } from "../data/blog.js";
+import { FIXTURE_BLOG_ARTICLES as BLOG_ARTICLES, FIXTURE_BLOG_CATEGORIES as BLOG_CATEGORIES, FIXTURE_BLOG_TAGS as BLOG_TAGS } from "./__fixtures__/fixtures.js";
 import { buildBlogQuery, filterArticles, paginate, parseBlogParams, pickArticles, relatedArticles, sortByDateDesc } from "./blogFilters.js";
 
 const allowed = { categories: BLOG_CATEGORIES, kinds: BLOG_KINDS, tags: BLOG_TAGS.map((t) => t.slug) };

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { buildLines } from "../lib/cartLines.js";
 import { itemCount, subtotal } from "../lib/cartMath.js";
 import { computeTotals, deliveryWindow, quoteEligibility, validatePromo } from "../lib/cartTotals.js";
-import { FREE_SHIPPING_THRESHOLD, PROMO_CODES, QUOTE_THRESHOLDS, SHIPPING_ZONES, VAT_RATE } from "../data/cartMocks.js";
+import { FREE_SHIPPING_THRESHOLD, PROMO_CODES, QUOTE_THRESHOLDS, SHIPPING_ZONES, VAT_RATE } from "../data/commerce.js";
 import { useCartHydrated, useCartStore } from "../store/cartStore.js";
 import { useNotify } from "../configurations/notificationContext.js";
 import { useI18n } from "../i18n/i18nContext.js";
@@ -33,7 +33,7 @@ export default function Cart() {
 
   const quote = quoteEligibility(itemCount(lines), sub, QUOTE_THRESHOLDS);
 
-  const zone = SHIPPING_ZONES.find((z) => z.id === zoneId) ?? SHIPPING_ZONES[0];
+  const zone = SHIPPING_ZONES.find((z) => z.id === zoneId) ?? SHIPPING_ZONES[0] ?? null; // aucune zone configurée : pas de calcul de livraison
   const promoResult = promoCode ? validatePromo(promoCode, sub, now, PROMO_CODES) : null;
   const totals = computeTotals({
     subtotal: sub,
@@ -63,7 +63,6 @@ export default function Cart() {
       <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="cart-title">
           <h1 id="cart-title" className="text-[40px] font-bold leading-tight">{t("cart.title")}</h1>
-          <p className="mt-1 text-sm text-amber-800">{t("cart.demo")}</p>
 
           {!hydrated ? (
             <CartSkeleton />
@@ -101,15 +100,17 @@ export default function Cart() {
           quoteThresholds={QUOTE_THRESHOLDS}
           onDownloadQuote={() => notify(t("cart.quotePdfDemo"), "demo")}
         >
-          <ShippingProgress eligible={zone.freeEligible} free={totals.freeShipping} remaining={totals.remainingForFree} progress={totals.progress} />
-          <DeliveryEstimate zones={SHIPPING_ZONES} zoneId={zone.id} window={deliveryWindow(now, zone)} onChange={setZone} />
-          <PromoCode
-            appliedCode={promoCode}
-            appliedResult={promoResult}
-            validate={(code) => validatePromo(code, sub, now, PROMO_CODES)}
-            onApply={applyPromo}
-            onClear={clearPromo}
-          />
+          {zone && FREE_SHIPPING_THRESHOLD !== null && <ShippingProgress eligible={zone.freeEligible} free={totals.freeShipping} remaining={totals.remainingForFree} progress={totals.progress} />}
+          {zone && <DeliveryEstimate zones={SHIPPING_ZONES} zoneId={zone.id} window={deliveryWindow(now, zone)} onChange={setZone} />}
+          {PROMO_CODES.length > 0 && (
+            <PromoCode
+              appliedCode={promoCode}
+              appliedResult={promoResult}
+              validate={(code) => validatePromo(code, sub, now, PROMO_CODES)}
+              onApply={applyPromo}
+              onClear={clearPromo}
+            />
+          )}
         </OrderSummary>
       </div>
 

@@ -1,8 +1,8 @@
 // @ts-check
-// Jointure entre les articles du store (id + quantité), le catalogue et les mocks du panier.
+// Jointure entre les articles du store (id + quantité), le catalogue et les données complémentaires du panier.
 // C'est le seul endroit à adapter quand ces données viendront de l'API.
-import { DEMO_PRODUCTS } from "../data/demoProducts.js";
-import { CART_PRODUCT_MOCKS, LOW_STOCK_THRESHOLD } from "../data/cartMocks.js";
+import { PRODUCTS, PRODUCT_EXTRAS } from "../data/catalog.js";
+import { LOW_STOCK_THRESHOLD } from "../data/commerce.js";
 import { clampQty, hasPriceChanged, nextTier, priceLine, stockStatus } from "./cartMath.js";
 
 /**
@@ -10,10 +10,10 @@ import { clampQty, hasPriceChanged, nextTier, priceLine, stockStatus } from "./c
  */
 
 /** @param {number} id */
-export const getProduct = (id) => DEMO_PRODUCTS.find((p) => p.id === id);
+export const getProduct = (id) => PRODUCTS.find((p) => p.id === id);
 
 /** Stock disponible d'un produit (0 si inconnu). @param {number} id */
-export const getStock = (id) => CART_PRODUCT_MOCKS[id]?.stock ?? 0;
+export const getStock = (id) => PRODUCT_EXTRAS[id]?.stock ?? 0;
 
 /**
  * Construit le modèle d'affichage d'une ligne, ou null si le produit n'existe plus.
@@ -21,7 +21,7 @@ export const getStock = (id) => CART_PRODUCT_MOCKS[id]?.stock ?? 0;
  */
 export function buildLine(entry) {
   const product = getProduct(entry.id);
-  const mock = CART_PRODUCT_MOCKS[entry.id];
+  const mock = PRODUCT_EXTRAS[entry.id];
   if (!product || !mock) return null;
   const quantity = clampQty(entry.quantity, mock.stock);
   return {

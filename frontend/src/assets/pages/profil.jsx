@@ -1,36 +1,31 @@
 import { useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../store/authStore.js";
 import { useNotify } from "../configurations/notificationContext.js";
 import { useI18n } from "../i18n/i18nContext.js";
 
-// Données entièrement fictives (démonstration).
-const USER = { name: "John Doe", email: "john.doe@example.com", phone: "+00 000 000 000", address: "—" };
-const ORDERS = [
-  { id: "DEMO-4587", date: "2025-10-15", total: 295000, status: "delivered" },
-  { id: "DEMO-4512", date: "2025-10-02", total: 820000, status: "progress" },
-  { id: "DEMO-4468", date: "2025-09-22", total: 492500, status: "cancelled" },
-];
-
 export default function Profile() {
-  const { t, formatPrice, locale } = useI18n();
+  const { t } = useI18n();
   const notify = useNotify();
+  const { status, user, logout } = useAuth();
 
   useEffect(() => {
     document.title = t("meta.profile");
   }, [t]);
 
-  const date = (iso) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(iso));
+  if (status === "unknown") return <div className="flex min-h-[50vh] items-center justify-center text-gray-500" role="status">{t("loading")}</div>;
+  if (status === "anonymous") return <Navigate to="/sign" replace />;
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "—";
+
   const info = [
-    ["profile.name", USER.name],
-    ["profile.email", USER.email],
-    ["profile.phone", USER.phone],
-    ["profile.address", USER.address],
+    ["profile.name", fullName],
+    ["profile.email", user.email],
   ];
 
   return (
     <div className="mx-2.5 mt-2.5 space-y-2.5">
       <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="profile-title">
         <h1 id="profile-title" className="text-[40px] font-bold leading-tight">{t("profile.title")}</h1>
-        <p className="mt-2 rounded-[3px] bg-info p-3 text-sm" role="note">{t("profile.demo")} {t("demo.notice")}</p>
 
         <h2 className="mt-6 text-[24px] font-semibold">{t("profile.info")}</h2>
         <dl className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -41,35 +36,19 @@ export default function Profile() {
             </div>
           ))}
         </dl>
-        <button type="button" onClick={() => notify(t("demo.notice"), "demo")} className="mt-5 rounded-[3px] bg-action px-5 py-2.5 font-bold hover:bg-action-dark">
-          {t("profile.edit")}
-        </button>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button type="button" onClick={() => notify(t("demo.notice"), "demo")} className="rounded-[3px] bg-action px-5 py-2.5 font-bold hover:bg-action-dark">
+            {t("profile.edit")}
+          </button>
+          <button type="button" onClick={logout} className="rounded-[3px] border border-gray-300 px-5 py-2.5 font-medium hover:bg-gray-50">
+            {t("nav.signout")}
+          </button>
+        </div>
       </section>
 
       <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="orders-title">
         <h2 id="orders-title" className="text-[24px] font-semibold">{t("profile.orders")}</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[480px] text-left">
-            <thead>
-              <tr className="text-sm text-gray-600">
-                <th className="py-2 pr-4 font-medium">{t("profile.order")}</th>
-                <th className="py-2 pr-4 font-medium">{t("profile.date")}</th>
-                <th className="py-2 pr-4 font-medium">{t("profile.total")}</th>
-                <th className="py-2 font-medium">{t("profile.status")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ORDERS.map((o) => (
-                <tr key={o.id} className="border-t border-gray-200">
-                  <td className="py-2.5 pr-4 font-medium">{o.id}</td>
-                  <td className="py-2.5 pr-4">{date(o.date)}</td>
-                  <td className="py-2.5 pr-4">{formatPrice(o.total)}</td>
-                  <td className="py-2.5">{t(`profile.s.${o.status}`)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <p className="mt-3 text-gray-700">{t("profile.noOrders")}</p>
       </section>
     </div>
   );

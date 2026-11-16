@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import ArticleCard from "./ArticleCard.jsx";
 import BlogState from "./BlogState.jsx";
 import Pagination from "./Pagination.jsx";
-import { BLOG_KINDS } from "../../data/blogMocks.js";
+import { BLOG_KINDS } from "../../data/blog.js";
 import { buildBlogQuery } from "../../lib/blogFilters.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 
