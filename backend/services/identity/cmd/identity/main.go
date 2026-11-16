@@ -1,7 +1,11 @@
 // Commande identity : service gRPC des comptes, sessions et jetons.
 //
+// Stockage (STORE) : "postgres" (défaut hors développement) applique les migrations au démarrage, écrit les événements
+// dans l'outbox (même transaction que les données) et les relaie vers NATS JetStream ; "memory" (ENV=dev seulement)
+// ne sert qu'au développement sans base.
+//
 // Garde-fous : en production (ENV=prod) le service REFUSE de démarrer avec le stockage en mémoire ou avec des clés
-// de signature éphémères. L'adaptateur PostgreSQL (migrations, outbox) n'est pas encore écrit : seul ENV=dev démarre.
+// de signature éphémères.
 package main
 
 import (
@@ -20,9 +24,12 @@ import (
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
 	"github.com/theb20/FILTER/backend/pkg/jwtx"
 	"github.com/theb20/FILTER/backend/pkg/logx"
+	"github.com/theb20/FILTER/backend/pkg/natsbus"
+	"github.com/theb20/FILTER/backend/pkg/outbox"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/breach"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/grpcserver"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/memory"
+	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/postgres"
 	"github.com/theb20/FILTER/backend/services/identity/internal/application"
 	"github.com/theb20/FILTER/backend/services/identity/internal/domain"
 	"google.golang.org/grpc"
@@ -46,34 +53,71 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	if env != "dev" {
-		return errors.New("l'adaptateur PostgreSQL n'est pas encore disponible : seul ENV=dev (stockage en mémoire) peut démarrer")
-	}
-	log.Warn("stockage EN MÉMOIRE : les comptes disparaissent à l'arrêt (développement uniquement)")
 	breachChecker, err := loadBreach(env, log)
 	if err != nil {
 		return err
 	}
 
-	store := memory.New()
-	svc := application.New(application.Service{
-		Users: store, Sessions: store, Tokens: store, Failures: store,
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	svc := application.Service{
 		Hasher: domain.Hasher{P: domain.DefaultArgon2id()}, Breach: breachChecker,
-		Events: &events.Memory{}, Keys: keys, Settings: application.StaticSettings(domain.DefaultSettings()),
-	})
+		Keys: keys, Settings: application.StaticSettings(domain.DefaultSettings()),
+	}
+	switch mode := getenv("STORE", defaultStore(env)); mode {
+	case "memory":
+		if env != "dev" {
+			return errors.New("STORE=memory est interdit hors développement (ENV=dev)")
+		}
+		log.Warn("stockage EN MÉMOIRE : les comptes disparaissent à l'arrêt (développement uniquement)")
+		st, ev := memory.New(), &events.Memory{}
+		st.Events = ev
+		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events = st, st, st, st, st, ev
+	case "postgres":
+		url := os.Getenv("DATABASE_URL")
+		if url == "" {
+			return errors.New("DATABASE_URL est obligatoire avec STORE=postgres")
+		}
+		natsURL := os.Getenv("NATS_URL")
+		if natsURL == "" {
+			return errors.New("NATS_URL est obligatoire avec STORE=postgres (relais de l'outbox)")
+		}
+		mctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		if err := postgres.Migrate(mctx, url); err != nil {
+			cancel()
+			return fmt.Errorf("migrations : %w", err)
+		}
+		st, err := postgres.New(mctx, url)
+		if err != nil {
+			cancel()
+			return err
+		}
+		defer st.Close()
+		bus, err := natsbus.Connect(mctx, natsURL, getenv("NATS_STREAM", "IDENTITY"), "identity.>")
+		cancel()
+		if err != nil {
+			return fmt.Errorf("nats : %w", err)
+		}
+		defer bus.Close()
+		go (&outbox.Relay{Pool: st.Pool, Bus: bus, Log: log}).Run(ctx)
+		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events = st, st, st, st, st, &outbox.Publisher{}
+		log.Info("PostgreSQL et NATS prêts (outbox active)")
+	default:
+		return fmt.Errorf("STORE=%q inconnu (postgres, memory)", mode)
+	}
+	service := application.New(svc)
 
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
 	srv := grpc.NewServer()
-	identityv1.RegisterIdentityServiceServer(srv, &grpcserver.Server{Svc: svc})
+	identityv1.RegisterIdentityServiceServer(srv, &grpcserver.Server{Svc: service})
 	hs := health.NewServer()
 	healthpb.RegisterHealthServer(srv, hs)
 	hs.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	go func() {
 		<-ctx.Done()
 		log.Info("arrêt gracieux")
@@ -116,6 +160,13 @@ func loadKeys(env string, log *slog.Logger) (map[string]*jwtx.KeySet, error) {
 		keys[aud] = k
 	}
 	return keys, nil
+}
+
+func defaultStore(env string) string {
+	if env == "dev" {
+		return "memory"
+	}
+	return "postgres"
 }
 
 func getenv(k, d string) string {

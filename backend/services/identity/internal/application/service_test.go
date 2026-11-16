@@ -9,10 +9,8 @@ import (
 	"time"
 
 	"github.com/theb20/FILTER/backend/pkg/apperr"
-	"github.com/theb20/FILTER/backend/pkg/events"
 	eventsv1 "github.com/theb20/FILTER/backend/pkg/gen/events/v1"
 	"github.com/theb20/FILTER/backend/pkg/jwtx"
-	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/memory"
 	"github.com/theb20/FILTER/backend/services/identity/internal/application"
 	"github.com/theb20/FILTER/backend/services/identity/internal/domain"
 )
@@ -37,8 +35,8 @@ func (f fakeBreach) Compromised(_ context.Context, p string) (bool, error) { ret
 
 type env struct {
 	svc    *application.Service
-	store  *memory.Store
-	events *events.Memory
+	store  application.UserRepo
+	events eventReader
 	clock  *clock
 	hasher *countingHasher
 	keys   map[string]*jwtx.KeySet
@@ -50,10 +48,11 @@ func newEnv(t *testing.T, breach application.BreachChecker) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := &env{store: memory.New(), events: &events.Memory{}, clock: &clock{t: time.Unix(1_800_000_000, 0)}, keys: map[string]*jwtx.KeySet{jwtx.AudCustomer: k}}
+	w := current.build(t)
+	e := &env{store: w.store, events: w.events, clock: &clock{t: time.Unix(1_800_000_000, 0)}, keys: map[string]*jwtx.KeySet{jwtx.AudCustomer: k}}
 	e.hasher = &countingHasher{Hasher: domain.Hasher{P: domain.Argon2idParams{MemoryKiB: 64, Time: 1, Threads: 1, SaltLen: 16, KeyLen: 32}}} // léger : tests rapides
 	e.svc = application.New(application.Service{
-		Users: e.store, Sessions: e.store, Tokens: e.store, Failures: e.store, Hasher: e.hasher, Breach: breach, Events: e.events,
+		Users: w.store, Sessions: w.store, Tokens: w.store, Failures: w.store, UoW: w.uow, Hasher: e.hasher, Breach: breach, Events: w.publisher,
 		Keys: e.keys, Settings: application.StaticSettings(domain.DefaultSettings()), Now: e.clock.Now,
 	})
 	return e
@@ -78,7 +77,7 @@ const pw = "correct horse battery"
 
 // ── inscription : aucune fuite d'existence ──────────────────────────────────
 
-func TestInscriptionUniforme(t *testing.T) {
+func testInscriptionUniforme(t *testing.T) {
 	e := newEnv(t, nil)
 	register(t, e, "Awa@Exemple.CI", pw)
 	h1 := e.hasher.hashes.Load()
@@ -97,7 +96,7 @@ func TestInscriptionUniforme(t *testing.T) {
 	}
 }
 
-func TestInscriptionErreursDeFormeSeulement(t *testing.T) {
+func testInscriptionErreursDeFormeSeulement(t *testing.T) {
 	e := newEnv(t, fakeBreach{"password123": true})
 	ctx := context.Background()
 	cases := []struct {
@@ -124,7 +123,7 @@ func TestInscriptionErreursDeFormeSeulement(t *testing.T) {
 	}
 }
 
-func TestPasswordPolitique8a128SansComplexite(t *testing.T) {
+func testPasswordPolitique8a128SansComplexite(t *testing.T) {
 	e := newEnv(t, nil)
 	for _, ok := range []string{"aaaaaaaa", "12345678", "mot de passe tout en minuscules sans chiffre"} {
 		if err := e.svc.Register(context.Background(), application.RegisterInput{Kind: "individual", Email: "x" + ok[:2] + "@b.ci", Password: ok}); err != nil {
@@ -144,7 +143,7 @@ func verificationToken(t *testing.T, e *env) string {
 	return ev[len(ev)-1].Payload.(*eventsv1.EmailVerificationRequested).Token
 }
 
-func TestVerificationEmailUsageUniqueEtExpiration(t *testing.T) {
+func testVerificationEmailUsageUniqueEtExpiration(t *testing.T) {
 	e := newEnv(t, nil)
 	ctx := context.Background()
 	register(t, e, "a@b.ci", pw)
@@ -174,7 +173,7 @@ func login(e *env, email, pass, ip string) (*application.Session, error) {
 	return e.svc.Login(context.Background(), application.LoginInput{Email: email, Password: pass, IP: ip, UserAgent: "test"})
 }
 
-func TestConnexionSansEmailVerifie(t *testing.T) {
+func testConnexionSansEmailVerifie(t *testing.T) {
 	e := newEnv(t, nil)
 	register(t, e, "a@b.ci", pw)
 	s, err := login(e, "A@B.ci", pw, "1.1.1.1") // e-mail NON vérifié : la connexion reste permise
@@ -196,7 +195,7 @@ func TestConnexionSansEmailVerifie(t *testing.T) {
 	}
 }
 
-func TestIdentifiantsInvalidesIndistinguables(t *testing.T) {
+func testIdentifiantsInvalidesIndistinguables(t *testing.T) {
 	e := newEnv(t, nil)
 	register(t, e, "a@b.ci", pw)
 	_, e1 := login(e, "a@b.ci", "mauvais mot de passe", "1.1.1.1")
@@ -209,7 +208,7 @@ func TestIdentifiantsInvalidesIndistinguables(t *testing.T) {
 	}
 }
 
-func TestRalentissementProgressifSansVerrouillage(t *testing.T) {
+func testRalentissementProgressifSansVerrouillage(t *testing.T) {
 	e := newEnv(t, nil)
 	register(t, e, "a@b.ci", pw)
 	ip := "9.9.9.9"
@@ -239,7 +238,7 @@ func TestRalentissementProgressifSansVerrouillage(t *testing.T) {
 	}
 }
 
-func TestUnTiersNePeutPasBloquerLeClient(t *testing.T) {
+func testUnTiersNePeutPasBloquerLeClient(t *testing.T) {
 	e := newEnv(t, nil)
 	register(t, e, "a@b.ci", pw)
 	for i := 0; i < 50; i++ { // un attaquant martèle le compte depuis SON adresse IP
@@ -252,7 +251,7 @@ func TestUnTiersNePeutPasBloquerLeClient(t *testing.T) {
 	}
 }
 
-func TestAlerteAuTitulaireApresPlusieursEchecs(t *testing.T) {
+func testAlerteAuTitulaireApresPlusieursEchecs(t *testing.T) {
 	e := newEnv(t, nil)
 	register(t, e, "a@b.ci", pw)
 	for i := 0; i < 8; i++ { // IP différentes : aucun ralentissement par couple, mais l'alerte se déclenche
@@ -272,7 +271,7 @@ func TestAlerteAuTitulaireApresPlusieursEchecs(t *testing.T) {
 
 // ── rafraîchissement : rotation et détection de rejeu ───────────────────────
 
-func TestRotationEtRejeuRevoqueLaFamille(t *testing.T) {
+func testRotationEtRejeuRevoqueLaFamille(t *testing.T) {
 	e := newEnv(t, nil)
 	ctx := context.Background()
 	register(t, e, "a@b.ci", pw)
@@ -294,7 +293,7 @@ func TestRotationEtRejeuRevoqueLaFamille(t *testing.T) {
 	}
 }
 
-func TestRefreshExpireEtInconnu(t *testing.T) {
+func testRefreshExpireEtInconnu(t *testing.T) {
 	e := newEnv(t, nil)
 	ctx := context.Background()
 	register(t, e, "a@b.ci", pw)
@@ -308,7 +307,7 @@ func TestRefreshExpireEtInconnu(t *testing.T) {
 	}
 }
 
-func TestRefreshConcurrentUnSeulGagnant(t *testing.T) {
+func testRefreshConcurrentUnSeulGagnant(t *testing.T) {
 	e := newEnv(t, nil)
 	register(t, e, "a@b.ci", pw)
 	s, _ := login(e, "a@b.ci", pw, "1.1.1.1")
@@ -331,7 +330,7 @@ func TestRefreshConcurrentUnSeulGagnant(t *testing.T) {
 
 // ── déconnexion ─────────────────────────────────────────────────────────────
 
-func TestLogoutIdempotentEtLogoutAll(t *testing.T) {
+func testLogoutIdempotentEtLogoutAll(t *testing.T) {
 	e := newEnv(t, nil)
 	ctx := context.Background()
 	register(t, e, "a@b.ci", pw)
@@ -360,7 +359,7 @@ func TestLogoutIdempotentEtLogoutAll(t *testing.T) {
 
 // ── changement de mot de passe ──────────────────────────────────────────────
 
-func TestChangementMotDePasse(t *testing.T) {
+func testChangementMotDePasse(t *testing.T) {
 	e := newEnv(t, fakeBreach{"mot de passe compromis!": true})
 	ctx := context.Background()
 	register(t, e, "a@b.ci", pw)
@@ -388,7 +387,7 @@ func TestChangementMotDePasse(t *testing.T) {
 	}
 }
 
-func TestJWKSAudienceInconnue(t *testing.T) {
+func testJWKSAudienceInconnue(t *testing.T) {
 	e := newEnv(t, nil)
 	if _, err := e.svc.JWKS("nimporte"); err == nil {
 		t.Fatal("audience inconnue : erreur attendue")

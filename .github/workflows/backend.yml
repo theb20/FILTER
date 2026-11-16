@@ -29,9 +29,17 @@ jobs:
         run: make generate
       - name: gofmt
         run: make fmt-check
-      - name: vet + tests (-race)
+      - name: vet
         run: |
-          for m in pkg services/identity services/gateway; do (cd $m && go vet ./... && go test -race -count=1 ./...); done
+          for m in pkg services/identity services/gateway; do (cd $m && go vet ./...); done
+      # Tests unitaires ET d'intégration (PostgreSQL 17 et NATS JetStream réels via testcontainers-go ; Docker est
+      # préinstallé sur ubuntu-latest). REQUIRE_INTEGRATION=1 : un test d'intégration ignoré fait ÉCHOUER la CI.
+      # Les mêmes cas tournent sur l'adaptateur mémoire et sur l'adaptateur PostgreSQL.
+      - name: tests (-race, intégration obligatoire)
+        env:
+          REQUIRE_INTEGRATION: "1"
+        run: |
+          for m in pkg services/identity services/gateway; do (cd $m && go test -race -count=1 ./...); done
       - name: build
         run: |
           for m in services/identity services/gateway; do (cd $m && go build ./...); done

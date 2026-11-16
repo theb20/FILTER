@@ -218,23 +218,26 @@ export default function Home() {
         <LineArt className="pointer-events-none absolute -left-10 top-0 h-full opacity-10" />
         <div className="relative grid gap-8 md:grid-cols-2">
           <div className="px-6 py-12 md:px-12">
+
             <h2 id="story-title" className="text-[37px] font-bold leading-tight">
               {t("home.story.title")}{" "}
               <span className="text-action">
                 {CLAIMS.foundedYear ? t("home.story.since", { year: CLAIMS.foundedYear }) : <Todo>{t("todo.sinceYear")}</Todo>}
               </span>
             </h2>
+
             <div className="mt-4 space-y-3">
               <p><Todo>{t("todo.story1")}</Todo></p>
               <p><Todo>{t("todo.story2")}</Todo></p>
               <p><Todo>{t("todo.story3")}</Todo></p>
             </div>
+
             <Link to="/contact" className={`${btnPrimary} mt-6`}>
               {t("home.story.button")} <span aria-hidden="true">→</span>
             </Link>
           </div>
-          <div className="flex min-h-[260px] items-center justify-center bg-slate/60 text-sm text-white/70 md:-mr-10">
-            <Todo>{t("todo.archivePhoto")}</Todo>
+          <div className="flex h-full min-h-[160px] items-center justify-center bg-slate/60 text-sm text-white/70 md:-mr-10">
+            <img src="/img/background/bg_history.png" className="h-full w-full object-cover" alt="" />
           </div>
         </div>
       </section>

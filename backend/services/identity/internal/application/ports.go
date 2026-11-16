@@ -53,6 +53,17 @@ type FailureStore interface {
 	MarkAlerted(ctx context.Context, email string, now, until time.Time) (bool, error)
 }
 
+// UnitOfWork exécute fn dans UNE transaction : les écritures des dépôts ET l'événement publié (outbox) sont validés
+// ensemble ou annulés ensemble. Un appel imbriqué rejoint la transaction en cours.
+type UnitOfWork interface {
+	Do(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
+// NoUnitOfWork exécute fn sans transaction (jamais en production : voir cmd/identity).
+type NoUnitOfWork struct{}
+
+func (NoUnitOfWork) Do(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) }
+
 // PasswordHasher hache et vérifie les mots de passe (Argon2id en production ; substituable en test).
 type PasswordHasher interface {
 	Hash(password string) (string, error)

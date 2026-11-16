@@ -1,5 +1,6 @@
-// Package memory est l'adaptateur de persistance EN MÉMOIRE (tests et développement sans base).
-// L'adaptateur PostgreSQL (migrations versionnées, table outbox) suit ; il implémente les mêmes ports.
+// Package memory est l'adaptateur de persistance EN MÉMOIRE : tests unitaires et développement sans base.
+// Il implémente les mêmes ports que l'adaptateur PostgreSQL (package postgres), y compris l'unité de travail
+// (annulation complète des écritures ET des événements en cas d'erreur). Jamais utilisé en production.
 package memory
 
 import (
@@ -7,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/theb20/FILTER/backend/pkg/events"
 	"github.com/theb20/FILTER/backend/pkg/throttle"
 	"github.com/theb20/FILTER/backend/services/identity/internal/application"
 	"github.com/theb20/FILTER/backend/services/identity/internal/domain"
@@ -23,12 +25,86 @@ type Store struct {
 	pairs    map[string]throttle.State
 	failures map[string][]time.Time
 	alerted  map[string]time.Time
+	families map[string]time.Time // familles révoquées
+
+	// Events : si renseigné, les événements publiés dans une transaction annulée sont retirés.
+	Events *events.Memory
+	txMu   sync.Mutex // une transaction à la fois (comme un verrou global : suffisant pour des tests)
 }
+
+type txKey struct{}
 
 // New crée un Store vide.
 func New() *Store {
 	return &Store{users: map[string]*domain.User{}, byEmail: map[string]string{}, tokens: map[string]*domain.RefreshToken{}, byID: map[string]*domain.RefreshToken{},
-		oneTime: map[string]*domain.OneTimeToken{}, pairs: map[string]throttle.State{}, failures: map[string][]time.Time{}, alerted: map[string]time.Time{}}
+		oneTime: map[string]*domain.OneTimeToken{}, pairs: map[string]throttle.State{}, failures: map[string][]time.Time{}, alerted: map[string]time.Time{}, families: map[string]time.Time{}}
+}
+
+// Do exécute fn de façon atomique : en cas d'erreur (ou de panique), l'état et les événements reviennent à ce qu'ils
+// étaient. Un appel imbriqué rejoint la transaction en cours.
+func (s *Store) Do(ctx context.Context, fn func(ctx context.Context) error) (err error) {
+	if ctx.Value(txKey{}) != nil {
+		return fn(ctx)
+	}
+	s.txMu.Lock()
+	defer s.txMu.Unlock()
+	s.mu.Lock()
+	snap := s.snapshot()
+	s.mu.Unlock()
+	evN := 0
+	if s.Events != nil {
+		evN = s.Events.Len()
+	}
+	done := false
+	defer func() {
+		if !done || err != nil {
+			s.mu.Lock()
+			s.restore(snap)
+			s.mu.Unlock()
+			if s.Events != nil {
+				s.Events.Truncate(evN)
+			}
+		}
+	}()
+	err = fn(context.WithValue(ctx, txKey{}, true))
+	done = true
+	return err
+}
+
+func (s *Store) snapshot() *Store {
+	c := New()
+	for k, v := range s.users {
+		c.users[k] = cp(*v)
+	}
+	for k, v := range s.byEmail {
+		c.byEmail[k] = v
+	}
+	for k, v := range s.byID {
+		t := cp(*v)
+		c.byID[k] = t
+		c.tokens[t.Hash] = t
+	}
+	for k, v := range s.oneTime {
+		c.oneTime[k] = cp(*v)
+	}
+	for k, v := range s.pairs {
+		c.pairs[k] = v
+	}
+	for k, v := range s.failures {
+		c.failures[k] = append([]time.Time(nil), v...)
+	}
+	for k, v := range s.alerted {
+		c.alerted[k] = v
+	}
+	for k, v := range s.families {
+		c.families[k] = v
+	}
+	return c
+}
+
+func (s *Store) restore(c *Store) {
+	s.users, s.byEmail, s.tokens, s.byID, s.oneTime = c.users, c.byEmail, c.tokens, c.byID, c.oneTime
+	s.pairs, s.failures, s.alerted, s.families = c.pairs, c.failures, c.alerted, c.families
 }
 
 func cp[T any](v T) *T { c := v; return &c }
@@ -94,7 +170,11 @@ func (s *Store) SessionByHash(_ context.Context, hash string) (*domain.RefreshTo
 	if !ok {
 		return nil, application.ErrNotFound
 	}
-	return cp(*t), nil
+	c := cp(*t)
+	if at, revoked := s.families[t.FamilyID]; revoked && c.RevokedAt == nil {
+		c.RevokedAt = &at
+	}
+	return c, nil
 }
 
 func (s *Store) MarkUsed(_ context.Context, id string, at time.Time) (bool, error) {
@@ -111,10 +191,8 @@ func (s *Store) MarkUsed(_ context.Context, id string, at time.Time) (bool, erro
 func (s *Store) RevokeFamily(_ context.Context, familyID string, at time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, t := range s.byID {
-		if t.FamilyID == familyID && t.RevokedAt == nil {
-			t.RevokedAt = &at
-		}
+	if _, ok := s.families[familyID]; !ok {
+		s.families[familyID] = at
 	}
 	return nil
 }
@@ -123,8 +201,8 @@ func (s *Store) RevokeAllExcept(_ context.Context, userID, keepFamilyID string, 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, t := range s.byID {
-		if t.UserID == userID && t.FamilyID != keepFamilyID && t.RevokedAt == nil {
-			t.RevokedAt = &at
+		if _, done := s.families[t.FamilyID]; t.UserID == userID && t.FamilyID != keepFamilyID && !done {
+			s.families[t.FamilyID] = at
 		}
 	}
 	return nil

@@ -7,7 +7,7 @@ OGEN  ?= ogen
 MODULES := pkg services/identity services/gateway
 
 .PHONY: help deps contract-check states-check openapi-check proto-lint proto-breaking generated-go \
-        generate generate-proto generate-gateway generate-client fmt-check build test
+        generate generate-proto generate-gateway generate-client fmt-check build test test-integration
 
 help:  ## liste des cibles
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
@@ -59,5 +59,8 @@ fmt-check:     ## gofmt : aucun fichier mal formaté (code généré exclu)
 build: generate ## compile tous les modules
 	@for m in $(MODULES); do (cd $$m && go build ./...) || exit 1; done
 
-test: generate  ## vet + tests de tous les modules
+test: generate  ## vet + tests de tous les modules (les tests d'intégration sont ignorés sans Docker ni TEST_*_URL)
 	@for m in $(MODULES); do (cd $$m && go vet ./... && go test ./...) || exit 1; done
+
+test-integration: generate  ## tests avec PostgreSQL + NATS réels (testcontainers : Docker requis) ; AUCUN test ignoré
+	@for m in $(MODULES); do (cd $$m && REQUIRE_INTEGRATION=1 go test -race -count=1 ./...) || exit 1; done

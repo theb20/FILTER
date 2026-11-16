@@ -36,7 +36,7 @@ FilterFinder utilise une architecture **3 tiers** : Frontend, Backend, Base de d
    +------------------+
 # ⚠️ Avertissement de licence
 
-© 2025 FilterFinder. Tous droits réservés.
+© 2025 HL. Tous droits réservés.
 
 Ce projet et tout son contenu (code source, images, textes, designs, logos, données, etc.) sont la **propriété exclusive de FilterFinder**.  
 

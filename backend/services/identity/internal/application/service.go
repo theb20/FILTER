@@ -32,6 +32,7 @@ type Service struct {
 	Hasher   PasswordHasher
 	Breach   BreachChecker
 	Events   events.Publisher
+	UoW      UnitOfWork
 	Keys     map[string]*jwtx.KeySet // une clé par audience
 	Settings SettingsProvider
 	Now      func() time.Time
@@ -47,6 +48,9 @@ func New(s Service) *Service {
 	}
 	if s.NewID == nil {
 		s.NewID = func() string { return uuid.Must(uuid.NewV7()).String() }
+	}
+	if s.UoW == nil {
+		s.UoW = NoUnitOfWork{}
 	}
 	if s.Breach == nil {
 		s.Breach = DisabledBreachChecker{}
@@ -102,13 +106,15 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) error {
 	if in.Kind == domain.KindCompany {
 		u.Company = &domain.Company{ID: s.NewID(), LegalName: in.Company.LegalName, TaxID: in.Company.TaxID, Country: in.Company.Country}
 	}
-	switch err := s.Users.Create(ctx, u); {
-	case errors.Is(err, ErrEmailTaken):
-		return s.publish(ctx, EvRegistrationOnExisting, "", &eventsv1.RegistrationAttemptOnExistingAccount{Email: email, Locale: u.Locale}, u.Locale)
-	case err != nil:
-		return apperr.Internal(err)
-	}
-	return s.issueEmailVerification(ctx, u)
+	return s.tx(ctx, func(ctx context.Context) error {
+		switch err := s.Users.Create(ctx, u); {
+		case errors.Is(err, ErrEmailTaken):
+			return s.publish(ctx, EvRegistrationOnExisting, "", &eventsv1.RegistrationAttemptOnExistingAccount{Email: email, Locale: u.Locale}, u.Locale)
+		case err != nil:
+			return apperr.Internal(err)
+		}
+		return s.issueEmailVerification(ctx, u)
+	})
 }
 
 func (s *Service) issueEmailVerification(ctx context.Context, u *domain.User) error {
@@ -125,22 +131,24 @@ func (s *Service) issueEmailVerification(ctx context.Context, u *domain.User) er
 
 // VerifyEmail confirme l'adresse (jeton à usage unique).
 func (s *Service) VerifyEmail(ctx context.Context, token string) error {
-	id, ok, err := s.Tokens.Consume(ctx, domain.PurposeEmailVerification, domain.HashToken(token), s.Now())
-	if err != nil {
-		return apperr.Internal(err)
-	}
-	if !ok {
-		return apperr.New(codes.InvalidArgument, apperr.CodeInvalidCode, "lien invalide ou expiré")
-	}
-	u, err := s.Users.ByID(ctx, id)
-	if err != nil {
-		return apperr.Internal(err)
-	}
-	u.EmailVerified = true
-	if err := s.Users.Update(ctx, u); err != nil {
-		return apperr.Internal(err)
-	}
-	return nil
+	return s.tx(ctx, func(ctx context.Context) error {
+		id, ok, err := s.Tokens.Consume(ctx, domain.PurposeEmailVerification, domain.HashToken(token), s.Now())
+		if err != nil {
+			return apperr.Internal(err)
+		}
+		if !ok {
+			return apperr.New(codes.InvalidArgument, apperr.CodeInvalidCode, "lien invalide ou expiré")
+		}
+		u, err := s.Users.ByID(ctx, id)
+		if err != nil {
+			return apperr.Internal(err)
+		}
+		u.EmailVerified = true
+		if err := s.Users.Update(ctx, u); err != nil {
+			return apperr.Internal(err)
+		}
+		return nil
+	})
 }
 
 // ResendEmailVerification renvoie le lien (idempotent si l'adresse est déjà vérifiée).
@@ -154,7 +162,7 @@ func (s *Service) ResendEmailVerification(ctx context.Context, userID string) er
 	if u.EmailVerified {
 		return nil
 	}
-	return s.issueEmailVerification(ctx, u)
+	return s.tx(ctx, func(ctx context.Context) error { return s.issueEmailVerification(ctx, u) })
 }
 
 // ── Connexion et sessions ───────────────────────────────────────────────────
@@ -207,21 +215,41 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*Session, error) {
 	if u == nil || u.PasswordHash == "" || !ok || u.Status != domain.StatusActive {
 		return nil, s.recordFailure(ctx, set, key, email, in.IP, u, st, now, invalid)
 	}
-	if err := s.Failures.ResetPair(ctx, key); err != nil {
-		return nil, apperr.Internal(err)
-	}
-	return s.issueSession(ctx, set, u, "", in.IP, in.UserAgent, now)
+	var sess *Session
+	err = s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Failures.ResetPair(ctx, key); err != nil {
+			return apperr.Internal(err)
+		}
+		var e error
+		sess, e = s.issueSession(ctx, set, u, "", in.IP, in.UserAgent, now)
+		return e
+	})
+	return sess, err
 }
 
 func (s *Service) recordFailure(ctx context.Context, set domain.Settings, key, email, ip string, u *domain.User, st throttle.State, now time.Time, ret error) error {
 	next := set.Throttle.RecordFailure(st, now)
-	_ = s.Failures.SetPair(ctx, key, next)
-	n, err := s.Failures.AccountFailures(ctx, email, now, set.LoginAlertWindow)
-	if err == nil && u != nil && n >= set.LoginAlertAfterFailure {
-		if first, e := s.Failures.MarkAlerted(ctx, email, now, now.Add(set.LoginAlertWindow)); e == nil && first {
-			_ = s.publish(ctx, EvSuspiciousLogin, u.ID, &eventsv1.SuspiciousLoginAlertRequested{UserId: u.ID, Email: u.Email, Failures: int32(n), LastIp: ip, Locale: u.Locale}, u.Locale)
+	// Une transaction : le compteur, la marque d'alerte et l'événement sont validés ensemble. Si elle échoue, la
+	// réponse reste « identifiants invalides » (on ne révèle rien de plus).
+	_ = s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Failures.SetPair(ctx, key, next); err != nil {
+			return err
 		}
-	}
+		n, err := s.Failures.AccountFailures(ctx, email, now, set.LoginAlertWindow)
+		if err != nil {
+			return err
+		}
+		if u != nil && n >= set.LoginAlertAfterFailure {
+			first, err := s.Failures.MarkAlerted(ctx, email, now, now.Add(set.LoginAlertWindow))
+			if err != nil {
+				return err
+			}
+			if first {
+				return s.publish(ctx, EvSuspiciousLogin, u.ID, &eventsv1.SuspiciousLoginAlertRequested{UserId: u.ID, Email: u.Email, Failures: int32(n), LastIp: ip, Locale: u.Locale}, u.Locale)
+			}
+		}
+		return nil
+	})
 	return ret
 }
 
@@ -250,33 +278,50 @@ func (s *Service) Refresh(ctx context.Context, plain, ip, ua string) (*Session, 
 	set := s.Settings.Get(ctx)
 	now := s.Now()
 	deny := apperr.Unauthenticated(apperr.CodeUnauthenticated, "session invalide ou expirée")
-	rt, err := s.Sessions.SessionByHash(ctx, domain.HashToken(plain))
-	if errors.Is(err, ErrNotFound) {
-		return nil, deny
-	} else if err != nil {
-		return nil, apperr.Internal(err)
-	}
-	if rt.RevokedAt != nil || !now.Before(rt.ExpiresAt) {
-		return nil, deny
-	}
-	if rt.UsedAt != nil { // rejeu d'un jeton déjà consommé
-		_ = s.Sessions.RevokeFamily(ctx, rt.FamilyID, now)
-		return nil, deny
-	}
-	won, err := s.Sessions.MarkUsed(ctx, rt.ID, now)
+	var sess *Session
+	var outErr error
+	// Une transaction : consommer l'ancien jeton et émettre le nouveau vont ensemble. Les refus qui révoquent la
+	// famille renvoient nil à la transaction (pour VALIDER la révocation) et l'erreur à l'appelant.
+	err := s.tx(ctx, func(ctx context.Context) error {
+		rt, err := s.Sessions.SessionByHash(ctx, domain.HashToken(plain))
+		if errors.Is(err, ErrNotFound) {
+			outErr = deny
+			return nil
+		} else if err != nil {
+			return apperr.Internal(err)
+		}
+		if rt.RevokedAt != nil || !now.Before(rt.ExpiresAt) {
+			outErr = deny
+			return nil
+		}
+		revoke := func() error { // rejeu, course ou compte inactif : toute la famille (la session) est révoquée
+			outErr = deny
+			return s.wrap(s.Sessions.RevokeFamily(ctx, rt.FamilyID, now))
+		}
+		if rt.UsedAt != nil {
+			return revoke()
+		}
+		won, err := s.Sessions.MarkUsed(ctx, rt.ID, now)
+		if err != nil {
+			return apperr.Internal(err)
+		}
+		if !won {
+			return revoke()
+		}
+		u, err := s.Users.ByID(ctx, rt.UserID)
+		if err != nil || u.Status != domain.StatusActive {
+			return revoke()
+		}
+		sess, err = s.issueSession(ctx, set, u, rt.FamilyID, ip, ua, now)
+		return err
+	})
 	if err != nil {
-		return nil, apperr.Internal(err)
+		return nil, err
 	}
-	if !won { // course : un autre appel a consommé le jeton
-		_ = s.Sessions.RevokeFamily(ctx, rt.FamilyID, now)
-		return nil, deny
+	if outErr != nil {
+		return nil, outErr
 	}
-	u, err := s.Users.ByID(ctx, rt.UserID)
-	if err != nil || u.Status != domain.StatusActive {
-		_ = s.Sessions.RevokeFamily(ctx, rt.FamilyID, now)
-		return nil, deny
-	}
-	return s.issueSession(ctx, set, u, rt.FamilyID, ip, ua, now)
+	return sess, nil
 }
 
 // Logout révoque la session du jeton. Idempotent : jeton inconnu ou déjà révoqué → succès.
@@ -347,10 +392,12 @@ func (s *Service) ChangePassword(ctx context.Context, userID, current, next, cur
 		return apperr.Internal(err)
 	}
 	u.PasswordHash = h
-	if err := s.Users.Update(ctx, u); err != nil {
-		return apperr.Internal(err)
-	}
-	return s.wrap(s.Sessions.RevokeAllExcept(ctx, userID, currentSessionID, now))
+	return s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Users.Update(ctx, u); err != nil {
+			return apperr.Internal(err)
+		}
+		return s.wrap(s.Sessions.RevokeAllExcept(ctx, userID, currentSessionID, now))
+	})
 }
 
 // JWKS publie les clés publiques de l'audience demandée.
@@ -366,6 +413,16 @@ func (s *Service) JWKS(audience string) ([]byte, error) {
 
 func (s *Service) publish(ctx context.Context, typ, aggregateID string, msg proto.Message, locale string) error {
 	return s.Events.Publish(ctx, events.Event{Type: typ, AggregateID: aggregateID, ActorType: "system", Locale: locale, Payload: msg})
+}
+
+// tx exécute fn dans l'unité de travail ; toute erreur technique (validation de la transaction…) devient interne.
+func (s *Service) tx(ctx context.Context, fn func(ctx context.Context) error) error {
+	err := s.UoW.Do(ctx, fn)
+	var ae *apperr.Error
+	if err == nil || errors.As(err, &ae) {
+		return err
+	}
+	return apperr.Internal(err)
 }
 
 func (s *Service) wrap(err error) error {
