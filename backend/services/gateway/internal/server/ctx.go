@@ -12,6 +12,7 @@ const (
 	keyInfo ctxKey = iota
 	keyClaims
 	keyRefreshCookie
+	keyBearer
 )
 
 // reqInfo est propagé aux handlers (l'API ogen ne leur donne pas *http.Request).
@@ -43,5 +44,14 @@ func withRefreshCookie(ctx context.Context, v string) context.Context {
 }
 func refreshCookieFrom(ctx context.Context) string {
 	v, _ := ctx.Value(keyRefreshCookie).(string)
+	return v
+}
+
+// withBearer conserve le jeton de défi 2FA (déjà vérifié localement) pour le transmettre à identity, qui le consomme.
+func withBearer(ctx context.Context, v string) context.Context {
+	return context.WithValue(ctx, keyBearer, v)
+}
+func bearerFrom(ctx context.Context) string {
+	v, _ := ctx.Value(keyBearer).(string)
 	return v
 }

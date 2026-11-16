@@ -25,12 +25,24 @@ func (s *security) HandleCustomerAuth(ctx context.Context, _ api.OperationName, 
 	return s.verify(ctx, jwtx.AudCustomer, t.Token)
 }
 
-func (s *security) HandleStaffAuth(ctx context.Context, _ api.OperationName, t api.StaffAuth) (context.Context, error) {
-	return s.verify(ctx, jwtx.AudStaff, t.Token)
+// HandleStaffAuth vérifie le jeton PUIS la permission de l'opération (x-required-permission du contrat, table générée).
+// Une opération absente de la table est REFUSÉE (fail closed). Les permissions viennent du jeton (rôles au moment de la
+// connexion/du renouvellement, 15 min au plus) ; identity les relit en base pour toute action qui accorde des droits.
+func (s *security) HandleStaffAuth(ctx context.Context, op api.OperationName, t api.StaffAuth) (context.Context, error) {
+	ctx, err := s.verify(ctx, jwtx.AudStaff, t.Token)
+	if err != nil {
+		return ctx, err
+	}
+	required, known := api.RequiredPermission[op]
+	if !known || (required != "" && !claimsFrom(ctx).HasPermission(required)) {
+		return ctx, apperr.PermissionDenied(apperr.CodeForbidden, "permission insuffisante")
+	}
+	return ctx, nil
 }
 
 func (s *security) HandleStaffChallenge(ctx context.Context, _ api.OperationName, t api.StaffChallenge) (context.Context, error) {
-	return s.verify(ctx, jwtx.AudStaffChallenge, t.Token)
+	ctx, err := s.verify(ctx, jwtx.AudStaffChallenge, t.Token)
+	return withBearer(ctx, t.Token), err
 }
 
 // HandleRefreshCookie ne vérifie pas le jeton opaque (c'est identity qui le fait, avec rotation) : il le transmet

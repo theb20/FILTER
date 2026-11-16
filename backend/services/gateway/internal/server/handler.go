@@ -25,10 +25,15 @@ var _ api.Handler = (*handler)(nil)
 
 // rpc prépare le contexte gRPC : délai et métadonnées du gateway (G9).
 func (h *handler) rpc(ctx context.Context) (context.Context, context.CancelFunc) {
+	return h.rpcAs(ctx, "customer")
+}
+
+// rpcAs : comme rpc, en indiquant le type d'acteur (customer | staff).
+func (h *handler) rpcAs(ctx context.Context, actor string) (context.Context, context.CancelFunc) {
 	info := infoFrom(ctx)
-	ctx = metadata.AppendToOutgoingContext(ctx, "x-request-id", info.TraceID, "x-locale", info.Locale, "x-client-ip", info.IP, "x-actor-type", "customer")
+	ctx = metadata.AppendToOutgoingContext(ctx, "x-request-id", info.TraceID, "x-locale", info.Locale, "x-client-ip", info.IP, "x-actor-type", actor)
 	if c := claimsFrom(ctx); c != nil {
-		ctx = metadata.AppendToOutgoingContext(ctx, "x-actor-id", c.Subject)
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-actor-id", c.Subject, "x-session-id", c.SID)
 	}
 	return context.WithTimeout(ctx, h.srv.cfg.RequestTimeoutRPC)
 }
