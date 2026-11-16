@@ -481,3 +481,5 @@ func (s *Service) audit(ctx context.Context, a Actor, action, entity, entityID s
 	}
 	return nil
 }
+
+const apperrConflictKind = codes.FailedPrecondition

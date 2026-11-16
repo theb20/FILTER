@@ -34,3 +34,27 @@ export type Sector = { id: string; slug: string; name: Localized; imageUrl: stri
 export type SectorPage = { items: Sector[]; page: PageInfo };
 
 export const ATTRIBUTE_TYPE_LABEL: Record<AttributeType, string> = { text: "Texte libre", number: "Nombre", boolean: "Oui / non", enum: "Liste de choix" };
+
+// ── produits ──
+export type ProductStatus = "draft" | "review" | "active" | "archived";
+export type AttrValue = { key: string; value: string | number | boolean };
+export type Product = {
+  id: string; sku: string; slug: string; name: Localized; description: Localized | null; brandId: string | null; categoryId: string; manufacturerRef: string | null;
+  status: ProductStatus; fulfillmentMode: "stock" | "made_to_order"; leadTimeDays: number | null; priceMode: "fixed" | "on_quote"; priceAmount: number | null; currency: string;
+  gtin: string | null; saleUnit: string | null; minOrderQuantity: number | null; weightGrams: number | null; lengthMm: number | null; widthMm: number | null; heightMm: number | null;
+  attributes: AttrValue[]; sectorIds: string[]; media: { id: string; url: string; alt: string | null; sortOrder: number }[]; crossReferences: { brand: string; number: string; kind: "oem" | "equivalent" | "supersedes" }[];
+  origins?: Record<string, string>; version: number; publishedAt: string | null; createdAt: string; updatedAt: string;
+};
+export type ProductPage = { items: Product[]; page: PageInfo };
+export type ProductVersion = { version: number; at: string; actorId: string | null; action: string; changes: Record<string, { before: unknown; after: unknown; origin: string }> };
+
+export const PRODUCT_STATUS_LABEL: Record<ProductStatus, string> = { draft: "Brouillon", review: "À valider", active: "Publié", archived: "Archivé" };
+export const PRODUCT_STATUS_TONE: Record<ProductStatus, "off" | "warn" | "ok" | "info"> = { draft: "off", review: "warn", active: "ok", archived: "info" };
+export const ACTION_LABEL: Record<string, string> = { create: "Création", update: "Modification", submit_review: "Soumis à validation", publish: "Publication", archive: "Archivage", restore: "Restauration" };
+export const FIELD_LABEL: Record<string, string> = {
+  sku: "SKU", slug: "Adresse (slug)", name: "Nom", description: "Description", brandId: "Marque", categoryId: "Catégorie", manufacturerRef: "Référence constructeur", status: "Statut",
+  fulfillmentMode: "Mode de commande", leadTimeDays: "Délai (jours)", priceMode: "Mode de prix", priceAmount: "Prix HT", gtin: "GTIN/EAN", saleUnit: "Unité de vente", minOrderQuantity: "Quantité minimale",
+  weightGrams: "Poids (g)", lengthMm: "Longueur (mm)", widthMm: "Largeur (mm)", heightMm: "Hauteur (mm)", attributes: "Attributs", sectorIds: "Secteurs", media: "Médias", crossReferences: "Références croisées",
+};
+/** Montant en francs CFA (XOF n'a pas de décimale), hors taxes. */
+export const xof = (n: number | null) => (n === null ? "—" : `${new Intl.NumberFormat("fr-FR").format(n)} F CFA HT`);

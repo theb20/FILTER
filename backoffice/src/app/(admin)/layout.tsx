@@ -10,6 +10,7 @@ const nav = [
   { href: "/dashboard", label: "Tableau de bord" },
   { href: "/customers", label: "Clients", perm: "customers:read" },
   { href: "/companies", label: "Entreprises", perm: "customers:read" },
+  { href: "/products", label: "Produits", perm: "catalog:read" },
   { href: "/categories", label: "Catégories", perm: "catalog:read" },
   { href: "/brands", label: "Marques", perm: "catalog:read" },
   { href: "/sectors", label: "Secteurs", perm: "catalog:read" },

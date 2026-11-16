@@ -103,6 +103,9 @@ tags:
   x-status: validated
 - name: Admin · Tableau de bord
   x-status: draft
+- name: Admin · Produits
+  description: 'Produits : fiche, cycle de vie (brouillon, à valider, publié, archivé), versions. Service : catalog.'
+  x-status: validated
 - name: Admin · Taxonomie du catalogue
   description: 'Catégories (arbre), attributs par catégorie, marques, secteurs. Service : catalog.'
   x-status: validated
@@ -7405,8 +7408,8 @@ paths:
     get:
       operationId: adminProductsList
       tags:
-      - Admin · Catalogue
-      summary: 'Lister : Products'
+      - Admin · Produits
+      summary: Lister les produits
       parameters:
       - $ref: '#/components/parameters/Query'
       - $ref: '#/components/parameters/Page'
@@ -7431,16 +7434,9 @@ paths:
           type: string
           enum:
           - draft
+          - review
           - active
           - archived
-      - name: fulfillmentMode
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - stock
-          - made_to_order
       security:
       - staffAuth: []
       responses:
@@ -7450,16 +7446,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProductsPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
       x-required-permission: catalog:read
     post:
       operationId: adminProductsCreate
       tags:
-      - Admin · Catalogue
-      summary: 'Créer : Products'
+      - Admin · Produits
+      summary: 'Créer un produit (toujours en brouillon)'
       security:
       - staffAuth: []
       requestBody:
@@ -7481,11 +7485,293 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/Unprocessable'
       x-required-permission: catalog:write
+  /admin/products/{id}:
+    get:
+      operationId: adminProductsGet
+      tags:
+      - Admin · Produits
+      summary: Consulter un produit
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductAdmin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:read
+    put:
+      operationId: adminProductsUpdate
+      tags:
+      - Admin · Produits
+      summary: Modifier un produit
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductAdmin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:write
+    delete:
+      operationId: adminProductsDelete
+      tags:
+      - Admin · Produits
+      summary: "Supprimer un produit jamais publié, sinon l'archiver"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '204':
+          description: Supprimé ou archivé
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:write
+  /admin/products/{id}/submit-review:
+    post:
+      operationId: adminProductSubmitReview
+      tags:
+      - Admin · Produits
+      summary: 'Soumettre à validation (brouillon vers à valider)'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductAdmin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:write
+  /admin/products/{id}/publish:
+    post:
+      operationId: adminProductPublish
+      tags:
+      - Admin · Produits
+      summary: 'Publier (brouillon ou à valider vers publié) ; refusé avec la liste des manques'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductAdmin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:publish
+  /admin/products/{id}/archive:
+    post:
+      operationId: adminProductArchive
+      tags:
+      - Admin · Produits
+      summary: Archiver
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductAdmin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:write
+  /admin/products/{id}/restore:
+    post:
+      operationId: adminProductRestore
+      tags:
+      - Admin · Produits
+      summary: Restaurer un produit archivé (retour en brouillon)
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductAdmin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:write
+  /admin/products/{id}/versions:
+    get:
+      operationId: adminProductVersions
+      tags:
+      - Admin · Produits
+      summary: Historique des versions (100 dernières)
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVersionsPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: catalog:read
   /admin/products/export:
     get:
       operationId: adminExportProducts
@@ -7541,105 +7827,6 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/Unprocessable'
-      x-required-permission: catalog:write
-  /admin/products/{id}:
-    get:
-      operationId: adminProductsGet
-      tags:
-      - Admin · Catalogue
-      summary: 'Lire : Products'
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      security:
-      - staffAuth: []
-      responses:
-        '200':
-          description: Succès
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductAdmin'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-      x-required-permission: catalog:read
-      x-etag: true
-    put:
-      operationId: adminProductsUpdate
-      tags:
-      - Admin · Catalogue
-      summary: 'Modifier : Products'
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - $ref: '#/components/parameters/IfMatch'
-      security:
-      - staffAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProductInput'
-      responses:
-        '200':
-          description: Succès
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductAdmin'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '422':
-          $ref: '#/components/responses/Unprocessable'
-      x-required-permission: catalog:write
-    delete:
-      operationId: adminProductsDelete
-      tags:
-      - Admin · Catalogue
-      summary: 'Supprimer : Products'
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      security:
-      - staffAuth: []
-      responses:
-        '204':
-          description: Succès
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
       x-required-permission: catalog:write
   /admin/products/{id}/compatibilities:
     put:
@@ -16826,6 +17013,145 @@ components:
       - items
       - page
       additionalProperties: false
+    ProductAdmin:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        sku: {type: string}
+        slug: {type: string}
+        name: {$ref: '#/components/schemas/LocalizedText'}
+        description:
+          anyOf:
+          - $ref: '#/components/schemas/LocalizedText'
+          - type: 'null'
+        brandId: {type: [string, 'null'], format: uuid}
+        categoryId: {type: string, format: uuid}
+        manufacturerRef: {type: [string, 'null']}
+        status: {type: string, enum: [draft, review, active, archived]}
+        fulfillmentMode: {type: string, enum: [stock, made_to_order]}
+        leadTimeDays: {type: [integer, 'null'], format: int32, minimum: 0}
+        priceMode: {type: string, enum: [fixed, on_quote]}
+        priceAmount:
+          type: [integer, 'null']
+          format: int64
+          minimum: 0
+          description: 'Prix de vente HORS TAXES, en unités mineures de `currency` (XOF, le franc). Jamais de décimal.'
+        currency: {type: string, description: 'Devise de base du catalogue (XOF).'}
+        gtin: {type: [string, 'null']}
+        saleUnit: {type: [string, 'null']}
+        minOrderQuantity: {type: [integer, 'null'], format: int32, minimum: 1}
+        weightGrams: {type: [integer, 'null'], format: int32, minimum: 0}
+        lengthMm: {type: [integer, 'null'], format: int32, minimum: 0}
+        widthMm: {type: [integer, 'null'], format: int32, minimum: 0}
+        heightMm: {type: [integer, 'null'], format: int32, minimum: 0}
+        attributes:
+          type: array
+          items: {$ref: '#/components/schemas/ProductAttributeInput'}
+        sectorIds:
+          type: array
+          items: {type: string, format: uuid}
+        media:
+          type: array
+          items: {$ref: '#/components/schemas/ProductMedia'}
+        crossReferences:
+          type: array
+          items: {$ref: '#/components/schemas/CrossReference'}
+        origins:
+          type: object
+          description: 'Origine de chaque champ renseigné (`manual` ou `import`).'
+          additionalProperties: {type: string}
+        version: {type: integer, format: int32}
+        publishedAt: {type: [string, 'null'], format: date-time}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+      required: [id, sku, slug, name, categoryId, status, fulfillmentMode, priceMode, currency, version]
+      additionalProperties: false
+    ProductMediaInput:
+      type: object
+      properties:
+        url: {type: string, format: uri, maxLength: 2000}
+        alt: {type: [string, 'null'], maxLength: 300}
+      required: [url]
+      additionalProperties: false
+    ProductInput:
+      type: object
+      description: "Le statut ne se change que par les routes de cycle de vie. Les médias sont dans l'ordre fourni ; les listes remplacent les précédentes."
+      properties:
+        sku:
+          type: [string, 'null']
+          maxLength: 64
+          description: 'Majuscules, chiffres et tirets. Généré si absent. Figé après publication.'
+        slug:
+          type: [string, 'null']
+          maxLength: 80
+          description: 'Minuscules, chiffres et tirets. Calculé depuis le nom si absent. Figé après publication.'
+        name: {$ref: '#/components/schemas/LocalizedText'}
+        description:
+          anyOf:
+          - $ref: '#/components/schemas/LocalizedText'
+          - type: 'null'
+        brandId: {type: [string, 'null'], format: uuid}
+        categoryId: {type: string, format: uuid}
+        manufacturerRef: {type: [string, 'null'], maxLength: 100}
+        fulfillmentMode: {type: string, enum: [stock, made_to_order]}
+        leadTimeDays: {type: [integer, 'null'], format: int32, minimum: 0, description: 'Obligatoire si `made_to_order`.'}
+        priceMode: {type: string, enum: [fixed, on_quote]}
+        priceAmount: {type: [integer, 'null'], format: int64, minimum: 0, description: 'HORS TAXES, XOF. Doit être absent si `on_quote`.'}
+        gtin: {type: [string, 'null'], pattern: '^[0-9]{8,14}$'}
+        saleUnit: {type: [string, 'null'], maxLength: 50}
+        minOrderQuantity: {type: [integer, 'null'], format: int32, minimum: 1}
+        weightGrams: {type: [integer, 'null'], format: int32, minimum: 0}
+        lengthMm: {type: [integer, 'null'], format: int32, minimum: 0}
+        widthMm: {type: [integer, 'null'], format: int32, minimum: 0}
+        heightMm: {type: [integer, 'null'], format: int32, minimum: 0}
+        attributes:
+          type: array
+          items: {$ref: '#/components/schemas/ProductAttributeInput'}
+        sectorIds:
+          type: array
+          items: {type: string, format: uuid}
+        media:
+          type: array
+          items: {$ref: '#/components/schemas/ProductMediaInput'}
+        crossReferences:
+          type: array
+          items: {$ref: '#/components/schemas/CrossReference'}
+        version:
+          type: [integer, 'null']
+          format: int32
+          description: 'Version lue avant modification ; refus (409) si le produit a changé entre-temps.'
+      required: [name, categoryId, fulfillmentMode, priceMode]
+      additionalProperties: false
+    ProductsPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/ProductAdmin'}
+        page: {$ref: '#/components/schemas/PageInfo'}
+      required: [items, page]
+      additionalProperties: false
+    ProductVersion:
+      type: object
+      properties:
+        version: {type: integer, format: int32}
+        at: {type: string, format: date-time}
+        actorId: {type: [string, 'null'], format: uuid}
+        action: {type: string}
+        changes:
+          type: object
+          description: 'Par champ : {before, after, origin}.'
+          additionalProperties: true
+      required: [version, at, action, changes]
+      additionalProperties: false
+    ProductVersionsPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/ProductVersion'}
+      required: [items]
+      additionalProperties: false
     ProductAttributeInput:
       type: object
       properties:
@@ -16839,151 +17165,6 @@ components:
       required:
       - key
       - value
-      additionalProperties: false
-    ProductAdmin:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        sku:
-          type: string
-        slug:
-          type:
-          - string
-          - 'null'
-        name:
-          $ref: '#/components/schemas/LocalizedText'
-        description:
-          anyOf:
-          - $ref: '#/components/schemas/LocalizedText'
-          - type: 'null'
-        brandId:
-          type:
-          - string
-          - 'null'
-          format: uuid
-        categoryId:
-          type: string
-          format: uuid
-        status:
-          type: string
-          enum:
-          - draft
-          - active
-          - archived
-        fulfillmentMode:
-          type: string
-          enum:
-          - stock
-          - made_to_order
-        leadTimeDays:
-          type:
-          - integer
-          - 'null'
-          format: int32
-          minimum: 0
-        attributes:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductAttributeInput'
-        sectorIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-        media:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductMedia'
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        version:
-          type: integer
-          format: int32
-      required:
-      - id
-      - sku
-      - name
-      - categoryId
-      - status
-      - fulfillmentMode
-      additionalProperties: false
-    ProductInput:
-      type: object
-      properties:
-        sku:
-          type: string
-          maxLength: 64
-        slug:
-          type:
-          - string
-          - 'null'
-        name:
-          $ref: '#/components/schemas/LocalizedText'
-        description:
-          anyOf:
-          - $ref: '#/components/schemas/LocalizedText'
-          - type: 'null'
-        brandId:
-          type:
-          - string
-          - 'null'
-          format: uuid
-        categoryId:
-          type: string
-          format: uuid
-        status:
-          type: string
-          enum:
-          - draft
-          - active
-          - archived
-        fulfillmentMode:
-          type: string
-          enum:
-          - stock
-          - made_to_order
-          description: '`made_to_order` autorise la commande sans stock.'
-        leadTimeDays:
-          type:
-          - integer
-          - 'null'
-          format: int32
-          description: Obligatoire si `made_to_order`.
-          minimum: 0
-        attributes:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductAttributeInput'
-        sectorIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-      required:
-      - sku
-      - name
-      - categoryId
-      - status
-      - fulfillmentMode
-      additionalProperties: false
-    ProductsPage:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductAdmin'
-        page:
-          $ref: '#/components/schemas/PageInfo'
-      required:
-      - items
-      - page
       additionalProperties: false
     MediaUploadRequest:
       type: object

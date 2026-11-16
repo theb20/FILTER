@@ -106,3 +106,7 @@ Permissions existantes : `catalog:read`, `catalog:write` ; je propose d'y ajoute
 Permission `catalog:publish` créée. Ordre de réalisation validé : catégories → attributs → marques → secteurs → produits → import/export CSV → site branché → tests ; puis service `search` ; puis écrans du moteur.
 
 **Avancement** : l'étape « taxonomie » (catégories, attributs, marques, secteurs) est livrée (service `catalog`, routes du gateway, écrans du backoffice, audit). Un attribut ne change ni de clé, ni de type, ni de catégorie une fois créé.
+
+**Avancement (17 nov. 2026, suite)** : devise de base **XOF confirmée**. L'étape « produits » est livrée : fiche complète (priceMode, manufacturerRef, GTIN avec contrôle du chiffre, unité de vente, quantité minimale, poids en grammes, dimensions en mm), cycle de vie brouillon → à valider → publié → archivé (la publication exige `catalog:publish`), SKU généré `FF-000001` si vide, slug calculé du nom, SKU et slug figés à la première publication (y compris par une écriture SQL directe), historique des versions avec origine de chaque champ, protection contre les écritures concurrentes, médias par URL, références croisées, secteurs, audit. Suppression : produit jamais publié = supprimé ; publié = archivé. Les numéros de SKU peuvent avoir des trous (une création refusée consomme un numéro).
+
+**Reste dans l'étape produits** : compatibilités (nécessitent une entité « Machines » à définir avec vous), téléversement S3 (emplacement à fixer), import/export CSV, branchement du site.

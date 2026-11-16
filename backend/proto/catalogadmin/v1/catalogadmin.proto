@@ -5,6 +5,7 @@ syntax = "proto3";
 package catalogadmin.v1;
 
 import "common/v1/common.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/theb20/FILTER/backend/pkg/gen/catalogadmin/v1;catalogadminv1";
@@ -255,6 +256,158 @@ message DeleteSectorRequest {
 
 message DeleteSectorResponse {}
 
+// ── produits ──
+
+message ProductMedia {
+  string id = 1;
+  string url = 2;
+  optional string alt = 3;
+  int32 sort_order = 4;
+}
+
+message CrossReference {
+  string brand = 1;
+  string number = 2;
+  string kind = 3; // oem | equivalent | supersedes
+}
+
+message AttributeValue {
+  string key = 1;
+  oneof value {
+    string text = 2;
+    double number = 3;
+    bool boolean = 4;
+  }
+}
+
+// Fiche produit. Prix HORS TAXES en unités mineures de la devise de base (XOF : le franc).
+message Product {
+  string id = 1;
+  string sku = 2;
+  string slug = 3;
+  Localized name = 4;
+  optional Localized description = 5;
+  optional string brand_id = 6;
+  string category_id = 7;
+  optional string manufacturer_ref = 8;
+  string status = 9;           // draft | review | active | archived
+  string fulfillment_mode = 10; // stock | made_to_order
+  optional int32 lead_time_days = 11;
+  string price_mode = 12;      // fixed | on_quote
+  optional int64 price_amount = 13;
+  string currency = 14;
+  optional string gtin = 15;
+  optional string sale_unit = 16;
+  optional int32 min_order_quantity = 17;
+  optional int32 weight_grams = 18;
+  optional int32 length_mm = 19;
+  optional int32 width_mm = 20;
+  optional int32 height_mm = 21;
+  repeated AttributeValue attributes = 22;
+  repeated string sector_ids = 23;
+  repeated ProductMedia media = 24;
+  repeated CrossReference cross_references = 25;
+  map<string, string> origins = 26;
+  int32 version = 27;
+  optional google.protobuf.Timestamp published_at = 28;
+  google.protobuf.Timestamp created_at = 29;
+  google.protobuf.Timestamp updated_at = 30;
+}
+
+message ListProductsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string category_id = 3;
+  optional string brand_id = 4;
+  optional string status = 5;
+}
+
+message ListProductsResponse {
+  repeated Product items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+// `product.id` est ignoré à la création. `expected_version` (si présent) protège contre les écritures concurrentes.
+message CreateProductRequest {
+  Product product = 1;
+}
+
+message CreateProductResponse {
+  Product product = 1;
+}
+
+message UpdateProductRequest {
+  Product product = 1;
+  optional int32 expected_version = 2;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+// Supprime un produit jamais publié ; sinon l'archive.
+message DeleteProductRequest {
+  string id = 1;
+}
+
+message DeleteProductResponse {}
+
+message SubmitProductReviewRequest {
+  string id = 1;
+}
+
+message SubmitProductReviewResponse {
+  Product product = 1;
+}
+
+message PublishProductRequest {
+  string id = 1;
+}
+
+message PublishProductResponse {
+  Product product = 1;
+}
+
+message ArchiveProductRequest {
+  string id = 1;
+}
+
+message ArchiveProductResponse {
+  Product product = 1;
+}
+
+message RestoreProductRequest {
+  string id = 1;
+}
+
+message RestoreProductResponse {
+  Product product = 1;
+}
+
+message ProductVersion {
+  int32 version = 1;
+  google.protobuf.Timestamp at = 2;
+  optional string actor_id = 3;
+  string action = 4;
+  google.protobuf.Struct changes = 5;
+}
+
+message ListProductVersionsRequest {
+  string id = 1;
+}
+
+message ListProductVersionsResponse {
+  repeated ProductVersion items = 1;
+}
+
 service CatalogAdminService {
   rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
   rpc GetCategory(GetCategoryRequest) returns (GetCategoryResponse);
@@ -280,4 +433,15 @@ service CatalogAdminService {
   rpc CreateSector(CreateSectorRequest) returns (CreateSectorResponse);
   rpc UpdateSector(UpdateSectorRequest) returns (UpdateSectorResponse);
   rpc DeleteSector(DeleteSectorRequest) returns (DeleteSectorResponse);
+
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+  rpc SubmitProductReview(SubmitProductReviewRequest) returns (SubmitProductReviewResponse);
+  rpc PublishProduct(PublishProductRequest) returns (PublishProductResponse);
+  rpc ArchiveProduct(ArchiveProductRequest) returns (ArchiveProductResponse);
+  rpc RestoreProduct(RestoreProductRequest) returns (RestoreProductResponse);
+  rpc ListProductVersions(ListProductVersionsRequest) returns (ListProductVersionsResponse);
 }

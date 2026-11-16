@@ -336,3 +336,33 @@ routes:
 - method: POST
   path: /admin/categories/{id}/move
   rpc: catalogadmin.MoveCategory
+- method: GET
+  path: /admin/products
+  rpc: catalogadmin.ListProducts
+- method: POST
+  path: /admin/products
+  rpc: catalogadmin.CreateProduct
+- method: GET
+  path: /admin/products/{id}
+  rpc: catalogadmin.GetProduct
+- method: PUT
+  path: /admin/products/{id}
+  rpc: catalogadmin.UpdateProduct
+- method: DELETE
+  path: /admin/products/{id}
+  rpc: catalogadmin.DeleteProduct
+- method: POST
+  path: /admin/products/{id}/submit-review
+  rpc: catalogadmin.SubmitProductReview
+- method: POST
+  path: /admin/products/{id}/publish
+  rpc: catalogadmin.PublishProduct
+- method: POST
+  path: /admin/products/{id}/archive
+  rpc: catalogadmin.ArchiveProduct
+- method: POST
+  path: /admin/products/{id}/restore
+  rpc: catalogadmin.RestoreProduct
+- method: GET
+  path: /admin/products/{id}/versions
+  rpc: catalogadmin.ListProductVersions

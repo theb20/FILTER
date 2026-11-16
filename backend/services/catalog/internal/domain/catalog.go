@@ -21,6 +21,7 @@ var (
 	langRE = regexp.MustCompile(`^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$`)
 	slugRE = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 	keyRE  = regexp.MustCompile(`^[a-z][a-z0-9_]{1,63}$`)
+	skuRE  = regexp.MustCompile(`^[A-Z0-9]+(-[A-Z0-9]+)*$`)
 )
 
 type fieldErrs []apperr.Field

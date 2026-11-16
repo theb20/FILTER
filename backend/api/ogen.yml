@@ -2,7 +2,7 @@
 # Périmètre : routes VALIDÉES uniquement (gateway + identity). Étendre la liste au fil des phases.
 generator:
   filters:
-    path_regex: '^/(auth/.*|consents|me(/(company|consents|data-export|data-requests|password|email(/confirm)?))?|healthz|readyz|admin/(auth/.*|me(/password)?|staff-users(/.*)?|roles(/.*)?|permissions|audit-log|identity-settings|customers(/.*)?|companies(/(\{id\}(/(approve|reject))?)?)?|data-requests(/.*)?|sources(/.*)?|source-costs(/export)?|search-queries(/.*)?|search-zero-results(/.*)?|search-cache-settings|search-cache/purge|search-index/(status|reindex)|service-health|categories(/.*)?|attribute-defs(/.*)?|brands(/.*)?|sectors(/.*)?))$'
+    path_regex: '^/(auth/.*|consents|me(/(company|consents|data-export|data-requests|password|email(/confirm)?))?|healthz|readyz|admin/(auth/.*|me(/password)?|staff-users(/.*)?|roles(/.*)?|permissions|audit-log|identity-settings|customers(/.*)?|companies(/(\{id\}(/(approve|reject))?)?)?|data-requests(/.*)?|sources(/.*)?|source-costs(/export)?|search-queries(/.*)?|search-zero-results(/.*)?|search-cache-settings|search-cache/purge|search-index/(status|reindex)|service-health|categories(/.*)?|attribute-defs(/.*)?|brands(/.*)?|sectors(/.*)?|products(/(\{id\}(/(submit-review|publish|archive|restore|versions))?)?)?))$'
   features:
     enable:
       - paths/client

@@ -13,6 +13,7 @@ var Permissions = []Permission{
 	{Code: "admin:write", Group: "Administration", Description: "Créer et modifier — administration"},
 	{Code: "analytics:read", Group: "Tableau de bord", Description: "Consulter — tableau de bord"},
 	{Code: "audit:read", Group: "Journal d'audit", Description: "Consulter — journal d'audit"},
+	{Code: "catalog:publish", Group: "Catalogue", Description: "Publier — catalogue"},
 	{Code: "catalog:read", Group: "Catalogue", Description: "Consulter — catalogue"},
 	{Code: "catalog:write", Group: "Catalogue", Description: "Créer et modifier — catalogue"},
 	{Code: "companies:approve", Group: "Entreprises clientes", Description: "Approuver ou rejeter — entreprises clientes"},

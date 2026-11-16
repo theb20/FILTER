@@ -75,3 +75,12 @@ export async function attributesOf(categoryId: string, returnTo: string): Promis
   const r = await adminGet<AttributeDefPage>("/admin/attribute-defs", returnTo, { query: { categoryId, pageSize: 100 } });
   return r.items;
 }
+
+/** Définitions applicables à une catégorie : les siennes et celles de ses ancêtres, de la racine vers la catégorie. */
+export async function attributeDefsFor(categoryId: string, cats: Category[], returnTo: string): Promise<AttributeDef[]> {
+  const byId = new Map(cats.map((c) => [c.id, c]));
+  const chain: string[] = [];
+  for (let c = byId.get(categoryId); c && chain.length < 50; c = c.parentId ? byId.get(c.parentId) : undefined) chain.unshift(c.id);
+  const lists = await Promise.all(chain.map((id) => attributesOf(id, returnTo)));
+  return lists.flat();
+}

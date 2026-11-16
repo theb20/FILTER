@@ -131,7 +131,7 @@ const catSelect = `WITH RECURSIVE tree AS (
     SELECT id, 0 AS depth FROM categories WHERE parent_id IS NULL
     UNION ALL
     SELECT c.id, t.depth + 1 FROM categories c JOIN tree t ON c.parent_id = t.id
-) SELECT c.id::text, c.slug, c.parent_id::text, c.sort_order, c.name, c.description, t.depth, 0::bigint, c.created_at, c.updated_at
+) SELECT c.id::text, c.slug, c.parent_id::text, c.sort_order, c.name, c.description, t.depth, (SELECT count(*) FROM products p WHERE p.category_id = c.id), c.created_at, c.updated_at
   FROM categories c JOIN tree t ON t.id = c.id`
 
 func scanCategory(r pgx.Row) (*domain.Category, error) {
@@ -324,6 +324,16 @@ func (s *Store) ListAttributeDefs(ctx context.Context, query string, categoryID 
 }
 
 func (s *Store) DeleteAttributeDef(ctx context.Context, id string) error {
+	var used bool
+	if err := s.q(ctx).QueryRow(ctx, `WITH RECURSIVE d AS (
+		SELECT a.category_id AS id, a.key FROM attribute_defs a WHERE a.id = $1
+		UNION ALL SELECT c.id, d.key FROM categories c JOIN d ON c.parent_id = d.id)
+		SELECT EXISTS (SELECT 1 FROM products p JOIN d ON p.category_id = d.id WHERE p.attributes ? d.key)`, id).Scan(&used); err != nil {
+		return err
+	}
+	if used {
+		return application.ErrInUse
+	}
 	tag, err := s.q(ctx).Exec(ctx, `DELETE FROM attribute_defs WHERE id = $1`, id)
 	if err = mapErr(err, application.ErrInUse); err == nil && tag.RowsAffected() == 0 {
 		return application.ErrNotFound
