@@ -47,6 +47,7 @@ generate-proto:   ## .proto -> pkg/gen (messages + gRPC)
 
 generate-gateway: ## openapi.yaml -> services/gateway/internal/api (serveur ogen, routes VALIDÉES : api/ogen.yml)
 	$(OGEN) --config api/ogen.yml --target services/gateway/internal/api --package api --clean api/openapi.yaml 2>&1 | { grep -v -E "^(INFO|WARN)" || true; }
+	$(PY) tools/gen_permissions.py
 
 generate-client: ## client TypeScript du frontend depuis openapi.yaml — à brancher en phase 7
 	@echo "Phase 7 : génération du client typé du frontend depuis api/openapi.yaml (jamais écrit à la main)."

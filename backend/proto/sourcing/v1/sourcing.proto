@@ -1,0 +1,292 @@
+// Contrat gRPC interne du service `sourcing` : connecteurs vers les sources externes, budget, quotas, santé.
+// STATUS: validated (phase 1 — Moteur de recherche, voir docs/PROPOSITION-MOTEUR.md v3).
+syntax = "proto3";
+
+package sourcing.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1;sourcingv1";
+
+enum SourceKind {
+  SOURCE_KIND_UNSPECIFIED = 0;
+  SOURCE_KIND_WEB_SEARCH_API = 1;
+  SOURCE_KIND_MANUFACTURER_API = 2;
+  SOURCE_KIND_DISTRIBUTOR_FEED = 3;
+}
+
+enum SourceHealthStatus {
+  SOURCE_HEALTH_STATUS_UNSPECIFIED = 0;
+  SOURCE_HEALTH_STATUS_HEALTHY = 1;
+  SOURCE_HEALTH_STATUS_DEGRADED = 2;
+  SOURCE_HEALTH_STATUS_DOWN = 3;
+  SOURCE_HEALTH_STATUS_SUSPENDED = 4;
+  SOURCE_HEALTH_STATUS_DISABLED = 5;
+}
+
+// Résultat d'un appel à une source : `OK` ou la raison pour laquelle la source n'a pas répondu.
+enum CallStatus {
+  CALL_STATUS_UNSPECIFIED = 0;
+  CALL_STATUS_OK = 1;
+  CALL_STATUS_ERROR = 2;
+  CALL_STATUS_TIMEOUT = 3;
+  // Budget (jour ou mois) atteint : l'appel n'a PAS eu lieu ; le champ fallback_source_id indique le secours éventuel.
+  CALL_STATUS_BUDGET_EXHAUSTED = 4;
+  CALL_STATUS_CIRCUIT_OPEN = 5;
+  CALL_STATUS_DISABLED = 6;
+  CALL_STATUS_CACHED = 7;
+  // Cette source a déjà été appelée pour ce search_id : aucun nouvel appel, aucune nouvelle réservation.
+  CALL_STATUS_ALREADY_CALLED = 8;
+}
+
+// Les montants sont en micro-unités de la devise de la source (1 unité = 1 000 000).
+message Source {
+  string id = 1;
+  SourceKind kind = 2;
+  string name = 3;
+  string base_url = 4;
+  bool enabled = 5;
+  bool suspended = 6;
+  int32 priority = 7;
+  int32 timeout_ms = 8;
+  int32 max_retries = 9;
+  string secret_ref = 10;
+  int64 cost_per_call_micros = 11;
+  string currency = 12;
+  bool allows_raw_storage = 13;
+  optional google.protobuf.Timestamp terms_checked_at = 14;
+  optional int32 max_cache_ttl_seconds = 15;
+  google.protobuf.Timestamp created_at = 16;
+}
+
+message ListSourcesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListSourcesResponse {
+  repeated Source items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetSourceRequest {
+  string id = 1;
+}
+
+message GetSourceResponse {
+  Source source = 1;
+}
+
+message CreateSourceRequest {
+  Source source = 1;
+}
+
+message CreateSourceResponse {
+  Source source = 1;
+}
+
+message UpdateSourceRequest {
+  Source source = 1;
+}
+
+message UpdateSourceResponse {
+  Source source = 1;
+}
+
+message EnableSourceRequest {
+  string id = 1;
+}
+
+message EnableSourceResponse {
+  Source source = 1;
+}
+
+message DisableSourceRequest {
+  string id = 1;
+}
+
+message DisableSourceResponse {
+  Source source = 1;
+}
+
+message TestSourceRequest {
+  string id = 1;
+  string query = 2;
+  string language = 3;
+  string country = 4;
+}
+
+message TestSourceResponse {
+  bool ok = 1;
+  int32 duration_ms = 2;
+  int32 result_count = 3;
+  int64 cost_micros = 4;
+  string currency = 5;
+  optional string error_kind = 6;
+  repeated string sample = 7;
+}
+
+message SourceHealth {
+  string source_id = 1;
+  SourceHealthStatus status = 2;
+  bool circuit_open = 3;
+  int32 p50_ms = 4;
+  int32 p95_ms = 5;
+  double error_rate = 6;
+  int64 calls_24h = 7;
+  optional google.protobuf.Timestamp last_success_at = 8;
+  optional google.protobuf.Timestamp last_error_at = 9;
+  optional string last_error_kind = 10;
+  optional google.protobuf.Timestamp last_sync_at = 11;
+}
+
+message GetSourceHealthRequest {
+  string id = 1;
+}
+
+message GetSourceHealthResponse {
+  SourceHealth health = 1;
+}
+
+message SourceQuota {
+  string source_id = 1;
+  string currency = 2;
+  int64 monthly_budget_micros = 3;
+  int64 daily_cap_micros = 4;
+  int32 alert_threshold_pct = 5;
+  optional string fallback_source_id = 6;
+  int64 month_spent_micros = 7;
+  int64 month_reserved_micros = 8;
+  int64 day_spent_micros = 9;
+  int64 day_reserved_micros = 10;
+  bool alert = 11;
+}
+
+message GetSourceQuotaRequest {
+  string id = 1;
+}
+
+message GetSourceQuotaResponse {
+  SourceQuota quota = 1;
+}
+
+// Un seul saut de bascule : la source de secours ne peut pas être elle-même, ni avoir un secours, ni être déjà un secours.
+message PutSourceQuotaRequest {
+  SourceQuota quota = 1;
+}
+
+message PutSourceQuotaResponse {
+  SourceQuota quota = 1;
+}
+
+message PutRawStorageRequest {
+  string id = 1;
+  bool allowed = 2;
+}
+
+message PutRawStorageResponse {
+  Source source = 1;
+}
+
+message SourceCostLine {
+  string source_id = 1;
+  string source_name = 2;
+  string currency = 3;
+  int64 calls = 4;
+  int64 cached_calls = 5;
+  int64 failed_calls = 6;
+  int64 cost_micros = 7;
+  int64 cost_per_search_micros = 8;
+}
+
+message ListSourceCostsRequest {
+  optional string source_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message ListSourceCostsResponse {
+  repeated SourceCostLine lines = 1;
+}
+
+message ExportSourceCostsRequest {
+  optional string source_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message ExportSourceCostsResponse {
+  bytes csv = 1;
+}
+
+// ── appels internes (service search → sourcing) ──
+
+message ActiveSource {
+  string id = 1;
+  string name = 2;
+  int32 priority = 3;
+  optional string fallback_source_id = 4;
+  optional int32 max_cache_ttl_seconds = 5;
+}
+
+message ListActiveSourcesRequest {}
+
+message ListActiveSourcesResponse {
+  repeated ActiveSource sources = 1;
+}
+
+// Un résultat brut renvoyé par une source ; `reference` et `brand` servent à la clé de fusion (les deux requis pour fusionner).
+message RawHit {
+  string title = 1;
+  optional string reference = 2;
+  optional string brand = 3;
+  optional string url = 4;
+  optional string price_micros = 5;
+  optional string currency = 6;
+  string payload_json = 7;
+}
+
+// Réserve le budget, appelle la source (délai, tentatives, disjoncteur), règle la réservation. `search_id` est le seul
+// moyen de garantir qu'une source n'est appelée qu'une fois par recherche : l'appelant le fournit et l'appel est idempotent.
+message CallSourceRequest {
+  string source_id = 1;
+  string search_id = 2;
+  string query = 3;
+  string language = 4;
+  string country = 5;
+  int32 deadline_ms = 6;
+  bool is_test = 7;
+}
+
+message CallSourceResponse {
+  CallStatus status = 1;
+  repeated RawHit hits = 2;
+  int32 duration_ms = 3;
+  int32 attempts = 4;
+  int64 cost_micros = 5;
+  string currency = 6;
+  optional string fallback_source_id = 7;
+  optional string error_kind = 8;
+}
+
+service SourcingService {
+  rpc ListSources(ListSourcesRequest) returns (ListSourcesResponse);
+  rpc GetSource(GetSourceRequest) returns (GetSourceResponse);
+  // La clé d'API n'est jamais saisie : secret_ref désigne un secret.
+  rpc CreateSource(CreateSourceRequest) returns (CreateSourceResponse);
+  rpc UpdateSource(UpdateSourceRequest) returns (UpdateSourceResponse);
+  rpc EnableSource(EnableSourceRequest) returns (EnableSourceResponse);
+  // Désactivation, jamais de suppression : l'historique la référence.
+  rpc DisableSource(DisableSourceRequest) returns (DisableSourceResponse);
+  // Consomme un appel RÉEL (budget réservé, coût compté) ; 10 tests par heure et par membre.
+  rpc TestSource(TestSourceRequest) returns (TestSourceResponse);
+  rpc GetSourceHealth(GetSourceHealthRequest) returns (GetSourceHealthResponse);
+  rpc GetSourceQuota(GetSourceQuotaRequest) returns (GetSourceQuotaResponse);
+  rpc PutSourceQuota(PutSourceQuotaRequest) returns (PutSourceQuotaResponse);
+  rpc PutRawStorage(PutRawStorageRequest) returns (PutRawStorageResponse);
+  rpc ListSourceCosts(ListSourceCostsRequest) returns (ListSourceCostsResponse);
+  rpc ExportSourceCosts(ExportSourceCostsRequest) returns (ExportSourceCostsResponse);
+  rpc ListActiveSources(ListActiveSourcesRequest) returns (ListActiveSourcesResponse);
+  rpc CallSource(CallSourceRequest) returns (CallSourceResponse);
+}

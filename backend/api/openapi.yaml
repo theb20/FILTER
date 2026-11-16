@@ -103,6 +103,9 @@ tags:
   x-status: validated
 - name: Admin · Tableau de bord
   x-status: draft
+- name: Admin · Moteur de recherche
+  description: 'Sources externes, journal des recherches, recherches sans résultat, cache et indexation, coûts et quotas, santé. Services : sourcing, search.'
+  x-status: validated
 paths:
   /auth/email/resend:
     post:
@@ -11214,6 +11217,846 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
       x-required-permission: inventory:write
+  /admin/sources:
+    get:
+      operationId: adminSourcesList
+      tags:
+      - Admin · Moteur de recherche
+      summary: Sources de recherche
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourcePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:read
+    post:
+      operationId: adminSourcesCreate
+      tags:
+      - Admin · Moteur de recherche
+      summary: Ajouter une source
+      description: 'La clé d''API n''est jamais saisie ici : `secretRef` désigne le nom d''une variable d''environnement ou d''un secret.'
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceInput'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: engine:write
+  /admin/sources/{id}:
+    get:
+      operationId: adminSourcesGet
+      tags:
+      - Admin · Moteur de recherche
+      summary: Détail d'une source
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: engine:read
+    put:
+      operationId: adminSourcesUpdate
+      tags:
+      - Admin · Moteur de recherche
+      summary: Modifier une source
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceInput'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: engine:write
+  /admin/sources/{id}/enable:
+    post:
+      operationId: adminSourcesEnable
+      tags:
+      - Admin · Moteur de recherche
+      summary: Activer une source
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      x-required-permission: engine:write
+  /admin/sources/{id}/disable:
+    post:
+      operationId: adminSourcesDisable
+      tags:
+      - Admin · Moteur de recherche
+      summary: Désactiver une source
+      description: 'Une source se désactive, jamais ne se supprime : l''historique des coûts et des requêtes la référence.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: engine:write
+  /admin/sources/{id}/test:
+    post:
+      operationId: adminSourcesTest
+      tags:
+      - Admin · Moteur de recherche
+      summary: Tester une source avec une requête
+      description: 'Consomme un appel RÉEL : réservé sur le budget, compté dans les coûts, journalisé avec l''auteur. Limité à 10 tests par heure et par membre (429).'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceTestRequest'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceTestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      x-required-permission: engine:write
+  /admin/sources/{id}/health:
+    get:
+      operationId: adminSourcesHealth
+      tags:
+      - Admin · Moteur de recherche
+      summary: Santé d'une source
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceHealth'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: engine:read
+  /admin/sources/{id}/quota:
+    get:
+      operationId: adminSourcesQuotaGet
+      tags:
+      - Admin · Moteur de recherche
+      summary: Budget et plafonds d'une source
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceQuota'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: engine:read
+    put:
+      operationId: adminSourcesQuotaPut
+      tags:
+      - Admin · Moteur de recherche
+      summary: Modifier le budget d'une source
+      description: Montants en micro-unités de la devise de la source. La source de secours ne peut pas être elle-même, ni avoir elle-même un secours, ni être déjà un secours (un seul saut).
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceQuotaInput'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceQuota'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: engine:budget
+  /admin/sources/{id}/raw-storage:
+    put:
+      operationId: adminSourcesRawStoragePut
+      tags:
+      - Admin · Moteur de recherche
+      summary: Autoriser le stockage des résultats bruts
+      description: À n'activer qu'après vérification des conditions d'usage de l'API (date de vérification enregistrée).
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawStorageInput'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: engine:budget
+  /admin/source-costs:
+    get:
+      operationId: adminSourceCostsList
+      tags:
+      - Admin · Moteur de recherche
+      summary: Coûts par source et par devise
+      parameters:
+      - name: sourceId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/To'
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceCostReport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:read
+  /admin/source-costs/export:
+    get:
+      operationId: adminSourceCostsExport
+      tags:
+      - Admin · Moteur de recherche
+      summary: Exporter les coûts (CSV)
+      parameters:
+      - name: sourceId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/To'
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            text/csv:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:export
+  /admin/search-queries:
+    get:
+      operationId: adminSearchQueriesList
+      tags:
+      - Admin · Moteur de recherche
+      summary: Journal des recherches
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: language
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: country
+        in: query
+        required: false
+        schema:
+          type: string
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/To'
+      - name: hasResults
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: clicked
+        in: query
+        required: false
+        schema:
+          type: boolean
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchQueryCursorPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:read
+  /admin/search-queries/export:
+    get:
+      operationId: adminSearchQueriesExport
+      tags:
+      - Admin · Moteur de recherche
+      summary: Exporter le journal des recherches (CSV)
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: language
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: country
+        in: query
+        required: false
+        schema:
+          type: string
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/To'
+      - name: hasResults
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: clicked
+        in: query
+        required: false
+        schema:
+          type: boolean
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            text/csv:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:export
+  /admin/search-queries/{id}:
+    get:
+      operationId: adminSearchQueriesGet
+      tags:
+      - Admin · Moteur de recherche
+      summary: Détail d'une recherche
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchQueryDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: engine:read
+  /admin/search-queries/{id}/replay:
+    post:
+      operationId: adminSearchQueriesReplay
+      tags:
+      - Admin · Moteur de recherche
+      summary: Rejouer une recherche
+      description: '`reread` : relit les résultats bruts conservés (gratuit, seulement si leur stockage était autorisé et non expiré). `redo` : refait les appels (coût réel) et crée une NOUVELLE ligne de journal.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplayRequest'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchQueryDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: engine:write
+  /admin/search-zero-results:
+    get:
+      operationId: adminSearchZeroResultsList
+      tags:
+      - Admin · Moteur de recherche
+      summary: Recherches sans résultat ou sans clic
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      - name: kind
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - no_result
+          - no_click
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - open
+          - handled
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZeroResultPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:read
+  /admin/search-zero-results/export:
+    get:
+      operationId: adminSearchZeroResultsExport
+      tags:
+      - Admin · Moteur de recherche
+      summary: Exporter les recherches sans résultat (CSV)
+      parameters:
+      - name: kind
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - no_result
+          - no_click
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - open
+          - handled
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            text/csv:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:export
+  /admin/search-zero-results/{id}/handle:
+    post:
+      operationId: adminSearchZeroResultsHandle
+      tags:
+      - Admin · Moteur de recherche
+      summary: Marquer comme traitée
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZeroResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: engine:write
+  /admin/search-cache-settings:
+    get:
+      operationId: adminSearchCacheSettingsGet
+      tags:
+      - Admin · Moteur de recherche
+      summary: Durées de cache
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:read
+    put:
+      operationId: adminSearchCacheSettingsPut
+      tags:
+      - Admin · Moteur de recherche
+      summary: Modifier les durées de cache
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CacheSettings'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: engine:write
+  /admin/search-cache/purge:
+    post:
+      operationId: adminSearchCachePurge
+      tags:
+      - Admin · Moteur de recherche
+      summary: Vider le cache
+      description: 'Auditée. `dataType` absent : purge totale.'
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeRequest'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurgeResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: engine:write
+  /admin/search-index/status:
+    get:
+      operationId: adminSearchIndexStatus
+      tags:
+      - Admin · Moteur de recherche
+      summary: État de l'index
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:read
+  /admin/search-index/reindex:
+    post:
+      operationId: adminSearchIndexReindex
+      tags:
+      - Admin · Moteur de recherche
+      summary: Relancer l'indexation
+      description: Tâche asynchrone suivie dans `/admin/jobs`. Refusée (409) si une indexation est déjà en cours.
+      security:
+      - staffAuth: []
+      responses:
+        '202':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRef'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      x-required-permission: engine:write
+  /admin/service-health:
+    get:
+      operationId: adminServiceHealth
+      tags:
+      - Admin · Moteur de recherche
+      summary: Santé des services
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceHealthReport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: engine:read
 components:
   securitySchemes:
     customerAuth:
@@ -11401,6 +12244,788 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    SourceInput:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+          - web_search_api
+          - manufacturer_api
+          - distributor_feed
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        baseUrl:
+          type: string
+          format: uri
+        priority:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Plus la valeur est basse, plus la source est interrogée tôt ; même valeur = en parallèle.
+        timeoutMs:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Délai maximal d'un appel (proposition 3000).
+        maxRetries:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Tentatives sur erreurs réseau et 5xx uniquement (proposition 2).
+        secretRef:
+          type: string
+          minLength: 1
+          description: Nom du secret (variable d'environnement ou coffre). Jamais la clé elle-même.
+        costPerCallMicros:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 'Micro-unités de la devise de la source (1 unité = 1 000 000). Pour une source : estimation du coût MAXIMAL d''un appel, servant à la réservation.'
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          description: Code ISO 4217 de facturation de la source.
+          
+        maxCacheTtlSeconds:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          minimum: 1
+          description: Durée maximale de cache selon les conditions d'usage ; null = aucune mise en cache de cette source.
+      required:
+      - kind
+      - name
+      - baseUrl
+      - priority
+      - timeoutMs
+      - maxRetries
+      - secretRef
+      - costPerCallMicros
+      - currency
+      additionalProperties: false
+      x-status: validated
+    Source:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - web_search_api
+          - manufacturer_api
+          - distributor_feed
+        name:
+          type: string
+        baseUrl:
+          type: string
+          format: uri
+        enabled:
+          type: boolean
+        suspended:
+          type: boolean
+          description: Suspendue automatiquement (budget atteint) ; se réactive à la période suivante ou par relèvement du budget.
+        priority:
+          type: integer
+          format: int32
+        timeoutMs:
+          type: integer
+          format: int32
+        maxRetries:
+          type: integer
+          format: int32
+        secretRef:
+          type: string
+        costPerCallMicros:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        allowsRawStorage:
+          type: boolean
+        termsCheckedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        maxCacheTtlSeconds:
+          type:
+          - integer
+          - 'null'
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - kind
+      - name
+      - baseUrl
+      - enabled
+      - suspended
+      - priority
+      - timeoutMs
+      - maxRetries
+      - secretRef
+      - costPerCallMicros
+      - currency
+      - allowsRawStorage
+      - termsCheckedAt
+      - maxCacheTtlSeconds
+      - createdAt
+      additionalProperties: false
+      x-status: validated
+    SourcePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+      required:
+      - items
+      - page
+      additionalProperties: false
+      x-status: validated
+    SourceTestRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 200
+        language:
+          type: string
+        country:
+          type: string
+      required:
+      - query
+      additionalProperties: false
+      x-status: validated
+    SourceTestResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        durationMs:
+          type: integer
+          format: int32
+        resultCount:
+          type: integer
+          format: int32
+        costMicros:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        errorKind:
+          type:
+          - string
+          - 'null'
+        sample:
+          type: array
+          items:
+            type: string
+          description: Aperçu (désignations) des premiers résultats.
+      required:
+      - ok
+      - durationMs
+      - resultCount
+      - costMicros
+      - currency
+      - errorKind
+      - sample
+      additionalProperties: false
+      x-status: validated
+    SourceHealth:
+      type: object
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - healthy
+          - degraded
+          - down
+          - suspended
+          - disabled
+        circuitOpen:
+          type: boolean
+        p50Ms:
+          type: integer
+          format: int32
+        p95Ms:
+          type: integer
+          format: int32
+        errorRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        calls24h:
+          type: integer
+          format: int64
+        lastSuccessAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        lastErrorAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        lastErrorKind:
+          type:
+          - string
+          - 'null'
+        lastSyncAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - sourceId
+      - status
+      - circuitOpen
+      - p50Ms
+      - p95Ms
+      - errorRate
+      - calls24h
+      - lastSuccessAt
+      - lastErrorAt
+      - lastErrorKind
+      - lastSyncAt
+      additionalProperties: false
+      x-status: validated
+    SourceQuotaInput:
+      type: object
+      properties:
+        monthlyBudgetMicros:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Micro-unités de la devise de la source (1 unité = 1 000 000).
+          
+        dailyCapMicros:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Micro-unités de la devise de la source (1 unité = 1 000 000).
+          
+        alertThresholdPct:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+          description: Proposition 80.
+        fallbackSourceId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+      required:
+      - monthlyBudgetMicros
+      - dailyCapMicros
+      - alertThresholdPct
+      - fallbackSourceId
+      description: 'Le plafond journalier doit être inférieur ou égal au budget mensuel (proposition : budget ÷ 30 × 2).'
+      additionalProperties: false
+      x-status: validated
+    SourceQuota:
+      type: object
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+        currency:
+          type: string
+        monthlyBudgetMicros:
+          type: integer
+          format: int64
+        dailyCapMicros:
+          type: integer
+          format: int64
+        alertThresholdPct:
+          type: integer
+          format: int32
+        fallbackSourceId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        monthSpentMicros:
+          type: integer
+          format: int64
+        monthReservedMicros:
+          type: integer
+          format: int64
+        daySpentMicros:
+          type: integer
+          format: int64
+        dayReservedMicros:
+          type: integer
+          format: int64
+        alert:
+          type: boolean
+          description: Seuil d'alerte atteint.
+      required:
+      - sourceId
+      - currency
+      - monthlyBudgetMicros
+      - dailyCapMicros
+      - alertThresholdPct
+      - fallbackSourceId
+      - monthSpentMicros
+      - monthReservedMicros
+      - daySpentMicros
+      - dayReservedMicros
+      - alert
+      additionalProperties: false
+      x-status: validated
+    RawStorageInput:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+      required:
+      - allowed
+      additionalProperties: false
+      x-status: validated
+    SourceCostLine:
+      type: object
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+        sourceName:
+          type: string
+        currency:
+          type: string
+        calls:
+          type: integer
+          format: int64
+        cachedCalls:
+          type: integer
+          format: int64
+        failedCalls:
+          type: integer
+          format: int64
+        costMicros:
+          type: integer
+          format: int64
+        costPerSearchMicros:
+          type: integer
+          format: int64
+      required:
+      - sourceId
+      - sourceName
+      - currency
+      - calls
+      - cachedCalls
+      - failedCalls
+      - costMicros
+      - costPerSearchMicros
+      additionalProperties: false
+      x-status: validated
+    SourceCostReport:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceCostLine'
+        note:
+          type: string
+          description: Les montants ne sont jamais additionnés entre devises.
+      required:
+      - from
+      - to
+      - lines
+      - note
+      additionalProperties: false
+      x-status: validated
+    SearchQuerySummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+          description: Texte masqué (e-mails et téléphones remplacés).
+        language:
+          type: string
+        country:
+          type: string
+        at:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+          format: int32
+        resultCount:
+          type: integer
+          format: int32
+        clicked:
+          type: boolean
+      required:
+      - id
+      - text
+      - language
+      - country
+      - at
+      - durationMs
+      - resultCount
+      - clicked
+      additionalProperties: false
+      x-status: validated
+    SearchQueryCursorPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuerySummary'
+        nextCursor:
+          type:
+          - string
+          - 'null'
+      required:
+      - items
+      - nextCursor
+      additionalProperties: false
+      x-status: validated
+    SearchQuerySourceLine:
+      type: object
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+        sourceName:
+          type: string
+        status:
+          type: string
+          enum:
+          - ok
+          - error
+          - timeout
+          - skipped
+          - cached
+          - fallback
+        rawCount:
+          type: integer
+          format: int32
+        durationMs:
+          type: integer
+          format: int32
+        fromCache:
+          type: boolean
+        rawAvailable:
+          type: boolean
+      required:
+      - sourceId
+      - sourceName
+      - status
+      - rawCount
+      - durationMs
+      - fromCache
+      - rawAvailable
+      additionalProperties: false
+      x-status: validated
+    SearchQueryDetail:
+      type: object
+      properties:
+        query:
+          $ref: '#/components/schemas/SearchQuerySummary'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuerySourceLine'
+        merged:
+          type: array
+          items:
+            type: string
+          description: Désignations du résultat fusionné (après fusion des doublons).
+        replayOfId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+      required:
+      - query
+      - sources
+      - merged
+      - replayOfId
+      additionalProperties: false
+      x-status: validated
+    ReplayRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum:
+          - reread
+          - redo
+      required:
+      - mode
+      additionalProperties: false
+      x-status: validated
+    ZeroResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - no_result
+          - no_click
+        text:
+          type: string
+        language:
+          type: string
+        country:
+          type: string
+        occurrences:
+          type: integer
+          format: int64
+        firstSeenAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - open
+          - handled
+        handledBy:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        handledAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        trend:
+          type: integer
+          format: int32
+          description: Variation des occurrences sur 7 jours par rapport aux 7 jours précédents (en %).
+      required:
+      - id
+      - kind
+      - text
+      - language
+      - country
+      - occurrences
+      - firstSeenAt
+      - lastSeenAt
+      - status
+      - handledBy
+      - handledAt
+      - trend
+      additionalProperties: false
+      x-status: validated
+    ZeroResultPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZeroResult'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+      required:
+      - items
+      - page
+      additionalProperties: false
+      x-status: validated
+    CacheSettings:
+      type: object
+      properties:
+        availabilitySeconds:
+          type: integer
+          format: int32
+          minimum: 1
+        priceSeconds:
+          type: integer
+          format: int32
+          minimum: 1
+        searchResultsSeconds:
+          type: integer
+          format: int32
+          minimum: 1
+        characteristicsSeconds:
+          type: integer
+          format: int32
+          minimum: 1
+        minResultsToStop:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Nombre de résultats APRÈS fusion des doublons au-delà duquel les niveaux suivants ne sont plus interrogés.
+        globalTimeoutMs:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Délai global d'une recherche (proposition 4500).
+      required:
+      - availabilitySeconds
+      - priceSeconds
+      - searchResultsSeconds
+      - characteristicsSeconds
+      - minResultsToStop
+      - globalTimeoutMs
+      description: Durée effective d'une donnée = min(durée du type, durée maximale de la source).
+      additionalProperties: false
+      x-status: validated
+    PurgeRequest:
+      type: object
+      properties:
+        dataType:
+          type:
+          - string
+          - 'null'
+          enum:
+          - availability
+          - price
+          - search_results
+          - characteristics
+          - null
+      required:
+      - dataType
+      additionalProperties: false
+      x-status: validated
+    PurgeResult:
+      type: object
+      properties:
+        purgedEntries:
+          type: integer
+          format: int64
+      required:
+      - purgedEntries
+      additionalProperties: false
+      x-status: validated
+    IndexStatus:
+      type: object
+      properties:
+        state:
+          type: string
+          enum:
+          - idle
+          - indexing
+          - error
+        documents:
+          type: integer
+          format: int64
+        sizeBytes:
+          type: integer
+          format: int64
+        pendingTasks:
+          type: integer
+          format: int32
+        lastIndexedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        cacheHitRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        lastError:
+          type:
+          - string
+          - 'null'
+      required:
+      - state
+      - documents
+      - sizeBytes
+      - pendingTasks
+      - lastIndexedAt
+      - cacheHitRate
+      - lastError
+      additionalProperties: false
+      x-status: validated
+    JobRef:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+      required:
+      - jobId
+      additionalProperties: false
+      x-status: validated
+    ServiceHealthLine:
+      type: object
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+          - service
+          - database
+          - index
+          - broker
+        status:
+          type: string
+          enum:
+          - up
+          - degraded
+          - down
+        latencyMs:
+          type: integer
+          format: int32
+        checkedAt:
+          type: string
+          format: date-time
+        detail:
+          type:
+          - string
+          - 'null'
+      required:
+      - name
+      - kind
+      - status
+      - latencyMs
+      - checkedAt
+      - detail
+      additionalProperties: false
+      x-status: validated
+    ServiceHealthReport:
+      type: object
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceHealthLine'
+      required:
+      - services
+      additionalProperties: false
+      x-status: validated
     Money:
       type: object
       properties:

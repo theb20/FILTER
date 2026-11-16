@@ -9,3 +9,4 @@ services/gateway/internal/api/
 .env
 deploy/.env
 *.pem
+.docs
