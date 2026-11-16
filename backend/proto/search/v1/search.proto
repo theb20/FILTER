@@ -1,0 +1,140 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package search.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/search/v1;searchv1";
+
+message AttrFilter {
+  string key = 1;
+  repeated string values = 2;
+}
+
+message FacetValue {
+  string value = 1;
+  string label = 2;
+  int64 count = 3;
+}
+
+message Facet {
+  string key = 1;
+  string label = 2;
+  string type = 3;
+  optional string unit = 4;
+  repeated FacetValue values = 5;
+  optional double range_min = 6;
+  optional double range_max = 7;
+}
+
+// Résumé dénormalisé ; le gateway ajoute le prix (pricing) et la disponibilité (fulfillment).
+message ProductHit {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  optional string brand_name = 4;
+  string category_id = 5;
+  optional string image_url = 6;
+  bool in_stock = 7;
+  string matched_by = 8;
+}
+
+message SearchRequest {
+  string query = 1;
+  optional string category_id = 2;
+  optional string brand_id = 3;
+  optional string sector_id = 4;
+  optional bool in_stock = 5;
+  optional string price_min = 6;
+  optional string price_max = 7;
+  string currency = 8;
+  repeated AttrFilter attributes = 9;
+  common.v1.PageRequest page = 10;
+  string sort = 11;
+  string locale = 12;
+}
+
+message SearchResponse {
+  repeated ProductHit hits = 1;
+  repeated Facet facets = 2;
+  common.v1.PageResponse page = 3;
+  optional string corrected_query = 4;
+}
+
+message SuggestRequest {
+  string query = 1;
+  string locale = 2;
+}
+
+message SuggestResponse {
+  repeated string texts = 1;
+}
+
+message RecordQueryRequest {
+  string query = 1;
+  string locale = 2;
+  int64 result_count = 3;
+  optional string user_id = 4;
+}
+
+message RecordQueryResponse {}
+
+message ZeroResultQuery {
+  string query = 1;
+  int64 count = 2;
+  google.protobuf.Timestamp last_seen_at = 3;
+  optional string locale = 4;
+}
+
+message ListZeroResultQueriesRequest {
+  common.v1.PageRequest page = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+
+message ListZeroResultQueriesResponse {
+  repeated ZeroResultQuery items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message ReindexRequest {
+  string scope = 1;
+}
+
+message ReindexResponse {
+  common.v1.Job job = 1;
+}
+
+message SearchSettings {
+  optional int32 search_log_days = 1;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  SearchSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  SearchSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  SearchSettings settings = 1;
+}
+
+// Index de recherche (Meilisearch) : SKU, référence, modèle, référence croisée, facettes dérivées des attributs de la catégorie.
+service SearchService {
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc Suggest(SuggestRequest) returns (SuggestResponse);
+  // Alimente « recherches sans résultat ».
+  rpc RecordQuery(RecordQueryRequest) returns (RecordQueryResponse);
+  rpc ListZeroResultQueries(ListZeroResultQueriesRequest) returns (ListZeroResultQueriesResponse);
+  // scope : all | category:<id> | product:<id>. L'index est aussi tenu à jour par les événements catalog.*.
+  rpc Reindex(ReindexRequest) returns (ReindexResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+}

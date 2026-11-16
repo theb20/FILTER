@@ -1,0 +1,817 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package content.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/content/v1;contentv1";
+
+enum ArticleStatus {
+  ARTICLE_STATUS_UNSPECIFIED = 0;
+  ARTICLE_STATUS_DRAFT = 1;
+  ARTICLE_STATUS_SCHEDULED = 2;
+  ARTICLE_STATUS_PUBLISHED = 3;
+  ARTICLE_STATUS_ARCHIVED = 4;
+}
+
+enum ArticleKind {
+  ARTICLE_KIND_UNSPECIFIED = 0;
+  ARTICLE_KIND_ADVICE = 1;
+  ARTICLE_KIND_COMPARISON = 2;
+  ARTICLE_KIND_NEWS = 3;
+}
+
+enum ReviewStatus {
+  REVIEW_STATUS_UNSPECIFIED = 0;
+  REVIEW_STATUS_PENDING = 1;
+  REVIEW_STATUS_APPROVED = 2;
+  REVIEW_STATUS_REJECTED = 3;
+}
+
+message ArticleSection {
+  string id = 1;
+  string heading = 2;
+  repeated string paragraphs = 3;
+}
+
+message ArticleTranslation {
+  string title = 1;
+  string excerpt = 2;
+  repeated ArticleSection sections = 3;
+  optional string seo_title = 4;
+  optional string seo_description = 5;
+  optional string image_alt = 6;
+}
+
+message Article {
+  string id = 1;
+  string slug = 2;
+  ArticleStatus status = 3;
+  string category_slug = 4;
+  ArticleKind kind = 5;
+  string author_id = 6;
+  int32 read_minutes = 7;
+  optional string image_key = 8;
+  optional google.protobuf.Timestamp published_at = 9;
+  repeated string tags = 10;
+  optional string guide_type = 11;
+  repeated string product_ids = 12;
+  map<string, ArticleTranslation> translations = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+
+message Author {
+  string id = 1;
+  string name = 2;
+  map<string, string> bio = 3;
+  optional string avatar_key = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message BlogCategory {
+  string id = 1;
+  string slug = 2;
+  map<string, string> name = 3;
+  int32 sort_order = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message Tag {
+  string id = 1;
+  string slug = 2;
+  map<string, string> label = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message ArticleView {
+  string slug = 1;
+  string title = 2;
+  string excerpt = 3;
+  string category_slug = 4;
+  string category_name = 5;
+  ArticleKind kind = 6;
+  Author author = 7;
+  google.protobuf.Timestamp published_at = 8;
+  int32 read_minutes = 9;
+  optional string image_url = 10;
+  optional string image_alt = 11;
+  repeated string tags = 12;
+  optional string guide_type = 13;
+  string locale = 14;
+  bool translation_fallback = 15;
+  repeated ArticleSection sections = 16;
+  repeated string product_ids = 17;
+  repeated string available_locales = 18;
+  optional string seo_title = 19;
+  optional string seo_description = 20;
+}
+
+message GetBlogHomeRequest {}
+
+message GetBlogHomeResponse {
+  optional ArticleView headline = 1;
+  repeated ArticleView topics = 2;
+  repeated ArticleView mosaic = 3;
+  repeated ArticleView guides = 4;
+  repeated ArticleView dossiers = 5;
+  repeated ArticleView popular = 6;
+  repeated string cited_product_ids = 7;
+}
+
+message ListBlogCategoryViewsRequest {}
+
+message ListBlogCategoryViewsResponse {
+  repeated BlogCategory items = 1;
+}
+
+message ListBlogTagsRequest {}
+
+message ListBlogTagsResponse {
+  repeated Tag items = 1;
+}
+
+message ListArticleViewsRequest {
+  common.v1.PageRequest page = 1;
+  optional string category_slug = 2;
+  optional ArticleKind kind = 3;
+  optional string tag = 4;
+  string query = 5;
+}
+
+message ListArticleViewsResponse {
+  repeated ArticleView items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetArticleViewRequest {
+  string slug = 1;
+}
+
+message GetArticleViewResponse {
+  ArticleView article = 1;
+}
+
+message Review {
+  string id = 1;
+  string product_id = 2;
+  optional string user_id = 3;
+  optional string order_item_id = 4;
+  string author_name = 5;
+  optional string company = 6;
+  int32 rating = 7;
+  string title = 8;
+  string body = 9;
+  bool verified_purchase = 10;
+  ReviewStatus status = 11;
+  optional string moderation_reason = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+// `distribution[0]` = nombre d'avis à 5 étoiles … `distribution[4]` = 1 étoile.
+message ReviewStats {
+  double average = 1;
+  int64 count = 2;
+  repeated int64 distribution = 3;
+}
+
+message ListReviewsRequest {
+  string product_id = 1;
+  common.v1.PageRequest page = 2;
+  optional int32 rating = 3;
+}
+
+message ListReviewsResponse {
+  repeated Review items = 1;
+  ReviewStats stats = 2;
+  common.v1.PageResponse page = 3;
+}
+
+message CreateReviewRequest {
+  string product_id = 1;
+  string user_id = 2;
+  int32 rating = 3;
+  string title = 4;
+  string body = 5;
+}
+
+message CreateReviewResponse {
+  Review review = 1;
+}
+
+message GetReviewStatsRequest {
+  repeated string product_ids = 1;
+}
+
+message GetReviewStatsResponse {
+  map<string, ReviewStats> stats = 1;
+}
+
+message ListReviewsAdminRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional ReviewStatus status = 3;
+  optional string product_id = 4;
+}
+
+message ListReviewsAdminResponse {
+  repeated Review items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message ModerateReviewRequest {
+  string id = 1;
+  bool approve = 2;
+  optional string reason = 3;
+}
+
+message ModerateReviewResponse {
+  Review review = 1;
+}
+
+message DeleteReviewRequest {
+  string id = 1;
+}
+
+message DeleteReviewResponse {}
+
+message PageTranslation {
+  string title = 1;
+  string body = 2;
+}
+
+message Page {
+  string id = 1;
+  string slug = 2;
+  string kind = 3;
+  string version = 4;
+  google.protobuf.Timestamp effective_at = 5;
+  map<string, PageTranslation> translations = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message PageView {
+  string slug = 1;
+  string title = 2;
+  string body = 3;
+  string version = 4;
+  google.protobuf.Timestamp effective_at = 5;
+  string locale = 6;
+  bool translation_fallback = 7;
+}
+
+message GetPageViewRequest {
+  string slug = 1;
+}
+
+message GetPageViewResponse {
+  PageView page = 1;
+}
+
+message ListPagesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListPagesResponse {
+  repeated Page items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetPageRequest {
+  string id = 1;
+}
+
+message GetPageResponse {
+  Page page = 1;
+}
+
+message CreatePageRequest {
+  Page page = 1;
+}
+
+message CreatePageResponse {
+  Page page = 1;
+}
+
+message UpdatePageRequest {
+  Page page = 1;
+  string if_match = 2;
+}
+
+message UpdatePageResponse {
+  Page page = 1;
+}
+
+message DeletePageRequest {
+  string id = 1;
+}
+
+message DeletePageResponse {}
+
+message Faq {
+  string id = 1;
+  string scope = 2;
+  int32 sort_order = 3;
+  map<string, string> question = 4;
+  map<string, string> answer = 5;
+  bool active = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message FaqView {
+  string id = 1;
+  string question = 2;
+  string answer = 3;
+}
+
+message ListFaqViewsRequest {
+  string scope = 1;
+}
+
+message ListFaqViewsResponse {
+  repeated FaqView items = 1;
+}
+
+message ListFaqsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListFaqsResponse {
+  repeated Faq items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetFaqRequest {
+  string id = 1;
+}
+
+message GetFaqResponse {
+  Faq faq = 1;
+}
+
+message CreateFaqRequest {
+  Faq faq = 1;
+}
+
+message CreateFaqResponse {
+  Faq faq = 1;
+}
+
+message UpdateFaqRequest {
+  Faq faq = 1;
+  string if_match = 2;
+}
+
+message UpdateFaqResponse {
+  Faq faq = 1;
+}
+
+message DeleteFaqRequest {
+  string id = 1;
+}
+
+message DeleteFaqResponse {}
+
+message Partner {
+  string id = 1;
+  string name = 2;
+  optional string logo_key = 3;
+  optional string url = 4;
+  int32 sort_order = 5;
+  bool active = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message ListPartnersRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListPartnersResponse {
+  repeated Partner items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetPartnerRequest {
+  string id = 1;
+}
+
+message GetPartnerResponse {
+  Partner partner = 1;
+}
+
+message CreatePartnerRequest {
+  Partner partner = 1;
+}
+
+message CreatePartnerResponse {
+  Partner partner = 1;
+}
+
+message UpdatePartnerRequest {
+  Partner partner = 1;
+  string if_match = 2;
+}
+
+message UpdatePartnerResponse {
+  Partner partner = 1;
+}
+
+message DeletePartnerRequest {
+  string id = 1;
+}
+
+message DeletePartnerResponse {}
+
+message ListArticlesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional ArticleStatus status = 3;
+  optional string category_slug = 4;
+}
+
+message ListArticlesResponse {
+  repeated Article items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetArticleRequest {
+  string id = 1;
+}
+
+message GetArticleResponse {
+  Article article = 1;
+}
+
+message CreateArticleRequest {
+  Article article = 1;
+}
+
+message CreateArticleResponse {
+  Article article = 1;
+}
+
+message UpdateArticleRequest {
+  Article article = 1;
+  string if_match = 2;
+}
+
+message UpdateArticleResponse {
+  Article article = 1;
+}
+
+message DeleteArticleRequest {
+  string id = 1;
+}
+
+message DeleteArticleResponse {}
+
+message PublishArticleRequest {
+  string id = 1;
+  optional google.protobuf.Timestamp publish_at = 2;
+}
+
+message PublishArticleResponse {
+  Article article = 1;
+}
+
+message UnpublishArticleRequest {
+  string id = 1;
+}
+
+message UnpublishArticleResponse {
+  Article article = 1;
+}
+
+message ListAuthorsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListAuthorsResponse {
+  repeated Author items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetAuthorRequest {
+  string id = 1;
+}
+
+message GetAuthorResponse {
+  Author author = 1;
+}
+
+message CreateAuthorRequest {
+  Author author = 1;
+}
+
+message CreateAuthorResponse {
+  Author author = 1;
+}
+
+message UpdateAuthorRequest {
+  Author author = 1;
+  string if_match = 2;
+}
+
+message UpdateAuthorResponse {
+  Author author = 1;
+}
+
+message DeleteAuthorRequest {
+  string id = 1;
+}
+
+message DeleteAuthorResponse {}
+
+message ListBlogCategoriesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListBlogCategoriesResponse {
+  repeated BlogCategory items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetBlogCategoryRequest {
+  string id = 1;
+}
+
+message GetBlogCategoryResponse {
+  BlogCategory blog_category = 1;
+}
+
+message CreateBlogCategoryRequest {
+  BlogCategory blog_category = 1;
+}
+
+message CreateBlogCategoryResponse {
+  BlogCategory blog_category = 1;
+}
+
+message UpdateBlogCategoryRequest {
+  BlogCategory blog_category = 1;
+  string if_match = 2;
+}
+
+message UpdateBlogCategoryResponse {
+  BlogCategory blog_category = 1;
+}
+
+message DeleteBlogCategoryRequest {
+  string id = 1;
+}
+
+message DeleteBlogCategoryResponse {}
+
+message ListTagsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListTagsResponse {
+  repeated Tag items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetTagRequest {
+  string id = 1;
+}
+
+message GetTagResponse {
+  Tag tag = 1;
+}
+
+message CreateTagRequest {
+  Tag tag = 1;
+}
+
+message CreateTagResponse {
+  Tag tag = 1;
+}
+
+message UpdateTagRequest {
+  Tag tag = 1;
+  string if_match = 2;
+}
+
+message UpdateTagResponse {
+  Tag tag = 1;
+}
+
+message DeleteTagRequest {
+  string id = 1;
+}
+
+message DeleteTagResponse {}
+
+// key : headline | mosaic | topics | guides | dossiers | popular | cited_products.
+message Collection {
+  string key = 1;
+  repeated string article_slugs = 2;
+  repeated string product_ids = 3;
+}
+
+message GetCollectionRequest {
+  string key = 1;
+}
+
+message GetCollectionResponse {
+  Collection collection = 1;
+}
+
+message PutCollectionRequest {
+  Collection collection = 1;
+}
+
+message PutCollectionResponse {
+  Collection collection = 1;
+}
+
+message SiteSettings {
+  string name = 1;
+  string publisher = 2;
+  optional string phone_e164 = 3;
+  optional string email = 4;
+  map<string, string> address = 5;
+  optional string linkedin_url = 6;
+  optional string facebook_url = 7;
+  optional string youtube_url = 8;
+  optional string whatsapp_number_e164 = 9;
+  optional string reviews_url = 10;
+  optional string regional_site_country = 11;
+  optional string regional_site_url = 12;
+  optional int32 founded_year = 13;
+}
+
+message GetSiteSettingsRequest {}
+
+message GetSiteSettingsResponse {
+  SiteSettings settings = 1;
+  repeated Partner partners = 2;
+}
+
+message PutSiteSettingsRequest {
+  SiteSettings settings = 1;
+}
+
+message PutSiteSettingsResponse {
+  SiteSettings settings = 1;
+}
+
+message ContentSettings {
+  string default_locale = 1;
+  repeated string enabled_locales = 2;
+  string review_moderation = 3;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  ContentSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  ContentSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  ContentSettings settings = 1;
+}
+
+message TranslationEntry {
+  string key = 1;
+  map<string, string> values = 2;
+}
+
+message ListTranslationsRequest {
+  string namespace = 1;
+  optional string locale = 2;
+  string query = 3;
+  common.v1.PageRequest page = 4;
+}
+
+message ListTranslationsResponse {
+  repeated TranslationEntry items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message PutTranslationsRequest {
+  string namespace = 1;
+  repeated TranslationEntry entries = 2;
+}
+
+message PutTranslationsResponse {}
+
+// Blog, avis (modération), pages légales, FAQ, réglages du site et de la plateforme, traductions.
+service ContentService {
+  rpc GetBlogHome(GetBlogHomeRequest) returns (GetBlogHomeResponse);
+  rpc ListBlogCategoryViews(ListBlogCategoryViewsRequest) returns (ListBlogCategoryViewsResponse);
+  rpc ListBlogTags(ListBlogTagsRequest) returns (ListBlogTagsResponse);
+  rpc ListArticleViews(ListArticleViewsRequest) returns (ListArticleViewsResponse);
+  rpc GetArticleView(GetArticleViewRequest) returns (GetArticleViewResponse);
+  rpc ListReviews(ListReviewsRequest) returns (ListReviewsResponse);
+  // Statut initial PENDING (modération). `verified_purchase` seulement si rattaché à une ligne de commande réelle.
+  rpc CreateReview(CreateReviewRequest) returns (CreateReviewResponse);
+  rpc GetReviewStats(GetReviewStatsRequest) returns (GetReviewStatsResponse);
+  rpc ListReviewsAdmin(ListReviewsAdminRequest) returns (ListReviewsAdminResponse);
+  rpc ModerateReview(ModerateReviewRequest) returns (ModerateReviewResponse);
+  rpc DeleteReview(DeleteReviewRequest) returns (DeleteReviewResponse);
+  rpc GetPageView(GetPageViewRequest) returns (GetPageViewResponse);
+  // Lister : Pages.
+  rpc ListPages(ListPagesRequest) returns (ListPagesResponse);
+  // Lire : Page.
+  rpc GetPage(GetPageRequest) returns (GetPageResponse);
+  // Créer : Page (`id` ignoré).
+  rpc CreatePage(CreatePageRequest) returns (CreatePageResponse);
+  // Modifier : Page (concurrence optimiste via `if_match`).
+  rpc UpdatePage(UpdatePageRequest) returns (UpdatePageResponse);
+  // Supprimer : Page.
+  rpc DeletePage(DeletePageRequest) returns (DeletePageResponse);
+  rpc ListFaqViews(ListFaqViewsRequest) returns (ListFaqViewsResponse);
+  // Lister : Faqs.
+  rpc ListFaqs(ListFaqsRequest) returns (ListFaqsResponse);
+  // Lire : Faq.
+  rpc GetFaq(GetFaqRequest) returns (GetFaqResponse);
+  // Créer : Faq (`id` ignoré).
+  rpc CreateFaq(CreateFaqRequest) returns (CreateFaqResponse);
+  // Modifier : Faq (concurrence optimiste via `if_match`).
+  rpc UpdateFaq(UpdateFaqRequest) returns (UpdateFaqResponse);
+  // Supprimer : Faq.
+  rpc DeleteFaq(DeleteFaqRequest) returns (DeleteFaqResponse);
+  // Lister : Partners.
+  rpc ListPartners(ListPartnersRequest) returns (ListPartnersResponse);
+  // Lire : Partner.
+  rpc GetPartner(GetPartnerRequest) returns (GetPartnerResponse);
+  // Créer : Partner (`id` ignoré).
+  rpc CreatePartner(CreatePartnerRequest) returns (CreatePartnerResponse);
+  // Modifier : Partner (concurrence optimiste via `if_match`).
+  rpc UpdatePartner(UpdatePartnerRequest) returns (UpdatePartnerResponse);
+  // Supprimer : Partner.
+  rpc DeletePartner(DeletePartnerRequest) returns (DeletePartnerResponse);
+  // Lister : Articles.
+  rpc ListArticles(ListArticlesRequest) returns (ListArticlesResponse);
+  // Lire : Article.
+  rpc GetArticle(GetArticleRequest) returns (GetArticleResponse);
+  // Créer : Article (`id` ignoré).
+  rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
+  // Modifier : Article (concurrence optimiste via `if_match`).
+  rpc UpdateArticle(UpdateArticleRequest) returns (UpdateArticleResponse);
+  // Supprimer : Article.
+  rpc DeleteArticle(DeleteArticleRequest) returns (DeleteArticleResponse);
+  rpc PublishArticle(PublishArticleRequest) returns (PublishArticleResponse);
+  rpc UnpublishArticle(UnpublishArticleRequest) returns (UnpublishArticleResponse);
+  // Lister : Authors.
+  rpc ListAuthors(ListAuthorsRequest) returns (ListAuthorsResponse);
+  // Lire : Author.
+  rpc GetAuthor(GetAuthorRequest) returns (GetAuthorResponse);
+  // Créer : Author (`id` ignoré).
+  rpc CreateAuthor(CreateAuthorRequest) returns (CreateAuthorResponse);
+  // Modifier : Author (concurrence optimiste via `if_match`).
+  rpc UpdateAuthor(UpdateAuthorRequest) returns (UpdateAuthorResponse);
+  // Supprimer : Author.
+  rpc DeleteAuthor(DeleteAuthorRequest) returns (DeleteAuthorResponse);
+  // Lister : BlogCategories.
+  rpc ListBlogCategories(ListBlogCategoriesRequest) returns (ListBlogCategoriesResponse);
+  // Lire : BlogCategory.
+  rpc GetBlogCategory(GetBlogCategoryRequest) returns (GetBlogCategoryResponse);
+  // Créer : BlogCategory (`id` ignoré).
+  rpc CreateBlogCategory(CreateBlogCategoryRequest) returns (CreateBlogCategoryResponse);
+  // Modifier : BlogCategory (concurrence optimiste via `if_match`).
+  rpc UpdateBlogCategory(UpdateBlogCategoryRequest) returns (UpdateBlogCategoryResponse);
+  // Supprimer : BlogCategory.
+  rpc DeleteBlogCategory(DeleteBlogCategoryRequest) returns (DeleteBlogCategoryResponse);
+  // Lister : Tags.
+  rpc ListTags(ListTagsRequest) returns (ListTagsResponse);
+  // Lire : Tag.
+  rpc GetTag(GetTagRequest) returns (GetTagResponse);
+  // Créer : Tag (`id` ignoré).
+  rpc CreateTag(CreateTagRequest) returns (CreateTagResponse);
+  // Modifier : Tag (concurrence optimiste via `if_match`).
+  rpc UpdateTag(UpdateTagRequest) returns (UpdateTagResponse);
+  // Supprimer : Tag.
+  rpc DeleteTag(DeleteTagRequest) returns (DeleteTagResponse);
+  rpc GetCollection(GetCollectionRequest) returns (GetCollectionResponse);
+  rpc PutCollection(PutCollectionRequest) returns (PutCollectionResponse);
+  // Le gateway complète `stats` avec catalog.GetCatalogStats.
+  rpc GetSiteSettings(GetSiteSettingsRequest) returns (GetSiteSettingsResponse);
+  rpc PutSiteSettings(PutSiteSettingsRequest) returns (PutSiteSettingsResponse);
+  // Réglages possédés par content (langues, modération des avis). Les autres services ont les leurs.
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Publie `settings.changed`.
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+  rpc ListTranslations(ListTranslationsRequest) returns (ListTranslationsResponse);
+  rpc PutTranslations(PutTranslationsRequest) returns (PutTranslationsResponse);
+}

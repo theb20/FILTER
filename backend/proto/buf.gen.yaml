@@ -1,0 +1,13 @@
+# Génération du code Go (messages + gRPC) depuis les .proto.
+# Plugins LOCAUX (aucun envoi du contrat vers un service distant) :
+#   go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+#   go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+# Le code généré n'est JAMAIS écrit à la main : `make generate`.
+version: v2
+plugins:
+  - local: protoc-gen-go
+    out: ../pkg/gen
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: ../pkg/gen
+    opt: paths=source_relative

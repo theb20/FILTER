@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+
+# Code GÉNÉRÉ depuis le contrat (make generate) : jamais écrit à la main, jamais commité.
+pkg/gen/
+services/gateway/internal/api/
+
+# Secrets et données locales
+.env
+deploy/.env
+*.pem

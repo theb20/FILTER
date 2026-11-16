@@ -1,0 +1,45 @@
+name: contract
+
+# Valide le contrat (OpenAPI, protobuf, machine à états) à chaque changement.
+# NB : ce workflow n'a pas encore tourné sur GitHub ; les mêmes contrôles ont été exécutés en local (backend/Makefile).
+on:
+  pull_request:
+    paths: ["backend/api/**", "backend/proto/**", "backend/tools/**", ".github/workflows/contract.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/api/**", "backend/proto/**", "backend/tools/**", ".github/workflows/contract.yml"]
+
+jobs:
+  openapi:
+    name: OpenAPI + états de commande
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r backend/tools/requirements.txt
+      - run: python backend/tools/check_order_states.py
+      - run: python backend/tools/check_contract.py
+
+  protobuf:
+    name: buf lint + breaking + génération Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: bufbuild/buf-setup-action@v1
+        with: { github_token: "${{ github.token }}" }
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26" }
+      - name: buf lint
+        working-directory: backend/proto
+        run: buf lint
+      - name: buf breaking (contrats validés uniquement)
+        working-directory: backend
+        run: make proto-breaking BASE=origin/main
+      - name: Le Go généré compile
+        working-directory: backend
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          tools/check_generated_go.sh

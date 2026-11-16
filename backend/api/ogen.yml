@@ -1,0 +1,8 @@
+# Génération du serveur Go du gateway (ogen) depuis openapi.yaml.
+# Périmètre : routes VALIDÉES uniquement (gateway + identity). Étendre la liste au fil des phases.
+generator:
+  filters:
+    path_regex: '^/(auth/.*|consents|me(/(company|consents|data-export|data-requests|password|email(/confirm)?))?|healthz|readyz|admin/(auth/.*|me(/password)?|staff-users(/.*)?|roles(/.*)?|permissions|audit-log|identity-settings|customers(/.*)?|companies(/(\{id\}(/(approve|reject))?)?)?|data-requests(/.*)?))$'
+  features:
+    enable:
+      - paths/client

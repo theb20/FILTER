@@ -1,0 +1,864 @@
+// Contrat gRPC interne.
+// STATUS: validated
+syntax = "proto3";
+
+package identity.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/identity/v1;identityv1";
+
+enum UserKind {
+  USER_KIND_UNSPECIFIED = 0;
+  USER_KIND_INDIVIDUAL = 1;
+  USER_KIND_COMPANY = 2;
+}
+
+enum CompanyStatus {
+  COMPANY_STATUS_UNSPECIFIED = 0;
+  COMPANY_STATUS_PENDING = 1;
+  COMPANY_STATUS_APPROVED = 2;
+  COMPANY_STATUS_REJECTED = 3;
+}
+
+// Désactivation, jamais de suppression : l'historique d'audit est conservé.
+enum StaffStatus {
+  STAFF_STATUS_UNSPECIFIED = 0;
+  STAFF_STATUS_INVITED = 1;
+  STAFF_STATUS_ACTIVE = 2;
+  STAFF_STATUS_DEACTIVATED = 3;
+}
+
+enum DataRequestKind {
+  DATA_REQUEST_KIND_UNSPECIFIED = 0;
+  DATA_REQUEST_KIND_EXPORT = 1;
+  DATA_REQUEST_KIND_ERASURE = 2;
+}
+
+enum DataRequestStatus {
+  DATA_REQUEST_STATUS_UNSPECIFIED = 0;
+  DATA_REQUEST_STATUS_RECEIVED = 1;
+  DATA_REQUEST_STATUS_PROCESSING = 2;
+  DATA_REQUEST_STATUS_COMPLETED = 3;
+  DATA_REQUEST_STATUS_REJECTED = 4;
+}
+
+message Company {
+  string id = 1;
+  string legal_name = 2;
+  string tax_id = 3;
+  string country = 4;
+  CompanyStatus status = 5;
+  bool tax_id_verified = 6;
+  optional string rejection_reason = 7;
+  optional google.protobuf.Timestamp decided_at = 8;
+  optional string job_title = 9;
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  bool email_verified = 3;
+  UserKind kind = 4;
+  optional string first_name = 5;
+  optional string last_name = 6;
+  optional string phone_e164 = 7;
+  string locale = 8;
+  string preferred_currency = 9;
+  optional Company company = 10;
+  bool pro_conditions_active = 11;
+  string status = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+message TokenPair {
+  string access_token = 1;
+  string refresh_token = 2;
+  int32 expires_in_seconds = 3;
+}
+
+message CompanyInput {
+  string legal_name = 1;
+  string tax_id = 2;
+  string country = 3;
+  optional string job_title = 4;
+}
+
+message RegisterRequest {
+  UserKind kind = 1;
+  string email = 2;
+  string password = 3;
+  string first_name = 4;
+  string last_name = 5;
+  optional string phone_e164 = 6;
+  optional CompanyInput company = 7;
+  string locale = 8;
+  string client_ip = 9;
+}
+
+message RegisterResponse {
+  string status = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string client_ip = 3;
+  string user_agent = 4;
+}
+
+message LoginResponse {
+  User user = 1;
+  TokenPair tokens = 2;
+  int32 refresh_max_age_seconds = 3;
+}
+
+message RefreshTokensRequest {
+  string refresh_token = 1;
+  string client_ip = 2;
+  string user_agent = 3;
+}
+
+message RefreshTokensResponse {
+  TokenPair tokens = 1;
+  int32 refresh_max_age_seconds = 2;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutResponse {}
+
+message LogoutAllRequest {
+  string user_id = 1;
+}
+
+message LogoutAllResponse {}
+
+message StartOAuthRequest {
+  string provider = 1;
+  string redirect_uri = 2;
+}
+
+message StartOAuthResponse {
+  string authorization_url = 1;
+  string state = 2;
+  string binding = 3;
+  int32 ttl_seconds = 4;
+}
+
+message CompleteOAuthRequest {
+  string provider = 1;
+  string code = 2;
+  string state = 3;
+  string binding = 4;
+}
+
+message CompleteOAuthResponse {
+  string exchange_code = 1;
+  string redirect_uri = 2;
+}
+
+message ExchangeOAuthCodeRequest {
+  string exchange_code = 1;
+}
+
+message ExchangeOAuthCodeResponse {
+  User user = 1;
+  TokenPair tokens = 2;
+  int32 refresh_max_age_seconds = 3;
+}
+
+message ForgotPasswordRequest {
+  string email = 1;
+  string locale = 2;
+  string client_ip = 3;
+}
+
+message ForgotPasswordResponse {}
+
+message VerifyPasswordCodeRequest {
+  string email = 1;
+  string code = 2;
+}
+
+message VerifyPasswordCodeResponse {
+  string reset_token = 1;
+  int32 expires_in_seconds = 2;
+}
+
+message ResetPasswordRequest {
+  string reset_token = 1;
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {}
+
+message VerifyEmailRequest {
+  string token = 1;
+}
+
+message VerifyEmailResponse {}
+
+message ResendEmailVerificationRequest {
+  string user_id = 1;
+}
+
+message ResendEmailVerificationResponse {}
+
+message ChangePasswordRequest {
+  string user_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+  optional string current_session_id = 4;
+}
+
+message ChangePasswordResponse {}
+
+message RequestEmailChangeRequest {
+  string user_id = 1;
+  string new_email = 2;
+  optional string password = 3;
+}
+
+message RequestEmailChangeResponse {
+  string status = 1;
+}
+
+message ConfirmEmailChangeRequest {
+  string token = 1;
+}
+
+message ConfirmEmailChangeResponse {}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message UpdateUserRequest {
+  string id = 1;
+  optional string first_name = 2;
+  optional string last_name = 3;
+  optional string phone_e164 = 4;
+  optional string locale = 5;
+  optional string preferred_currency = 6;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+message GetCompanyRequest {
+  string user_id = 1;
+}
+
+message GetCompanyResponse {
+  Company company = 1;
+}
+
+message PutCompanyRequest {
+  string user_id = 1;
+  CompanyInput company = 2;
+}
+
+message PutCompanyResponse {
+  Company company = 1;
+}
+
+message ConsentPurposes {
+  bool necessary = 1;
+  bool preferences = 2;
+  bool functional = 3;
+  bool analytics = 4;
+  bool marketing = 5;
+}
+
+message ConsentRecord {
+  string id = 1;
+  ConsentPurposes purposes = 2;
+  string policy_version = 3;
+  google.protobuf.Timestamp recorded_at = 4;
+}
+
+message RecordConsentRequest {
+  optional string user_id = 1;
+  optional string anonymous_id = 2;
+  ConsentPurposes purposes = 3;
+  string policy_version = 4;
+  string locale = 5;
+  string client_ip = 6;
+}
+
+message RecordConsentResponse {
+  ConsentRecord record = 1;
+}
+
+message GetConsentsRequest {
+  string user_id = 1;
+}
+
+message GetConsentsResponse {
+  ConsentRecord record = 1;
+}
+
+message DataRequest {
+  string id = 1;
+  string user_id = 2;
+  string email = 3;
+  DataRequestKind kind = 4;
+  DataRequestStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  optional google.protobuf.Timestamp completed_at = 7;
+  optional string download_url = 8;
+}
+
+message RequestDataExportRequest {
+  string user_id = 1;
+}
+
+message RequestDataExportResponse {
+  DataRequest request = 1;
+}
+
+message RequestErasureRequest {
+  string user_id = 1;
+  optional string password = 2;
+  string confirm_email = 3;
+}
+
+message RequestErasureResponse {
+  DataRequest request = 1;
+}
+
+message ListMyDataRequestsRequest {
+  string user_id = 1;
+}
+
+message ListMyDataRequestsResponse {
+  repeated DataRequest items = 1;
+}
+
+message ListDataRequestsRequest {
+  common.v1.PageRequest page = 1;
+  optional DataRequestStatus status = 2;
+}
+
+message ListDataRequestsResponse {
+  repeated DataRequest items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message ProcessDataRequestRequest {
+  string id = 1;
+}
+
+message ProcessDataRequestResponse {
+  DataRequest request = 1;
+}
+
+message GetJwksRequest {
+  string audience = 1;
+}
+
+message GetJwksResponse {
+  string jwks_json = 1;
+}
+
+message StaffUser {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  repeated string role_ids = 4;
+  StaffStatus status = 5;
+  bool two_factor_enabled = 6;
+  optional google.protobuf.Timestamp last_login_at = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message StaffTokens {
+  string access_token = 1;
+  string refresh_token = 2;
+  int32 expires_in_seconds = 3;
+}
+
+message StaffLoginRequest {
+  string email = 1;
+  string password = 2;
+  string client_ip = 3;
+}
+
+message StaffLoginResponse {
+  string status = 1;
+  optional string challenge_token = 2;
+  optional StaffTokens tokens = 3;
+}
+
+message StaffVerifyTwoFactorRequest {
+  string challenge_token = 1;
+  string code = 2;
+}
+
+message StaffVerifyTwoFactorResponse {
+  StaffTokens tokens = 1;
+}
+
+message StaffEnrollTwoFactorRequest {
+  string challenge_token = 1;
+}
+
+message StaffEnrollTwoFactorResponse {
+  string secret = 1;
+  string otpauth_uri = 2;
+  repeated string recovery_codes = 3;
+  string next_challenge_token = 4;
+}
+
+message StaffConfirmTwoFactorRequest {
+  string challenge_token = 1;
+  string code = 2;
+}
+
+message StaffConfirmTwoFactorResponse {
+  StaffTokens tokens = 1;
+}
+
+message StaffRefreshRequest {
+  string refresh_token = 1;
+}
+
+message StaffRefreshResponse {
+  StaffTokens tokens = 1;
+}
+
+message AcceptStaffInvitationRequest {
+  string token = 1;
+  string password = 2;
+}
+
+message AcceptStaffInvitationResponse {
+  string status = 1;
+  optional string challenge_token = 2;
+}
+
+message ChangeStaffPasswordRequest {
+  string staff_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message ChangeStaffPasswordResponse {}
+
+message ResendStaffInvitationRequest {
+  string id = 1;
+}
+
+message ResendStaffInvitationResponse {}
+
+message StaffLogoutRequest {
+  string refresh_token = 1;
+}
+
+message StaffLogoutResponse {}
+
+message GetStaffProfileRequest {
+  string id = 1;
+}
+
+message GetStaffProfileResponse {
+  StaffUser user = 1;
+  repeated string roles = 2;
+  repeated string permissions = 3;
+}
+
+message CheckPermissionRequest {
+  string staff_id = 1;
+  string permission = 2;
+}
+
+message CheckPermissionResponse {
+  bool allowed = 1;
+}
+
+message ListStaffUsersRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListStaffUsersResponse {
+  repeated StaffUser items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetStaffUserRequest {
+  string id = 1;
+}
+
+message GetStaffUserResponse {
+  StaffUser staff_user = 1;
+}
+
+message CreateStaffUserRequest {
+  StaffUser staff_user = 1;
+}
+
+message CreateStaffUserResponse {
+  StaffUser staff_user = 1;
+}
+
+message UpdateStaffUserRequest {
+  StaffUser staff_user = 1;
+  string if_match = 2;
+}
+
+message UpdateStaffUserResponse {
+  StaffUser staff_user = 1;
+}
+
+message DeactivateStaffUserRequest {
+  string id = 1;
+}
+
+message DeactivateStaffUserResponse {
+  StaffUser user = 1;
+}
+
+message ReactivateStaffUserRequest {
+  string id = 1;
+}
+
+message ReactivateStaffUserResponse {
+  StaffUser user = 1;
+}
+
+message StaffLogoutAllRequest {
+  string staff_id = 1;
+}
+
+message StaffLogoutAllResponse {}
+
+message ResetStaffTwoFactorRequest {
+  string id = 1;
+}
+
+message ResetStaffTwoFactorResponse {}
+
+message Role {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  repeated string permissions = 4;
+  bool system = 5;
+}
+
+message ListRolesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListRolesResponse {
+  repeated Role items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetRoleRequest {
+  string id = 1;
+}
+
+message GetRoleResponse {
+  Role role = 1;
+}
+
+message CreateRoleRequest {
+  Role role = 1;
+}
+
+message CreateRoleResponse {
+  Role role = 1;
+}
+
+message UpdateRoleRequest {
+  Role role = 1;
+  string if_match = 2;
+}
+
+message UpdateRoleResponse {
+  Role role = 1;
+}
+
+message DeleteRoleRequest {
+  string id = 1;
+}
+
+message DeleteRoleResponse {}
+
+message Permission {
+  string code = 1;
+  string description = 2;
+  string group = 3;
+}
+
+message ListPermissionsRequest {}
+
+message ListPermissionsResponse {
+  repeated Permission items = 1;
+}
+
+message Customer {
+  string id = 1;
+  string email = 2;
+  UserKind kind = 3;
+  optional string first_name = 4;
+  optional string last_name = 5;
+  optional string phone_e164 = 6;
+  string status = 7;
+  optional Company company = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message ListCustomersRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional UserKind kind = 3;
+  optional string status = 4;
+}
+
+message ListCustomersResponse {
+  repeated Customer items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetCustomerRequest {
+  string id = 1;
+}
+
+message GetCustomerResponse {
+  Customer customer = 1;
+}
+
+message SetCustomerStatusRequest {
+  string id = 1;
+  string status = 2;
+}
+
+message SetCustomerStatusResponse {
+  Customer customer = 1;
+}
+
+message ListCompaniesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional CompanyStatus status = 3;
+}
+
+message ListCompaniesResponse {
+  repeated Company items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetCompanyByIdRequest {
+  string id = 1;
+}
+
+message GetCompanyByIdResponse {
+  Company company = 1;
+}
+
+message ApproveCompanyRequest {
+  string id = 1;
+}
+
+message ApproveCompanyResponse {
+  Company company = 1;
+}
+
+message RejectCompanyRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message RejectCompanyResponse {
+  Company company = 1;
+}
+
+message CountPendingCompaniesRequest {}
+
+message CountPendingCompaniesResponse {
+  int64 count = 1;
+}
+
+message AuditEntry {
+  string id = 1;
+  google.protobuf.Timestamp at = 2;
+  string actor_type = 3;
+  optional string actor_id = 4;
+  string action = 5;
+  string entity = 6;
+  optional string entity_id = 7;
+  optional google.protobuf.Struct before = 8;
+  optional google.protobuf.Struct after = 9;
+  optional string ip = 10;
+  optional string trace_id = 11;
+}
+
+message ListAuditRequest {
+  common.v1.CursorRequest cursor = 1;
+  optional string actor_id = 2;
+  optional string entity = 3;
+  optional string entity_id = 4;
+  optional string action = 5;
+  optional google.protobuf.Timestamp from = 6;
+  optional google.protobuf.Timestamp to = 7;
+}
+
+message ListAuditResponse {
+  repeated AuditEntry items = 1;
+  common.v1.CursorResponse cursor = 2;
+}
+
+// Ralentissement progressif par couple (compte, IP). AUCUN verrouillage de compte.
+message LoginThrottle {
+  int32 free_attempts = 1;
+  int32 base_delay_seconds = 2;
+  int32 max_delay_seconds = 3;
+}
+
+// Défauts : 15 min, 30 jours (clients), 8 h (personnel), code de réinitialisation 15 min / 5 essais. Durées de conservation : absent = pas de purge automatique.
+message IdentitySettings {
+  int32 access_token_minutes = 1;
+  int32 customer_refresh_days = 2;
+  int32 staff_refresh_hours = 3;
+  int32 password_reset_code_minutes = 4;
+  int32 password_reset_max_attempts = 5;
+  int32 staff_challenge_minutes = 6;
+  int32 invitation_hours = 7;
+  int32 email_verification_hours = 8;
+  int32 email_change_hours = 9;
+  int32 recent_login_minutes = 10;
+  LoginThrottle login_throttle = 11;
+  int32 login_alert_after_failures = 12;
+  optional int32 personal_data_days = 13;
+  optional int32 audit_log_days = 14;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  IdentitySettings settings = 1;
+}
+
+message PutSettingsRequest {
+  IdentitySettings settings = 1;
+}
+
+message PutSettingsResponse {
+  IdentitySettings settings = 1;
+}
+
+// Comptes clients et personnel, sessions, OAuth, RBAC, consentements, RGPD, journal d'audit.
+service IdentityService {
+  // Réponse UNIFORME (status = accepted) que l'adresse existe déjà ou non : aucune fuite. Nouvelle adresse : compte créé (e-mail non vérifié) + EmailVerificationRequested. Adresse existante : aucun compte, événement RegistrationAttemptOnExistingAccount. Même travail dans les deux cas (hachage). AUCUN jeton.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  // Ralentissement PROGRESSIF par couple (compte, IP) via RESOURCE_EXHAUSTED + retry_after ; jamais de verrouillage. Publie SuspiciousLoginAlertRequested après N échecs. Le jeton de rafraîchissement est destiné au COOKIE du gateway : jamais dans un corps HTTP.
+  rpc Login(LoginRequest) returns (LoginResponse);
+  // Rotation : le jeton présenté est invalidé ; rejeu détecté → famille révoquée.
+  rpc RefreshTokens(RefreshTokensRequest) returns (RefreshTokensResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // Révoque toutes les familles de jetons. Aussi appelé après changement ou réinitialisation du mot de passe.
+  rpc LogoutAll(LogoutAllRequest) returns (LogoutAllResponse);
+  // state, PKCE (S256) et nonce OBLIGATOIRES, générés côté serveur. `binding` : valeur du cookie ff_oauth (anti fabrication de connexion). redirect_uri vérifié contre la liste blanche.
+  rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse);
+  // Vérifie state + liaison, échange avec le code_verifier PKCE, valide le jeton d'identité (signature, iss, aud, exp, nonce, email_verified). Liaison à un compte existant seulement si son e-mail est vérifié.
+  rpc CompleteOAuth(CompleteOAuthRequest) returns (CompleteOAuthResponse);
+  rpc ExchangeOAuthCode(ExchangeOAuthCodeRequest) returns (ExchangeOAuthCodeResponse);
+  // Réponse identique que le compte existe ou non.
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
+  rpc VerifyPasswordCode(VerifyPasswordCodeRequest) returns (VerifyPasswordCodeResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
+  rpc ResendEmailVerification(ResendEmailVerificationRequest) returns (ResendEmailVerificationResponse);
+  // Refuse les mots de passe compromis ; révoque toutes les AUTRES sessions (celle de `current_session_id`, claim `sid` du jeton d'accès, est conservée).
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  // Réponse uniforme ; mot de passe (ou connexion récente) exigé ; vérification de la NOUVELLE adresse avant bascule ; notification à l'ANCIENNE.
+  rpc RequestEmailChange(RequestEmailChangeRequest) returns (RequestEmailChangeResponse);
+  // Bascule l'adresse, notifie l'ancienne, révoque les autres sessions.
+  rpc ConfirmEmailChange(ConfirmEmailChangeRequest) returns (ConfirmEmailChangeResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
+  // Toute modification des données légales repasse le statut à PENDING.
+  rpc PutCompany(PutCompanyRequest) returns (PutCompanyResponse);
+  rpc RecordConsent(RecordConsentRequest) returns (RecordConsentResponse);
+  rpc GetConsents(GetConsentsRequest) returns (GetConsentsResponse);
+  rpc RequestDataExport(RequestDataExportRequest) returns (RequestDataExportResponse);
+  // `password` obligatoire si le compte en possède un ; sinon `confirm_email` + connexion récente.
+  rpc RequestErasure(RequestErasureRequest) returns (RequestErasureResponse);
+  rpc ListMyDataRequests(ListMyDataRequestsRequest) returns (ListMyDataRequestsResponse);
+  rpc ListDataRequests(ListDataRequestsRequest) returns (ListDataRequestsResponse);
+  rpc ProcessDataRequest(ProcessDataRequestRequest) returns (ProcessDataRequestResponse);
+  // Clés publiques pour la vérification locale des JWT par le gateway (audience : customer | staff).
+  rpc GetJwks(GetJwksRequest) returns (GetJwksResponse);
+  // status : authenticated | two_factor_required | two_factor_enrollment_required.
+  rpc StaffLogin(StaffLoginRequest) returns (StaffLoginResponse);
+  // Jeton temporaire (portée verify) à usage unique, émis par StaffLogin.
+  rpc StaffVerifyTwoFactor(StaffVerifyTwoFactorRequest) returns (StaffVerifyTwoFactorResponse);
+  // Consomme le jeton (portée enroll) et en émet un nouveau (portée confirm). Jetons temporaires à USAGE UNIQUE, courte durée, 5 codes erronés maximum.
+  rpc StaffEnrollTwoFactor(StaffEnrollTwoFactorRequest) returns (StaffEnrollTwoFactorResponse);
+  rpc StaffConfirmTwoFactor(StaffConfirmTwoFactorRequest) returns (StaffConfirmTwoFactorResponse);
+  rpc StaffRefresh(StaffRefreshRequest) returns (StaffRefreshResponse);
+  // Enchaîne sur l'inscription du 2FA (status : two_factor_enrollment_required).
+  rpc AcceptStaffInvitation(AcceptStaffInvitationRequest) returns (AcceptStaffInvitationResponse);
+  rpc ChangeStaffPassword(ChangeStaffPasswordRequest) returns (ChangeStaffPasswordResponse);
+  // Voie de réinitialisation du mot de passe du personnel ; notifie la personne ; audité.
+  rpc ResendStaffInvitation(ResendStaffInvitationRequest) returns (ResendStaffInvitationResponse);
+  rpc StaffLogout(StaffLogoutRequest) returns (StaffLogoutResponse);
+  rpc GetStaffProfile(GetStaffProfileRequest) returns (GetStaffProfileResponse);
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+  // Lister : StaffUsers.
+  rpc ListStaffUsers(ListStaffUsersRequest) returns (ListStaffUsersResponse);
+  // Lire : StaffUser.
+  rpc GetStaffUser(GetStaffUserRequest) returns (GetStaffUserResponse);
+  // Créer : StaffUser (`id` ignoré).
+  rpc CreateStaffUser(CreateStaffUserRequest) returns (CreateStaffUserResponse);
+  // Modifier : StaffUser (concurrence optimiste via `if_match`).
+  rpc UpdateStaffUser(UpdateStaffUserRequest) returns (UpdateStaffUserResponse);
+  // Interdits : dernier super-admin (LAST_SUPER_ADMIN), soi-même, retrait de son propre rôle d'administration (SELF_ACTION_FORBIDDEN). Révoque ses sessions ; audit conservé.
+  rpc DeactivateStaffUser(DeactivateStaffUserRequest) returns (DeactivateStaffUserResponse);
+  rpc ReactivateStaffUser(ReactivateStaffUserRequest) returns (ReactivateStaffUserResponse);
+  rpc StaffLogoutAll(StaffLogoutAllRequest) returns (StaffLogoutAllResponse);
+  // Notifie la personne concernée ; audité.
+  rpc ResetStaffTwoFactor(ResetStaffTwoFactorRequest) returns (ResetStaffTwoFactorResponse);
+  // Lister : Roles.
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
+  // Lire : Role.
+  rpc GetRole(GetRoleRequest) returns (GetRoleResponse);
+  // Créer : Role (`id` ignoré).
+  rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse);
+  // Modifier : Role (concurrence optimiste via `if_match`).
+  rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse);
+  // Supprimer : Role.
+  rpc DeleteRole(DeleteRoleRequest) returns (DeleteRoleResponse);
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
+  rpc ListCustomers(ListCustomersRequest) returns (ListCustomersResponse);
+  rpc GetCustomer(GetCustomerRequest) returns (GetCustomerResponse);
+  rpc SetCustomerStatus(SetCustomerStatusRequest) returns (SetCustomerStatusResponse);
+  rpc ListCompanies(ListCompaniesRequest) returns (ListCompaniesResponse);
+  rpc GetCompanyById(GetCompanyByIdRequest) returns (GetCompanyByIdResponse);
+  // Audité. Ouvre les conditions pro. Refusé (EMAIL_NOT_VERIFIED) tant que l'e-mail du titulaire n'est pas vérifié.
+  rpc ApproveCompany(ApproveCompanyRequest) returns (ApproveCompanyResponse);
+  rpc RejectCompany(RejectCompanyRequest) returns (RejectCompanyResponse);
+  rpc CountPendingCompanies(CountPendingCompaniesRequest) returns (CountPendingCompaniesResponse);
+  // Pagination PAR CURSEUR (le journal grossit sans fin).
+  rpc ListAudit(ListAuditRequest) returns (ListAuditResponse);
+  // Réglages possédés par identity (exposés via /admin/identity-settings).
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Publie `settings.changed`.
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+}

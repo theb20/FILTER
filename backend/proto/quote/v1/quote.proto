@@ -1,0 +1,340 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package quote.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/quote/v1;quotev1";
+
+enum QuoteRequestStatus {
+  QUOTE_REQUEST_STATUS_UNSPECIFIED = 0;
+  QUOTE_REQUEST_STATUS_RECEIVED = 1;
+  QUOTE_REQUEST_STATUS_IN_REVIEW = 2;
+  QUOTE_REQUEST_STATUS_QUOTED = 3;
+  QUOTE_REQUEST_STATUS_CLOSED = 4;
+}
+
+enum QuoteStatus {
+  QUOTE_STATUS_UNSPECIFIED = 0;
+  QUOTE_STATUS_DRAFT = 1;
+  QUOTE_STATUS_SENT = 2;
+  QUOTE_STATUS_ACCEPTED = 3;
+  QUOTE_STATUS_DECLINED = 4;
+  QUOTE_STATUS_EXPIRED = 5;
+  QUOTE_STATUS_CONVERTED = 6;
+}
+
+message QuoteContact {
+  string company = 1;
+  string name = 2;
+  string email = 3;
+  optional string phone_e164 = 4;
+}
+
+message QuoteRequestLine {
+  string reference = 1;
+  optional string description = 2;
+  int32 quantity = 3;
+  optional string product_id = 4;
+}
+
+message QuoteRequest {
+  string id = 1;
+  string number = 2;
+  QuoteRequestStatus status = 3;
+  string source = 4;
+  QuoteContact contact = 5;
+  repeated QuoteRequestLine lines = 6;
+  optional string notes = 7;
+  optional string user_id = 8;
+  optional string assigned_to = 9;
+  optional string internal_notes = 10;
+  google.protobuf.Timestamp created_at = 11;
+  optional string quote_id = 12;
+}
+
+message QuoteLine {
+  optional string product_id = 1;
+  optional string sku = 2;
+  string description = 3;
+  int32 quantity = 4;
+  common.v1.Money unit_price = 5;
+  int32 tax_rate_bp = 6;
+  common.v1.Money line_total = 7;
+}
+
+message Quote {
+  string id = 1;
+  string number = 2;
+  string request_id = 3;
+  QuoteStatus status = 4;
+  string currency = 5;
+  repeated QuoteLine lines = 6;
+  common.v1.Totals totals = 7;
+  optional google.protobuf.Timestamp valid_until = 8;
+  optional string message = 9;
+  optional string order_id = 10;
+  google.protobuf.Timestamp created_at = 11;
+  optional google.protobuf.Timestamp sent_at = 12;
+}
+
+message QuoteRules {
+  int32 min_items = 1;
+  common.v1.Money min_amount = 2;
+  bool active = 3;
+}
+
+message GetQuoteRulesRequest {
+  string currency = 1;
+}
+
+message GetQuoteRulesResponse {
+  QuoteRules rules = 1;
+}
+
+message PutQuoteRulesRequest {
+  QuoteRules rules = 1;
+}
+
+message PutQuoteRulesResponse {
+  QuoteRules rules = 1;
+}
+
+message CheckEligibilityRequest {
+  int32 item_count = 1;
+  common.v1.Money subtotal = 2;
+}
+
+message CheckEligibilityResponse {
+  bool eligible = 1;
+  int32 remaining_items = 2;
+  common.v1.Money remaining_amount = 3;
+}
+
+message SubmitQuoteRequestRequest {
+  optional string user_id = 1;
+  QuoteContact contact = 2;
+  repeated QuoteRequestLine lines = 3;
+  optional string notes = 4;
+  string locale = 5;
+  string source = 6;
+}
+
+message SubmitQuoteRequestResponse {
+  QuoteRequest request = 1;
+}
+
+message CreateRequestFromCartRequest {
+  string user_id = 1;
+  string currency = 2;
+  optional string notes = 3;
+}
+
+message CreateRequestFromCartResponse {
+  QuoteRequest request = 1;
+}
+
+message ListQuoteRequestsRequest {
+  string user_id = 1;
+  common.v1.PageRequest page = 2;
+}
+
+message ListQuoteRequestsResponse {
+  repeated QuoteRequest items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetQuoteRequest {
+  string id = 1;
+  optional string user_id = 2;
+}
+
+message GetQuoteResponse {
+  Quote quote = 1;
+}
+
+message GetQuotePdfRequest {
+  string id = 1;
+  optional string user_id = 2;
+}
+
+message GetQuotePdfResponse {
+  string object_key = 1;
+}
+
+message AcceptQuoteRequest {
+  string id = 1;
+  string user_id = 2;
+  common.v1.Address billing_address = 3;
+  common.v1.Address shipping_address = 4;
+  string payment_method_code = 5;
+  optional string customer_reference = 6;
+  string idempotency_key = 7;
+}
+
+message AcceptQuoteResponse {
+  string order_id = 1;
+}
+
+message DeclineQuoteRequest {
+  string id = 1;
+  string user_id = 2;
+  optional string reason = 3;
+}
+
+message DeclineQuoteResponse {
+  Quote quote = 1;
+}
+
+message ListQuoteRequestsAdminRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional QuoteRequestStatus status = 3;
+}
+
+message ListQuoteRequestsAdminResponse {
+  repeated QuoteRequest items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetQuoteRequestAdminRequest {
+  string id = 1;
+}
+
+message GetQuoteRequestAdminResponse {
+  QuoteRequest request = 1;
+}
+
+message UpdateRequestStatusRequest {
+  string id = 1;
+  optional QuoteRequestStatus status = 2;
+  optional string assigned_to = 3;
+  optional string internal_notes = 4;
+}
+
+message UpdateRequestStatusResponse {
+  QuoteRequest request = 1;
+}
+
+message QuoteInput {
+  string currency = 1;
+  repeated QuoteLine lines = 2;
+  optional string message = 3;
+  optional int32 validity_days = 4;
+}
+
+message RespondToRequestRequest {
+  string request_id = 1;
+  QuoteInput quote = 2;
+}
+
+message RespondToRequestResponse {
+  Quote quote = 1;
+}
+
+message ListQuotesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional QuoteStatus status = 3;
+}
+
+message ListQuotesResponse {
+  repeated Quote items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetQuoteAdminRequest {
+  string id = 1;
+}
+
+message GetQuoteAdminResponse {
+  Quote quote = 1;
+}
+
+message UpdateQuoteRequest {
+  string id = 1;
+  QuoteInput quote = 2;
+}
+
+message UpdateQuoteResponse {
+  Quote quote = 1;
+}
+
+message SendQuoteRequest {
+  string id = 1;
+}
+
+message SendQuoteResponse {
+  Quote quote = 1;
+}
+
+message ConvertQuoteRequest {
+  string id = 1;
+  common.v1.Address billing_address = 2;
+  common.v1.Address shipping_address = 3;
+  string payment_method_code = 4;
+  optional string customer_reference = 5;
+  string idempotency_key = 6;
+}
+
+message ConvertQuoteResponse {
+  string order_id = 1;
+}
+
+message CountPendingRequestsRequest {}
+
+message CountPendingRequestsResponse {
+  int64 count = 1;
+}
+
+message QuoteSettings {
+  optional int32 validity_days = 1;
+  optional int32 retention_days = 2;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  QuoteSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  QuoteSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  QuoteSettings settings = 1;
+}
+
+// Demandes de devis, éligibilité, devis commerciaux, conversion en commande.
+service QuoteService {
+  rpc GetQuoteRules(GetQuoteRulesRequest) returns (GetQuoteRulesResponse);
+  rpc PutQuoteRules(PutQuoteRulesRequest) returns (PutQuoteRulesResponse);
+  // Éligible si ≥ min_items articles OU ≥ min_amount HT.
+  rpc CheckEligibility(CheckEligibilityRequest) returns (CheckEligibilityResponse);
+  rpc SubmitQuoteRequest(SubmitQuoteRequestRequest) returns (SubmitQuoteRequestResponse);
+  // Erreur QUOTE_NOT_ELIGIBLE si le panier est sous les seuils.
+  rpc CreateRequestFromCart(CreateRequestFromCartRequest) returns (CreateRequestFromCartResponse);
+  rpc ListQuoteRequests(ListQuoteRequestsRequest) returns (ListQuoteRequestsResponse);
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+  rpc GetQuotePdf(GetQuotePdfRequest) returns (GetQuotePdfResponse);
+  // Le devis doit être SENT et non expiré. Audité. Appelle order.CreateOrderFromQuote.
+  rpc AcceptQuote(AcceptQuoteRequest) returns (AcceptQuoteResponse);
+  rpc DeclineQuote(DeclineQuoteRequest) returns (DeclineQuoteResponse);
+  rpc ListQuoteRequestsAdmin(ListQuoteRequestsAdminRequest) returns (ListQuoteRequestsAdminResponse);
+  rpc GetQuoteRequestAdmin(GetQuoteRequestAdminRequest) returns (GetQuoteRequestAdminResponse);
+  rpc UpdateRequestStatus(UpdateRequestStatusRequest) returns (UpdateRequestStatusResponse);
+  rpc RespondToRequest(RespondToRequestRequest) returns (RespondToRequestResponse);
+  rpc ListQuotes(ListQuotesRequest) returns (ListQuotesResponse);
+  rpc GetQuoteAdmin(GetQuoteAdminRequest) returns (GetQuoteAdminResponse);
+  rpc UpdateQuote(UpdateQuoteRequest) returns (UpdateQuoteResponse);
+  rpc SendQuote(SendQuoteRequest) returns (SendQuoteResponse);
+  // Conversion par le commercial pour le compte du client. Audité (acteur = personnel).
+  rpc ConvertQuote(ConvertQuoteRequest) returns (ConvertQuoteResponse);
+  rpc CountPendingRequests(CountPendingRequestsRequest) returns (CountPendingRequestsResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+}
