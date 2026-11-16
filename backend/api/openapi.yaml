@@ -103,6 +103,9 @@ tags:
   x-status: validated
 - name: Admin · Tableau de bord
   x-status: draft
+- name: Admin · Taxonomie du catalogue
+  description: 'Catégories (arbre), attributs par catégorie, marques, secteurs. Service : catalog.'
+  x-status: validated
 - name: Admin · Moteur de recherche
   description: 'Sources externes, journal des recherches, recherches sans résultat, cache et indexation, coûts et quotas, santé. Services : sourcing, search.'
   x-status: validated
@@ -3133,7 +3136,7 @@ paths:
     get:
       operationId: adminAttributeDefsList
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lister : AttributeDefs'
       parameters:
       - $ref: '#/components/parameters/Query'
@@ -3163,7 +3166,7 @@ paths:
     post:
       operationId: adminAttributeDefsCreate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Créer : AttributeDefs'
       security:
       - staffAuth: []
@@ -3195,7 +3198,7 @@ paths:
     get:
       operationId: adminAttributeDefsGet
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lire : AttributeDefs'
       parameters:
       - name: id
@@ -3224,7 +3227,7 @@ paths:
     put:
       operationId: adminAttributeDefsUpdate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Modifier : AttributeDefs'
       parameters:
       - name: id
@@ -3267,7 +3270,7 @@ paths:
     delete:
       operationId: adminAttributeDefsDelete
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Supprimer : AttributeDefs'
       parameters:
       - name: id
@@ -3952,7 +3955,7 @@ paths:
     get:
       operationId: adminBrandsList
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lister : Brands'
       parameters:
       - $ref: '#/components/parameters/Query'
@@ -3976,7 +3979,7 @@ paths:
     post:
       operationId: adminBrandsCreate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Créer : Brands'
       security:
       - staffAuth: []
@@ -4008,7 +4011,7 @@ paths:
     get:
       operationId: adminBrandsGet
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lire : Brands'
       parameters:
       - name: id
@@ -4037,7 +4040,7 @@ paths:
     put:
       operationId: adminBrandsUpdate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Modifier : Brands'
       parameters:
       - name: id
@@ -4080,7 +4083,7 @@ paths:
     delete:
       operationId: adminBrandsDelete
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Supprimer : Brands'
       parameters:
       - name: id
@@ -4107,7 +4110,7 @@ paths:
     get:
       operationId: adminCategoriesList
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lister : Categories'
       parameters:
       - $ref: '#/components/parameters/Query'
@@ -4137,7 +4140,7 @@ paths:
     post:
       operationId: adminCategoriesCreate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Créer : Categories'
       security:
       - staffAuth: []
@@ -4169,7 +4172,7 @@ paths:
     get:
       operationId: adminCategoriesGet
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lire : Categories'
       parameters:
       - name: id
@@ -4198,7 +4201,7 @@ paths:
     put:
       operationId: adminCategoriesUpdate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Modifier : Categories'
       parameters:
       - name: id
@@ -4241,7 +4244,7 @@ paths:
     delete:
       operationId: adminCategoriesDelete
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Supprimer : Categories'
       parameters:
       - name: id
@@ -4268,7 +4271,7 @@ paths:
     post:
       operationId: adminMoveCategory
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: Déplacer une catégorie dans l'arbre
       parameters:
       - name: id
@@ -8905,7 +8908,7 @@ paths:
     get:
       operationId: adminSectorsList
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lister : Sectors'
       parameters:
       - $ref: '#/components/parameters/Query'
@@ -8929,7 +8932,7 @@ paths:
     post:
       operationId: adminSectorsCreate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Créer : Sectors'
       security:
       - staffAuth: []
@@ -8961,7 +8964,7 @@ paths:
     get:
       operationId: adminSectorsGet
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Lire : Sectors'
       parameters:
       - name: id
@@ -8990,7 +8993,7 @@ paths:
     put:
       operationId: adminSectorsUpdate
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Modifier : Sectors'
       parameters:
       - name: id
@@ -9033,7 +9036,7 @@ paths:
     delete:
       operationId: adminSectorsDelete
       tags:
-      - Admin · Catalogue
+      - Admin · Taxonomie du catalogue
       summary: 'Supprimer : Sectors'
       parameters:
       - name: id
@@ -17158,19 +17161,25 @@ components:
           format: date-time
       required:
       - id
+      - slug
+      - name
       additionalProperties: false
     BrandAdminInput:
       type: object
       properties:
         slug:
           type: string
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+          maxLength: 80
         name:
           type: string
-        logoMediaId:
+          minLength: 1
+          maxLength: 120
+        logoUrl:
           type:
           - string
           - 'null'
-          format: uuid
+          format: uri
       required:
       - slug
       - name
@@ -17211,19 +17220,23 @@ components:
           format: date-time
       required:
       - id
+      - slug
+      - name
       additionalProperties: false
     SectorAdminInput:
       type: object
       properties:
         slug:
           type: string
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+          maxLength: 80
         name:
           $ref: '#/components/schemas/LocalizedText'
-        imageMediaId:
+        imageUrl:
           type:
           - string
           - 'null'
-          format: uuid
+          format: uri
       required:
       - slug
       - name

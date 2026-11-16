@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	catalogadminv1 "github.com/theb20/FILTER/backend/pkg/gen/catalogadmin/v1"
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
 	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/pkg/logx"
@@ -78,9 +79,29 @@ func run(log *slog.Logger) error {
 		}})
 	}
 
+	// Service catalog (taxonomie) : facultatif. Sans CATALOG_ADDR, ses routes répondent 501.
+	var catalog catalogadminv1.CatalogAdminServiceClient
+	if addr := os.Getenv("CATALOG_ADDR"); addr != "" {
+		cconn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.Config{BaseDelay: 200 * time.Millisecond, Multiplier: 1.6, Jitter: 0.2, MaxDelay: 3 * time.Second}, MinConnectTimeout: 3 * time.Second}))
+		if err != nil {
+			return err
+		}
+		defer cconn.Close()
+		catalog = catalogadminv1.NewCatalogAdminServiceClient(cconn)
+		ch := healthpb.NewHealthClient(cconn)
+		probes = append(probes, server.HealthProbe{Name: "catalog", Kind: "service", Check: func(ctx context.Context) error {
+			r, err := ch.Check(ctx, &healthpb.HealthCheckRequest{})
+			if err == nil && r.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+				err = errors.New("ne sert pas")
+			}
+			return err
+		}})
+	}
+
 	keys := server.NewKeyCache(jwksFromIdentity{id}, cfg.ClockLeeway, cfg.JWKSMinRefresh, nil)
 	h, err := server.New(server.Deps{
-		Config: cfg, Log: log, Identity: id, Sourcing: sourcing, Probes: probes, Keys: keys, Limiter: server.NewMemoryLimiter(),
+		Config: cfg, Log: log, Identity: id, Sourcing: sourcing, Catalog: catalog, Probes: probes, Keys: keys, Limiter: server.NewMemoryLimiter(),
 		Ready: func(ctx context.Context) error {
 			r, err := health.Check(ctx, &healthpb.HealthCheckRequest{})
 			if err != nil {

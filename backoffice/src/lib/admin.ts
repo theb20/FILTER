@@ -41,6 +41,8 @@ export function errorMessage(r: Extract<ApiResult<unknown>, { ok: false }>): str
   if (r.status === 403) return "Vous n'avez pas la permission d'effectuer cette action.";
   if (r.status === 503 || r.code === "UNREACHABLE") return "Service indisponible. Réessayez dans un instant.";
   const first = r.fields?.[0];
+  // Validation : le détail par champ est plus utile que l'intitulé général (« attribut invalide »).
+  if ((r.status === 422 || r.status === 400) && r.fields?.length) return r.fields.map((f) => f.message).filter(Boolean).join(" ");
   if (r.status === 422 || r.status === 409) return r.message ?? first?.message ?? "Action refusée.";
   return r.message ?? "Une erreur est survenue.";
 }

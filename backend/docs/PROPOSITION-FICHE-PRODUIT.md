@@ -78,3 +78,31 @@ Statut : **PROPOSITION, en attente de vos corrections.** Aucun code n'est écrit
 5. Tests : intégration PostgreSQL, contraintes en base (SKU unique, attributs typés, `made_to_order` sans délai refusé), concurrence, audit, permissions.
 
 Permissions existantes : `catalog:read`, `catalog:write` ; je propose d'y ajouter `catalog:publish` (publier une fiche), comme `content:publish`. *À valider.*
+
+---
+
+## 7. Décisions du 17 nov. 2026 : fiche produit VALIDÉE avec corrections
+
+**Ajouts à la fiche**
+- `manufacturerRef` : référence constructeur (normalisée ; unique par marque).
+- `priceMode` : `fixed` | `on_quote` (sur devis).
+- Champs facultatifs dès maintenant : GTIN/EAN, unité de vente, quantité minimale de commande, poids, dimensions.
+
+**Réponses aux 13 points**
+1. Statut `review` conservé ; un membre ayant `catalog:publish` peut passer directement de brouillon à publié.
+2. SKU : majuscules, chiffres et tirets ; généré automatiquement si vide ; figé après publication.
+3. Langue par défaut `fr`, avec repli.
+4. Blocage à la publication si des champs obligatoires manquent, en tenant compte de `priceMode`.
+5. Suppression = archivage si le produit a servi.
+6. Slug figé après publication.
+7. Historique des versions et origine des champs (`manual` / `import`) dès le départ.
+8. Médias par URL au départ ; le **téléversement (stockage compatible S3) doit être livré avant l'ouverture au public** et servira aussi aux documents techniques.
+9. Une fiche = un prix de vente direct ; offres externes en phase 2.
+10. Prix hors taxes uniquement. **Devise de base : à confirmer (XOF ou EUR)** ; réglage `catalog_settings.base_currency`, XOF par défaut provisoire.
+11. Voir « Ajouts à la fiche ».
+12. Tant que l'onglet Stock n'existe pas : « Disponibilité sur demande », jamais « rupture ».
+13. Import CSV à colonnes fixes avec mode simulation.
+
+Permission `catalog:publish` créée. Ordre de réalisation validé : catégories → attributs → marques → secteurs → produits → import/export CSV → site branché → tests ; puis service `search` ; puis écrans du moteur.
+
+**Avancement** : l'étape « taxonomie » (catégories, attributs, marques, secteurs) est livrée (service `catalog`, routes du gateway, écrans du backoffice, audit). Un attribut ne change ni de clé, ni de type, ni de catégorie une fois créé.

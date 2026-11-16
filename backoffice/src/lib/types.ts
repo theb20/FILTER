@@ -18,3 +18,19 @@ export type CustomerPage = { items: Customer[]; page: { page: number; pageSize: 
 export const COMPANY_LABEL = { pending: "En attente", approved: "Approuvée", rejected: "Rejetée" } as const;
 export const COMPANY_TONE = { pending: "warn", approved: "ok", rejected: "off" } as const;
 export const customerName = (c: Pick<Customer, "firstName" | "lastName" | "email">) => [c.firstName, c.lastName].filter(Boolean).join(" ") || c.email;
+
+// ── catalogue (taxonomie) ──
+export type Localized = Record<string, string>;
+export type PageInfo = { page: number; pageSize: number; total: number; totalPages: number };
+export type Category = { id: string; slug: string; parentId: string | null; sortOrder: number; name: Localized; description: Localized | null; depth: number; productCount: number };
+export type CategoryPage = { items: Category[]; page: PageInfo };
+export type AttributeOption = { value: string; label: Localized };
+export type AttributeType = "text" | "number" | "boolean" | "enum";
+export type AttributeDef = { id: string; categoryId: string; key: string; label: Localized; type: AttributeType; unit: string | null; filterable: boolean; required: boolean; options: AttributeOption[]; sortOrder: number };
+export type AttributeDefPage = { items: AttributeDef[]; page: PageInfo };
+export type Brand = { id: string; slug: string; name: string; logoUrl: string | null };
+export type BrandPage = { items: Brand[]; page: PageInfo };
+export type Sector = { id: string; slug: string; name: Localized; imageUrl: string | null };
+export type SectorPage = { items: Sector[]; page: PageInfo };
+
+export const ATTRIBUTE_TYPE_LABEL: Record<AttributeType, string> = { text: "Texte libre", number: "Nombre", boolean: "Oui / non", enum: "Liste de choix" };

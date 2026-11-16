@@ -114,6 +114,11 @@ func newRig(t *testing.T, mut func(*server.Config)) *rig { return newRigWith(t, 
 
 func newRigWith(t *testing.T, mut func(*server.Config), sourcing sourcingv1.SourcingServiceClient) *rig {
 	t.Helper()
+	return newRigDeps(t, mut, func(d *server.Deps) { d.Sourcing = sourcing })
+}
+
+func newRigDeps(t *testing.T, mut func(*server.Config), dep func(*server.Deps)) *rig {
+	t.Helper()
 	keys := map[string]*jwtx.KeySet{}
 	for _, aud := range []string{jwtx.AudCustomer, jwtx.AudStaff, jwtx.AudStaffChallenge} {
 		k, err := jwtx.NewKeySet()
@@ -131,7 +136,11 @@ func newRigWith(t *testing.T, mut func(*server.Config), sourcing sourcingv1.Sour
 	src := &jwksSource{keys: keys}
 	id := &fakeID{}
 	lim := server.NewMemoryLimiter()
-	h, err := server.New(server.Deps{Config: cfg, Log: slog.New(slog.NewJSONHandler(io.Discard, nil)), Identity: id, Sourcing: sourcing, Keys: server.NewKeyCache(src, cfg.ClockLeeway, 0, nil), Limiter: lim})
+	deps := server.Deps{Config: cfg, Log: slog.New(slog.NewJSONHandler(io.Discard, nil)), Identity: id, Keys: server.NewKeyCache(src, cfg.ClockLeeway, 0, nil), Limiter: lim}
+	if dep != nil {
+		dep(&deps)
+	}
+	h, err := server.New(deps)
 	if err != nil {
 		t.Fatal(err)
 	}
