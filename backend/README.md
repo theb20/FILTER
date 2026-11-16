@@ -42,3 +42,11 @@ make test                    # vet + tests de pkg, identity, gateway
 - **identity** : `STORE=postgres` (défaut hors `ENV=dev`) applique les migrations goose au démarrage (`pkg/outbox` puis identity, tables de version séparées), écrit les événements dans l'**outbox** dans la même transaction que les données, et les relaie vers **NATS JetStream** (déduplication par identifiant d'événement ; consommateurs idempotents via `outbox.Process`). `STORE=memory` n'existe que pour `ENV=dev` et les tests unitaires.
 - **`pkg/`** réutilisable tel quel par les autres services : `pgxtx` (unité de travail), `outbox` (Publisher, Relay, Process, migrations), `natsbus`, `testsupport`.
 - **Tests** : `make test-integration` (ou la CI) lance les tests avec PostgreSQL 17 et NATS réels via testcontainers-go (Docker requis) et `REQUIRE_INTEGRATION=1` : un test d'intégration ignoré fait échouer. En local sans Docker : `TEST_DATABASE_URL=postgres://…/postgres TEST_NATS_URL=nats://…` pointe vers des serveurs déjà lancés. Sans rien, seuls les cas de l'adaptateur mémoire tournent.
+
+## Environnement local persistant et premier administrateur
+
+Sans Docker : `backend/scripts/dev-local.sh up` démarre PostgreSQL 17 + NATS JetStream + identity + gateway (données dans `~/.filterfinder`, qui survivent aux redémarrages). Puis `backend/scripts/dev-local.sh bootstrap <email> "<nom>"` crée le **premier super-admin** ; le mot de passe est saisi au terminal (jamais en argument ni en fichier). La commande est refusée dès qu'un super-admin existe. À la première connexion au backoffice, l'application d'authentification (2FA TOTP, obligatoire) est enregistrée et 8 codes de secours sont affichés **une seule fois**.
+
+La clé `~/.filterfinder/secrets/staff_totp.key` chiffre les secrets 2FA en base : **à sauvegarder**, sans elle les 2FA enregistrés sont irrécupérables.
+
+Personnel (déjà implémenté) : connexion + 2FA, inscription du 2FA, rafraîchissement avec rotation et détection de rejeu, déconnexion, profil. **Reste à écrire** (routes d'identity du personnel) : invitations, changement de mot de passe, réinitialisation du 2FA, rôles et permissions éditables, gestion des comptes. Le rôle `super-admin` (permission joker `*`) est installé par la migration ; son nom est « suggéré, à confirmer » dans le contrat.

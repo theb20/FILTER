@@ -17,6 +17,24 @@
 
 ---
 
+## ▶️ Lancer tout l'environnement local (site + backoffice + backend)
+
+```
+./dev.sh up                                   # PostgreSQL, NATS, identity, gateway, site, backoffice
+./dev.sh admin votre@email.com "Votre Nom"    # une seule fois : crée le premier super-admin (mot de passe saisi au terminal)
+./dev.sh status | logs | down
+```
+
+| Brique | Adresse |
+|---|---|
+| Site (Vite) | http://localhost:5173 |
+| Backoffice (Next.js) | http://localhost:3100/login |
+| API (gateway) | http://127.0.0.1:8080 (`/healthz`) |
+
+Le site appelle l'API par un relais Vite (`/v1`) : même origine, cookie de session `HttpOnly` + `SameSite=Strict`. Le backoffice l'appelle depuis son serveur. Les données sont dans `~/.filterfinder` (conservées par `./dev.sh down`). Détails : `backend/README.md`.
+
+---
+
 ## 🏗️ Architecture du projet
 
 FilterFinder utilise une architecture **3 tiers** : Frontend, Backend, Base de données.
