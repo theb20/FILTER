@@ -10,13 +10,17 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,11 +31,13 @@ import (
 	"github.com/theb20/FILTER/backend/pkg/natsbus"
 	"github.com/theb20/FILTER/backend/pkg/outbox"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/breach"
+	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/devmail"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/grpcserver"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/memory"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/postgres"
 	"github.com/theb20/FILTER/backend/services/identity/internal/application"
 	"github.com/theb20/FILTER/backend/services/identity/internal/domain"
+	"golang.org/x/term"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -39,74 +45,120 @@ import (
 
 func main() {
 	log := logx.New(os.Stdout, "identity", slog.LevelInfo)
-	if err := run(log); err != nil {
+	var err error
+	if len(os.Args) > 1 && os.Args[1] == "bootstrap-admin" {
+		err = bootstrapAdmin(log, os.Args[2:])
+	} else {
+		err = run(log)
+	}
+	if err != nil {
 		log.Error("arrêt", "error", err.Error())
 		os.Exit(1)
 	}
 }
 
-func run(log *slog.Logger) error {
+// build assemble le service selon STORE. `serve` démarre aussi le relais de l'outbox vers NATS (inutile pour une commande d'exploitation).
+func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Service, func(), error) {
 	env := getenv("ENV", "dev")
-	addr := getenv("IDENTITY_GRPC_ADDR", ":9001")
-
 	keys, err := loadKeys(env, log)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	breachChecker, err := loadBreach(env, log)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
+	mode := getenv("STORE", defaultStore(env))
+	box, err := loadSecretBox(mode, log)
+	if err != nil {
+		return nil, nil, err
+	}
 	svc := application.Service{
-		Hasher: domain.Hasher{P: domain.DefaultArgon2id()}, Breach: breachChecker,
-		Keys: keys, Settings: application.StaticSettings(domain.DefaultSettings()),
+		Hasher: domain.Hasher{P: domain.DefaultArgon2id()}, Breach: breachChecker, Secrets: box,
+		Keys: keys,
 	}
-	switch mode := getenv("STORE", defaultStore(env)); mode {
+	cleanup := func() {}
+	switch mode {
 	case "memory":
 		if env != "dev" {
-			return errors.New("STORE=memory est interdit hors développement (ENV=dev)")
+			return nil, nil, errors.New("STORE=memory est interdit hors développement (ENV=dev)")
+		}
+		if !serve {
+			return nil, nil, errors.New("cette commande exige STORE=postgres (le stockage en mémoire ne survit pas à la commande)")
 		}
 		log.Warn("stockage EN MÉMOIRE : les comptes disparaissent à l'arrêt (développement uniquement)")
 		st, ev := memory.New(), &events.Memory{}
 		st.Events = ev
 		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events = st, st, st, st, st, ev
+		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore = st, st.StaffSessions(), st, st, st, st, st
+		svc.Settings = &application.DBSettings{Repo: st, Base: domain.DefaultSettings(), TTL: 30 * time.Second}
 	case "postgres":
 		url := os.Getenv("DATABASE_URL")
 		if url == "" {
-			return errors.New("DATABASE_URL est obligatoire avec STORE=postgres")
-		}
-		natsURL := os.Getenv("NATS_URL")
-		if natsURL == "" {
-			return errors.New("NATS_URL est obligatoire avec STORE=postgres (relais de l'outbox)")
+			return nil, nil, errors.New("DATABASE_URL est obligatoire avec STORE=postgres")
 		}
 		mctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
 		if err := postgres.Migrate(mctx, url); err != nil {
-			cancel()
-			return fmt.Errorf("migrations : %w", err)
+			return nil, nil, fmt.Errorf("migrations : %w", err)
 		}
 		st, err := postgres.New(mctx, url)
 		if err != nil {
-			cancel()
-			return err
+			return nil, nil, err
 		}
-		defer st.Close()
-		bus, err := natsbus.Connect(mctx, natsURL, getenv("NATS_STREAM", "IDENTITY"), "identity.>")
-		cancel()
-		if err != nil {
-			return fmt.Errorf("nats : %w", err)
-		}
-		defer bus.Close()
-		go (&outbox.Relay{Pool: st.Pool, Bus: bus, Log: log}).Run(ctx)
+		cleanup = st.Close
 		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events = st, st, st, st, st, &outbox.Publisher{}
-		log.Info("PostgreSQL et NATS prêts (outbox active)")
+		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore = st, st.StaffSessions(), st, st, st, st, st
+		svc.Settings = &application.DBSettings{Repo: st, Base: domain.DefaultSettings(), TTL: 30 * time.Second}
+		if serve {
+			natsURL := os.Getenv("NATS_URL")
+			if natsURL == "" {
+				cleanup()
+				return nil, nil, errors.New("NATS_URL est obligatoire avec STORE=postgres (relais de l'outbox)")
+			}
+			bus, err := natsbus.Connect(mctx, natsURL, getenv("NATS_STREAM", "IDENTITY"), "identity.>")
+			if err != nil {
+				cleanup()
+				return nil, nil, fmt.Errorf("nats : %w", err)
+			}
+			closeDB := cleanup
+			cleanup = func() { bus.Close(); closeDB() }
+			go (&outbox.Relay{Pool: st.Pool, Bus: bus, Log: log}).Run(ctx)
+			// Boîte d'envoi de DÉVELOPPEMENT (jetons en clair dans un fichier) : jamais hors ENV=dev.
+			if path := os.Getenv("DEV_MAIL_FILE"); path != "" {
+				if env != "dev" {
+					cleanup()
+					return nil, nil, errors.New("DEV_MAIL_FILE est interdit hors développement (les jetons y sont en clair)")
+				}
+				sink := &devmail.Sink{Path: path, BackofficeURL: getenv("BACKOFFICE_URL", "http://localhost:3100"), SiteURL: getenv("SITE_URL", "http://localhost:5173")}
+				stopMail, err := sink.Run(ctx, bus, log)
+				if err != nil {
+					cleanup()
+					return nil, nil, fmt.Errorf("devmail : %w", err)
+				}
+				prev := cleanup
+				cleanup = func() { stopMail(); prev() }
+				log.Warn("boîte d'envoi de développement active", "file", path)
+			}
+			log.Info("PostgreSQL et NATS prêts (outbox active)")
+		}
 	default:
-		return fmt.Errorf("STORE=%q inconnu (postgres, memory)", mode)
+		return nil, nil, fmt.Errorf("STORE=%q inconnu (postgres, memory)", mode)
 	}
-	service := application.New(svc)
+	return application.New(svc), cleanup, nil
+}
+
+func run(log *slog.Logger) error {
+	env := getenv("ENV", "dev")
+	addr := getenv("IDENTITY_GRPC_ADDR", ":9001")
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	service, cleanup, err := build(ctx, log, true)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -131,6 +183,76 @@ func run(log *slog.Logger) error {
 	}()
 	log.Info("identity démarré", "addr", addr, "env", env)
 	return srv.Serve(lis)
+}
+
+// bootstrapAdmin : `identity bootstrap-admin --email … --name …` crée le PREMIER super-admin. Le mot de passe est
+// saisi au terminal (jamais en argument, variable d'environnement ni fichier). Refusé si un super-admin existe déjà.
+func bootstrapAdmin(log *slog.Logger, args []string) error {
+	fs := flag.NewFlagSet("bootstrap-admin", flag.ContinueOnError)
+	email := fs.String("email", "", "adresse e-mail du super-admin")
+	name := fs.String("name", "", "nom affiché")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *email == "" || *name == "" {
+		return errors.New("usage : identity bootstrap-admin --email <adresse> --name <nom>")
+	}
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return errors.New("le mot de passe doit être saisi dans un terminal interactif")
+	}
+	fmt.Fprint(os.Stderr, "Mot de passe : ")
+	pw1, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return err
+	}
+	fmt.Fprint(os.Stderr, "Confirmer le mot de passe : ")
+	pw2, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return err
+	}
+	if string(pw1) != string(pw2) {
+		return errors.New("les deux mots de passe diffèrent")
+	}
+	ctx := context.Background()
+	svc, cleanup, err := build(ctx, log, false)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+	u, err := svc.BootstrapAdmin(ctx, *email, *name, string(pw1))
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "Super-admin créé : %s (%s)\nÀ la première connexion, vous devrez enregistrer l'application d'authentification (2FA).\n", u.Email, u.ID)
+	return nil
+}
+
+// loadSecretBox charge la clé de chiffrement des secrets TOTP (STAFF_TOTP_KEY_FILE : 32 octets en base64).
+// Avec une base de données elle est OBLIGATOIRE (une clé éphémère rendrait les secrets enregistrés illisibles au redémarrage).
+func loadSecretBox(mode string, log *slog.Logger) (*domain.SecretBox, error) {
+	path := os.Getenv("STAFF_TOTP_KEY_FILE")
+	if path == "" {
+		if mode == "postgres" {
+			return nil, errors.New("STAFF_TOTP_KEY_FILE est obligatoire avec STORE=postgres (clé AES-256 en base64 : openssl rand -base64 32)")
+		}
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			return nil, err
+		}
+		log.Warn("clé de chiffrement TOTP ÉPHÉMÈRE (développement, stockage en mémoire)")
+		return domain.NewSecretBox(key)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("STAFF_TOTP_KEY_FILE : %w", err)
+	}
+	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(raw)))
+	if err != nil {
+		return nil, fmt.Errorf("STAFF_TOTP_KEY_FILE : base64 invalide : %w", err)
+	}
+	return domain.NewSecretBox(key)
 }
 
 // loadKeys charge une clé Ed25519 par audience (JWT_KEY_<AUD>_FILE) ; en dev seulement, une clé éphémère.

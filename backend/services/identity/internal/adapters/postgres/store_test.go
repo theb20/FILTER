@@ -386,3 +386,250 @@ func TestAlerteUneSeuleFoisEnConcurrence(t *testing.T) {
 		t.Fatal("après la fenêtre, une nouvelle alerte est permise")
 	}
 }
+
+func newStaff(t *testing.T, s *postgres.Store) *domain.StaffUser {
+	t.Helper()
+	role, err := s.RoleByName(context.Background(), domain.SuperAdminRoleName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u := &domain.StaffUser{ID: uuid.NewString(), Email: uuid.NewString()[:8] + "@ff.test", Name: "N", PasswordHash: "x", Status: domain.StaffActive, RoleIDs: []string{role.ID}, CreatedAt: time.Now()}
+	if err := s.CreateStaff(context.Background(), u); err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
+// race lance n appels simultanés et renvoie le nombre de « vrai ».
+func race(n int, f func() bool) int32 {
+	var wins atomic.Int32
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			if f() {
+				wins.Add(1)
+			}
+		}()
+	}
+	close(start)
+	wg.Wait()
+	return wins.Load()
+}
+
+// Un code TOTP ne sert qu'une fois : le pas ne peut qu'AVANCER, même sous concurrence.
+func TestPasTOTPAvanceUneSeuleFois(t *testing.T) {
+	s, _ := newStore(t)
+	ctx := context.Background()
+	u := newStaff(t, s)
+	if ok, _ := s.AdvanceTOTPStep(ctx, u.ID, 100); !ok {
+		t.Fatal("premier pas refusé")
+	}
+	for _, step := range []int64{100, 99} {
+		if ok, _ := s.AdvanceTOTPStep(ctx, u.ID, step); ok {
+			t.Fatalf("le pas %d ne doit pas être accepté après 100", step)
+		}
+	}
+	if n := race(16, func() bool { ok, _ := s.AdvanceTOTPStep(ctx, u.ID, 200); return ok }); n != 1 {
+		t.Fatalf("1 seul gagnant attendu, obtenu %d", n)
+	}
+}
+
+func TestJetonDeDefiUsageUniqueEtCompteurDErreurs(t *testing.T) {
+	s, _ := newStore(t)
+	ctx := context.Background()
+	u := newStaff(t, s)
+	now := time.Now()
+	put := func(id string, ttl time.Duration) {
+		if err := s.PutChallenge(ctx, &domain.Challenge{ID: id, StaffID: u.ID, Scope: domain.ScopeVerify, IP: "1.1.1.1", ExpiresAt: now.Add(ttl)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put("c1", time.Minute)
+	if n := race(16, func() bool { ok, _ := s.ConsumeChallenge(ctx, "c1", now); return ok }); n != 1 {
+		t.Fatalf("1 seul gagnant attendu, obtenu %d", n)
+	}
+	if ok, _ := s.ConsumeChallenge(ctx, "c1", now); ok {
+		t.Fatal("un jeton consommé ne se consomme pas deux fois")
+	}
+	put("c2", time.Minute)
+	if ok, _ := s.ConsumeChallenge(ctx, "c2", now.Add(2*time.Minute)); ok {
+		t.Fatal("un jeton expiré ne se consomme pas")
+	}
+	put("c3", time.Minute)
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() { defer wg.Done(); _, _ = s.FailChallenge(ctx, "c3") }()
+	}
+	wg.Wait()
+	c, _ := s.ChallengeByID(ctx, "c3")
+	if c.Failures != 5 {
+		t.Fatalf("5 échecs concurrents doivent donner 5, obtenu %d (compteur non atomique)", c.Failures)
+	}
+}
+
+func TestCodeDeSecoursUneSeuleFoisEnConcurrence(t *testing.T) {
+	s, _ := newStore(t)
+	ctx := context.Background()
+	u := newStaff(t, s)
+	h := domain.HashToken("abcd")
+	if err := s.SetRecoveryCodes(ctx, u.ID, []string{h}); err != nil {
+		t.Fatal(err)
+	}
+	if n := race(16, func() bool { ok, _ := s.ConsumeRecoveryCode(ctx, u.ID, h, time.Now()); return ok }); n != 1 {
+		t.Fatalf("1 seul gagnant attendu, obtenu %d", n)
+	}
+}
+
+// Contraintes du personnel, vérifiées en SQL brut.
+func TestContraintesPersonnelEnBase(t *testing.T) {
+	s, _ := newStore(t)
+	u := newStaff(t, s)
+	const unique, check, fk, restrict = "23505", "23514", "23503", "23503"
+	ins := `INSERT INTO staff_users (id, email, name, password_hash, status) VALUES ($1,$2,'N','x',$3)`
+	cases := []struct{ name, want, got string }{
+		{"e-mail du personnel en double", unique, sqlState(t, s, ins, uuid.NewString(), u.Email, "active")},
+		{"statut inconnu", check, sqlState(t, s, ins, uuid.NewString(), "z@ff.test", "boss")},
+		{"compte actif sans mot de passe", check, sqlState(t, s, `INSERT INTO staff_users (id, email, name, status) VALUES ($1,'y@ff.test','N','active')`, uuid.NewString())},
+		{"2FA actif sans secret", check, sqlState(t, s, `INSERT INTO staff_users (id, email, name, password_hash, status, two_factor_enabled) VALUES ($1,'w@ff.test','N','x','active',true)`, uuid.NewString())},
+		{"rôle attribué à un compte inexistant", fk, sqlState(t, s, `INSERT INTO staff_user_roles (staff_id, role_id) SELECT $1, id FROM staff_roles LIMIT 1`, uuid.NewString())},
+		{"suppression du rôle système encore attribué (protégé par la base)", check, sqlState(t, s, `DELETE FROM staff_roles WHERE name = 'super-admin'`)},
+		{"portée de jeton de défi inconnue", check, sqlState(t, s, `INSERT INTO staff_challenges (id, staff_id, scope, expires_at) VALUES ('x', $1, 'admin', now())`, u.ID)},
+		{"nom de rôle en double (insensible à la casse)", unique, sqlState(t, s, `INSERT INTO staff_roles (name) VALUES ('SUPER-ADMIN')`)},
+	}
+	for _, c := range cases {
+		if c.got != c.want {
+			t.Errorf("%s : SQLSTATE %q, attendu %q", c.name, c.got, c.want)
+		}
+	}
+}
+
+// L'administration est protégée PAR LA BASE : même un accès SQL direct ne casse pas ces règles.
+func TestProtectionsAdministrationEnBase(t *testing.T) {
+	s, _ := newStore(t)
+	ctx := context.Background()
+	const check, fk = "23514", "23503"
+	u := newStaff(t, s)
+
+	// rôle système : ni modifié, ni renommé, ni supprimé
+	if got := sqlState(t, s, `UPDATE staff_roles SET permissions = ARRAY['catalog:read'] WHERE name = 'super-admin'`); got != check {
+		t.Errorf("modification des permissions du rôle système : %q", got)
+	}
+	if got := sqlState(t, s, `UPDATE staff_roles SET name = 'x' WHERE name = 'super-admin'`); got != check {
+		t.Errorf("renommage du rôle système : %q", got)
+	}
+	if got := sqlState(t, s, `UPDATE staff_roles SET system = false WHERE name = 'super-admin'`); got != check {
+		t.Errorf("déclassement du rôle système : %q", got)
+	}
+	if got := sqlState(t, s, `DELETE FROM staff_roles WHERE name = 'super-admin'`); got != check {
+		t.Errorf("suppression du rôle système : %q", got)
+	}
+	// le joker `*` est réservé au rôle système
+	if got := sqlState(t, s, `INSERT INTO staff_roles (name, permissions) VALUES ('Joker', ARRAY['*'])`); got != check {
+		t.Errorf("joker sur un rôle ordinaire : %q", got)
+	}
+	// un rôle ordinaire attribué ne se supprime pas (clé étrangère RESTRICT)
+	r := &domain.Role{ID: uuid.NewString(), Name: "Ordinaire", Permissions: []string{"catalog:read"}}
+	if err := s.CreateRole(ctx, r); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetStaffRoles(ctx, u.ID, []string{r.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteRole(ctx, r.ID); !errors.Is(err, application.ErrRoleInUse) {
+		t.Errorf("suppression d'un rôle attribué : %v", err)
+	}
+	if got := sqlState(t, s, `DELETE FROM staff_roles WHERE id = $1`, r.ID); got != fk {
+		t.Errorf("suppression SQL d'un rôle attribué : %q", got)
+	}
+	// invitation : condensat obligatoire, membre existant
+	if got := sqlState(t, s, `INSERT INTO staff_invitations (token_hash, staff_id, expires_at) VALUES ('clair', $1, now())`, u.ID); got != check {
+		t.Errorf("invitation en clair : %q", got)
+	}
+	if got := sqlState(t, s, `INSERT INTO staff_invitations (token_hash, staff_id, expires_at) VALUES ($1, $2, now())`, domain.HashToken("i"), uuid.NewString()); got != fk {
+		t.Errorf("invitation d'un membre inexistant : %q", got)
+	}
+}
+
+func TestJournalDAuditEnAjoutSeulEnBase(t *testing.T) {
+	s, _ := newStore(t)
+	ctx := context.Background()
+	const check = "23514"
+	e := &domain.AuditEntry{ID: uuid.NewString(), At: time.Now(), ActorType: domain.ActorStaff, ActorID: "a", Action: "x.y", Entity: "z", Before: map[string]any{"k": 1.0}, After: map[string]any{"k": 2.0}}
+	if err := s.AppendAudit(ctx, e); err != nil {
+		t.Fatal(err)
+	}
+	if got := sqlState(t, s, `UPDATE audit_log SET action = 'falsifié'`); got != check {
+		t.Errorf("modification d'une ligne d'audit : %q", got)
+	}
+	if got := sqlState(t, s, `DELETE FROM audit_log`); got != check {
+		t.Errorf("suppression d'une ligne d'audit : %q", got)
+	}
+	if got := sqlState(t, s, `INSERT INTO audit_log (id, actor_type, action, entity) VALUES ($1, 'robot', 'a', 'b')`, uuid.NewString()); got != check {
+		t.Errorf("type d'acteur inconnu : %q", got)
+	}
+	// la purge de rétention n'est possible que de façon explicite, dans une transaction dédiée
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `SET LOCAL ff.audit_purge = 'on'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM audit_log`); err != nil {
+		t.Fatalf("purge explicite refusée : %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	items, _, _ := s.ListAudit(ctx, domain.AuditFilter{Limit: 10})
+	if len(items) != 0 {
+		t.Fatalf("%d lignes après purge", len(items))
+	}
+}
+
+func TestInvitationUsageUniqueEnConcurrence(t *testing.T) {
+	s, _ := newStore(t)
+	ctx := context.Background()
+	u := newStaff(t, s)
+	h := domain.HashToken("inv")
+	if err := s.PutStaffInvitation(ctx, h, u.ID, time.Now().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if n := race(16, func() bool { _, ok, _ := s.ConsumeStaffInvitation(ctx, h, time.Now()); return ok }); n != 1 {
+		t.Fatalf("1 seul gagnant attendu, obtenu %d", n)
+	}
+	// un nouveau jeton remplace l'ancien non utilisé
+	_ = s.PutStaffInvitation(ctx, domain.HashToken("a"), u.ID, time.Now().Add(time.Hour))
+	_ = s.PutStaffInvitation(ctx, domain.HashToken("b"), u.ID, time.Now().Add(time.Hour))
+	if _, ok, _ := s.ConsumeStaffInvitation(ctx, domain.HashToken("a"), time.Now()); ok {
+		t.Fatal("l'ancien jeton doit être remplacé")
+	}
+	if _, ok, _ := s.ConsumeStaffInvitation(ctx, domain.HashToken("b"), time.Now()); !ok {
+		t.Fatal("le dernier jeton doit rester valable")
+	}
+}
+
+func TestReglagesContraintesEnBase(t *testing.T) {
+	s, _ := newStore(t)
+	const check = "23514"
+	for name, q := range map[string]string{
+		"durée du jeton d'accès nulle":             `UPDATE identity_settings SET access_token_minutes = 0`,
+		"essais gratuits négatifs":                 `UPDATE identity_settings SET throttle_free_attempts = -1`,
+		"délai maximal inférieur au délai de base": `UPDATE identity_settings SET throttle_max_delay_seconds = 1, throttle_base_delay_seconds = 5`,
+		"rétention négative":                       `UPDATE identity_settings SET audit_log_days = -1`,
+		"seconde ligne de réglages":                `INSERT INTO identity_settings SELECT 2, access_token_minutes, customer_refresh_days, staff_refresh_hours, password_reset_code_minutes, password_reset_max_attempts, staff_challenge_minutes, invitation_hours, email_verification_hours, email_change_hours, recent_login_minutes, throttle_free_attempts, throttle_base_delay_seconds, throttle_max_delay_seconds, login_alert_after_failures, personal_data_days, audit_log_days, updated_at, updated_by FROM identity_settings`,
+	} {
+		if got := sqlState(t, s, q); got != check {
+			t.Errorf("%s : SQLSTATE %q, attendu %q", name, got, check)
+		}
+	}
+	v, err := s.LoadIdentitySettings(context.Background())
+	if err != nil || v != domain.DefaultIdentitySettings() {
+		t.Fatalf("les défauts du contrat doivent être installés : %v %+v", err, v)
+	}
+}

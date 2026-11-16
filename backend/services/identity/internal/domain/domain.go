@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"net/mail"
 	"strings"
 	"time"
@@ -24,10 +25,31 @@ const (
 	StatusSuspended = "suspended"
 )
 
-// Company est le titulaire d'un compte entreprise (statut validé manuellement : hors du périmètre de ce lot).
+// Statuts d'une entreprise : la validation est MANUELLE (personnel habilité).
+const (
+	CompanyPending  = "pending"
+	CompanyApproved = "approved"
+	CompanyRejected = "rejected"
+)
+
+// Company est le titulaire d'un compte entreprise. `Approved` reste le miroir de `Status == approved`.
 type Company struct {
 	ID, LegalName, TaxID, Country string
 	Approved                      bool
+	Status                        string // vide = en attente (comptes créés avant le statut)
+	RejectionReason               string
+	DecidedAt                     *time.Time
+}
+
+// State renvoie le statut effectif (jamais vide).
+func (c *Company) State() string {
+	switch {
+	case c.Status != "":
+		return c.Status
+	case c.Approved:
+		return CompanyApproved
+	}
+	return CompanyPending
 }
 
 // User est un compte client.
@@ -81,6 +103,7 @@ const (
 type Settings struct {
 	AccessTokenTTL         time.Duration
 	CustomerRefreshTTL     time.Duration
+	StaffRefreshTTL        time.Duration // 8 h (contrat : staffRefreshHours)
 	EmailVerificationTTL   time.Duration // 48 h
 	EmailChangeTTL         time.Duration // 24 h
 	InvitationTTL          time.Duration // 72 h (personnel)
@@ -90,6 +113,7 @@ type Settings struct {
 	LoginAlertAfterFailure int           // proposition : 5 échecs
 	LoginAlertWindow       time.Duration // 15 min
 	PasswordMin            int           // 8 (clients)
+	StaffPasswordMin       int           // 12 : valeur PROPOSÉE par le contrat, à valider
 	PasswordMax            int           // 128
 }
 
@@ -98,6 +122,7 @@ func DefaultSettings() Settings {
 	return Settings{
 		AccessTokenTTL:         15 * time.Minute,
 		CustomerRefreshTTL:     30 * 24 * time.Hour,
+		StaffRefreshTTL:        8 * time.Hour,
 		EmailVerificationTTL:   48 * time.Hour,
 		EmailChangeTTL:         24 * time.Hour,
 		InvitationTTL:          72 * time.Hour,
@@ -107,6 +132,7 @@ func DefaultSettings() Settings {
 		LoginAlertAfterFailure: 5,
 		LoginAlertWindow:       15 * time.Minute,
 		PasswordMin:            8,
+		StaffPasswordMin:       12,
 		PasswordMax:            128,
 	}
 }
@@ -126,7 +152,7 @@ func NormalizeEmail(s string) (string, error) {
 func ValidatePasswordShape(pw string, s Settings) error {
 	n := utf8.RuneCountInString(pw)
 	if n < s.PasswordMin || n > s.PasswordMax {
-		return apperr.Validation("mot de passe invalide", apperr.Field{Pointer: "/password", Code: apperr.CodeValidation, Message: "le mot de passe doit contenir de 8 à 128 caractères"})
+		return apperr.Validation("mot de passe invalide", apperr.Field{Pointer: "/password", Code: apperr.CodeValidation, Message: fmt.Sprintf("le mot de passe doit contenir de %d à %d caractères", s.PasswordMin, s.PasswordMax)})
 	}
 	return nil
 }

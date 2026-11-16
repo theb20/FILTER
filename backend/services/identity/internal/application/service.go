@@ -25,18 +25,26 @@ const (
 
 // Service regroupe les cas d'usage. Toutes les dépendances sont des ports (voir ports.go).
 type Service struct {
-	Users    UserRepo
-	Sessions SessionRepo
-	Tokens   TokenRepo
-	Failures FailureStore
-	Hasher   PasswordHasher
-	Breach   BreachChecker
-	Events   events.Publisher
-	UoW      UnitOfWork
-	Keys     map[string]*jwtx.KeySet // une clé par audience
-	Settings SettingsProvider
-	Now      func() time.Time
-	NewID    func() string
+	Users         UserRepo
+	Sessions      SessionRepo
+	Tokens        TokenRepo
+	Failures      FailureStore
+	Staff         StaffRepo
+	StaffSessions SessionRepo // sessions du personnel : tables SÉPARÉES de celles des clients
+	Challenges    ChallengeRepo
+	StaffAdmin    StaffAdminRepo
+	Audit         AuditRepo
+	SettingsStore SettingsRepo
+	Customers     CustomerAdminRepo
+	Secrets       *domain.SecretBox
+	Hasher        PasswordHasher
+	Breach        BreachChecker
+	Events        events.Publisher
+	UoW           UnitOfWork
+	Keys          map[string]*jwtx.KeySet // une clé par audience
+	Settings      SettingsProvider
+	Now           func() time.Time
+	NewID         func() string
 
 	dummy string
 }

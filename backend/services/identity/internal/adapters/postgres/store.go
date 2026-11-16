@@ -76,6 +76,11 @@ func isUnique(err error) bool {
 	return errors.As(err, &pe) && pe.Code == "23505"
 }
 
+func isFK(err error) bool {
+	var pe *pgconn.PgError
+	return errors.As(err, &pe) && pe.Code == "23503"
+}
+
 func notFound(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return application.ErrNotFound
@@ -86,19 +91,23 @@ func notFound(err error) error {
 // ── UserRepo ────────────────────────────────────────────────────────────────
 
 const userCols = `u.id::text, u.email, u.password_hash, u.email_verified, u.kind, u.first_name, u.last_name, u.locale,
-	u.preferred_currency, u.status, u.created_at, c.id::text, c.legal_name, c.tax_id, c.country, c.approved`
+	u.preferred_currency, u.status, u.created_at, c.id::text, c.legal_name, c.tax_id, c.country, c.approved, c.status, c.rejection_reason, c.decided_at`
 const userFrom = ` FROM users u LEFT JOIN companies c ON c.id = u.company_id `
 
 func scanUser(row pgx.Row) (*domain.User, error) {
 	var u domain.User
-	var cid, legal, tax, country *string
+	var cid, legal, tax, country, cstatus, creason *string
 	var approved *bool
+	var decided *time.Time
 	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.EmailVerified, &u.Kind, &u.FirstName, &u.LastName, &u.Locale,
-		&u.PreferredCurrency, &u.Status, &u.CreatedAt, &cid, &legal, &tax, &country, &approved); err != nil {
+		&u.PreferredCurrency, &u.Status, &u.CreatedAt, &cid, &legal, &tax, &country, &approved, &cstatus, &creason, &decided); err != nil {
 		return nil, notFound(err)
 	}
 	if cid != nil {
-		u.Company = &domain.Company{ID: *cid, LegalName: *legal, TaxID: *tax, Country: *country, Approved: *approved}
+		u.Company = &domain.Company{ID: *cid, LegalName: *legal, TaxID: *tax, Country: *country, Approved: *approved, Status: *cstatus, DecidedAt: decided}
+		if creason != nil {
+			u.Company.RejectionReason = *creason
+		}
 	}
 	return &u, nil
 }
@@ -126,8 +135,8 @@ func (s *Store) Create(ctx context.Context, u *domain.User) error {
 			return application.ErrEmailTaken
 		}
 		if u.Company != nil { // clé étrangère DIFFÉRÉE : vérifiée à la validation de la transaction
-			_, err = db.Exec(ctx, `INSERT INTO companies (id, legal_name, tax_id, country, approved) VALUES ($1,$2,$3,$4,$5)`,
-				u.Company.ID, u.Company.LegalName, u.Company.TaxID, u.Company.Country, u.Company.Approved)
+			_, err = db.Exec(ctx, `INSERT INTO companies (id, legal_name, tax_id, country, approved, status) VALUES ($1,$2,$3,$4,$5,$6)`,
+				u.Company.ID, u.Company.LegalName, u.Company.TaxID, u.Company.Country, u.Company.Approved, u.Company.State())
 		}
 		return err
 	})
@@ -153,8 +162,8 @@ func (s *Store) Update(ctx context.Context, u *domain.User) error {
 			return application.ErrNotFound
 		}
 		if u.Company != nil {
-			_, err = db.Exec(ctx, `UPDATE companies SET legal_name=$2, tax_id=$3, country=$4, approved=$5 WHERE id=$1`,
-				u.Company.ID, u.Company.LegalName, u.Company.TaxID, u.Company.Country, u.Company.Approved)
+			_, err = db.Exec(ctx, `UPDATE companies SET legal_name=$2, tax_id=$3, country=$4, approved=$5, status=$6, rejection_reason=NULLIF($7,''), decided_at=$8 WHERE id=$1`,
+				u.Company.ID, u.Company.LegalName, u.Company.TaxID, u.Company.Country, u.Company.Approved, u.Company.State(), u.Company.RejectionReason, u.Company.DecidedAt)
 		}
 		return err
 	})

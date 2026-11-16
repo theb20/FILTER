@@ -16,16 +16,19 @@ import (
 
 // Store implémente UserRepo, SessionRepo, TokenRepo et FailureStore.
 type Store struct {
-	mu       sync.Mutex
-	users    map[string]*domain.User // par id
-	byEmail  map[string]string
-	tokens   map[string]*domain.RefreshToken // par condensat
-	byID     map[string]*domain.RefreshToken
-	oneTime  map[string]*domain.OneTimeToken
-	pairs    map[string]throttle.State
-	failures map[string][]time.Time
-	alerted  map[string]time.Time
-	families map[string]time.Time // familles révoquées
+	mu        sync.Mutex
+	users     map[string]*domain.User // par id
+	byEmail   map[string]string
+	tokens    map[string]*domain.RefreshToken // par condensat
+	byID      map[string]*domain.RefreshToken
+	oneTime   map[string]*domain.OneTimeToken
+	pairs     map[string]throttle.State
+	failures  map[string][]time.Time
+	alerted   map[string]time.Time
+	families  map[string]time.Time // familles révoquées
+	staff     *staffData
+	settings  *domain.IdentitySettings
+	staffSess *Store // sessions du personnel : mêmes mécanismes, données séparées
 
 	// Events : si renseigné, les événements publiés dans une transaction annulée sont retirés.
 	Events *events.Memory
@@ -36,6 +39,13 @@ type txKey struct{}
 
 // New crée un Store vide.
 func New() *Store {
+	s := newBare()
+	s.staff = newStaffData()
+	s.staffSess = newBare()
+	return s
+}
+
+func newBare() *Store {
 	return &Store{users: map[string]*domain.User{}, byEmail: map[string]string{}, tokens: map[string]*domain.RefreshToken{}, byID: map[string]*domain.RefreshToken{},
 		oneTime: map[string]*domain.OneTimeToken{}, pairs: map[string]throttle.State{}, failures: map[string][]time.Time{}, alerted: map[string]time.Time{}, families: map[string]time.Time{}}
 }
@@ -72,9 +82,9 @@ func (s *Store) Do(ctx context.Context, fn func(ctx context.Context) error) (err
 }
 
 func (s *Store) snapshot() *Store {
-	c := New()
+	c := newBare()
 	for k, v := range s.users {
-		c.users[k] = cp(*v)
+		c.users[k] = cloneUser(v)
 	}
 	for k, v := range s.byEmail {
 		c.byEmail[k] = v
@@ -99,15 +109,42 @@ func (s *Store) snapshot() *Store {
 	for k, v := range s.families {
 		c.families[k] = v
 	}
+	if s.settings != nil {
+		v := *s.settings
+		c.settings = &v
+	}
+	if s.staff != nil {
+		c.staff = s.staff.clone()
+	}
+	if s.staffSess != nil {
+		c.staffSess = s.staffSess.snapshot()
+	}
 	return c
 }
 
 func (s *Store) restore(c *Store) {
 	s.users, s.byEmail, s.tokens, s.byID, s.oneTime = c.users, c.byEmail, c.tokens, c.byID, c.oneTime
 	s.pairs, s.failures, s.alerted, s.families = c.pairs, c.failures, c.alerted, c.families
+	s.settings = c.settings
+	if c.staff != nil {
+		s.staff = c.staff
+	}
+	if c.staffSess != nil {
+		s.staffSess.restore(c.staffSess)
+	}
 }
 
 func cp[T any](v T) *T { c := v; return &c }
+
+// cloneUser copie aussi l'entreprise (sinon un appelant modifierait le magasin sans passer par Update).
+func cloneUser(u *domain.User) *domain.User {
+	c := *u
+	if u.Company != nil {
+		co := *u.Company
+		c.Company = &co
+	}
+	return &c
+}
 
 // ── UserRepo ────────────────────────────────────────────────────────────────
 
@@ -117,7 +154,7 @@ func (s *Store) Create(_ context.Context, u *domain.User) error {
 	if _, ok := s.byEmail[u.Email]; ok {
 		return application.ErrEmailTaken
 	}
-	s.users[u.ID] = cp(*u)
+	s.users[u.ID] = cloneUser(u)
 	s.byEmail[u.Email] = u.ID
 	return nil
 }
@@ -129,7 +166,7 @@ func (s *Store) ByEmail(_ context.Context, email string) (*domain.User, error) {
 	if !ok {
 		return nil, application.ErrNotFound
 	}
-	return cp(*s.users[id]), nil
+	return cloneUser(s.users[id]), nil
 }
 
 func (s *Store) ByID(_ context.Context, id string) (*domain.User, error) {
@@ -139,7 +176,7 @@ func (s *Store) ByID(_ context.Context, id string) (*domain.User, error) {
 	if !ok {
 		return nil, application.ErrNotFound
 	}
-	return cp(*u), nil
+	return cloneUser(u), nil
 }
 
 func (s *Store) Update(_ context.Context, u *domain.User) error {
@@ -148,7 +185,7 @@ func (s *Store) Update(_ context.Context, u *domain.User) error {
 	if _, ok := s.users[u.ID]; !ok {
 		return application.ErrNotFound
 	}
-	s.users[u.ID] = cp(*u)
+	s.users[u.ID] = cloneUser(u)
 	return nil
 }
 

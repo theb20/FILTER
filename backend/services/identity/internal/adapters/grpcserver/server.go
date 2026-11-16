@@ -120,5 +120,8 @@ func userToProto(u *domain.User) *identityv1.User {
 	if u.LastName != "" {
 		out.LastName = &u.LastName
 	}
+	if u.Company != nil {
+		out.Company = companyToProto(u.Company)
+	}
 	return out
 }

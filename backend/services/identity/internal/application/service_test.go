@@ -35,11 +35,20 @@ func (f fakeBreach) Compromised(_ context.Context, p string) (bool, error) { ret
 
 type env struct {
 	svc    *application.Service
-	store  application.UserRepo
+	store  store
 	events eventReader
 	clock  *clock
 	hasher *countingHasher
 	keys   map[string]*jwtx.KeySet
+}
+
+func newKey(t *testing.T) *jwtx.KeySet {
+	t.Helper()
+	k, err := jwtx.NewKeySet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return k
 }
 
 func newEnv(t *testing.T, breach application.BreachChecker) *env {
@@ -49,11 +58,15 @@ func newEnv(t *testing.T, breach application.BreachChecker) *env {
 		t.Fatal(err)
 	}
 	w := current.build(t)
-	e := &env{store: w.store, events: w.events, clock: &clock{t: time.Unix(1_800_000_000, 0)}, keys: map[string]*jwtx.KeySet{jwtx.AudCustomer: k}}
+	e := &env{store: w.store, events: w.events, clock: &clock{t: time.Unix(1_800_000_000, 0)}, keys: map[string]*jwtx.KeySet{jwtx.AudCustomer: k, jwtx.AudStaff: newKey(t), jwtx.AudStaffChallenge: newKey(t)}}
 	e.hasher = &countingHasher{Hasher: domain.Hasher{P: domain.Argon2idParams{MemoryKiB: 64, Time: 1, Threads: 1, SaltLen: 16, KeyLen: 32}}} // léger : tests rapides
+	box, err := domain.NewSecretBox(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
 	e.svc = application.New(application.Service{
-		Users: w.store, Sessions: w.store, Tokens: w.store, Failures: w.store, UoW: w.uow, Hasher: e.hasher, Breach: breach, Events: w.publisher,
-		Keys: e.keys, Settings: application.StaticSettings(domain.DefaultSettings()), Now: e.clock.Now,
+		Users: w.store, Sessions: w.store, Tokens: w.store, Failures: w.store, UoW: w.uow, Staff: w.store, StaffSessions: w.store.StaffSessions(), Challenges: w.store, StaffAdmin: w.store, Audit: w.store, Customers: w.store, Secrets: box, Hasher: e.hasher, Breach: breach, Events: w.publisher,
+		Keys: e.keys, Settings: &application.DBSettings{Repo: w.store, Base: domain.DefaultSettings()}, SettingsStore: w.store, Now: e.clock.Now,
 	})
 	return e
 }

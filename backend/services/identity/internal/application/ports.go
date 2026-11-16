@@ -91,3 +91,77 @@ type SettingsProvider interface {
 type StaticSettings domain.Settings
 
 func (s StaticSettings) Get(context.Context) domain.Settings { return domain.Settings(s) }
+
+// StaffRepo persiste le personnel (pool séparé des clients), ses rôles et son 2FA.
+type StaffRepo interface {
+	CreateStaff(ctx context.Context, u *domain.StaffUser) error // ErrEmailTaken
+	StaffByEmail(ctx context.Context, email string) (*domain.StaffUser, error)
+	StaffByID(ctx context.Context, id string) (*domain.StaffUser, error)
+	UpdateStaff(ctx context.Context, u *domain.StaffUser) error
+	// AdvanceTOTPStep est ATOMIQUE : vrai si `step` est strictement postérieur au dernier pas accepté (un code ne sert qu'une fois).
+	AdvanceTOTPStep(ctx context.Context, id string, step int64) (bool, error)
+	// SetRecoveryCodes remplace les codes de secours (condensats) ; ConsumeRecoveryCode est ATOMIQUE.
+	SetRecoveryCodes(ctx context.Context, id string, hashes []string) error
+	ConsumeRecoveryCode(ctx context.Context, id, hash string, at time.Time) (bool, error)
+	RolesByIDs(ctx context.Context, ids []string) ([]domain.Role, error)
+	RoleByName(ctx context.Context, name string) (*domain.Role, error)
+	CountActiveWithRole(ctx context.Context, roleID string) (int, error)
+}
+
+// ChallengeRepo persiste les jetons de défi 2FA.
+type ChallengeRepo interface {
+	PutChallenge(ctx context.Context, c *domain.Challenge) error
+	ChallengeByID(ctx context.Context, id string) (*domain.Challenge, error)
+	// ConsumeChallenge est ATOMIQUE : vrai pour un seul appelant (jeton valide, non utilisé, non expiré).
+	ConsumeChallenge(ctx context.Context, id string, now time.Time) (bool, error)
+	// FailChallenge ajoute un code erroné (atomique) et renvoie le total.
+	FailChallenge(ctx context.Context, id string) (int, error)
+}
+
+// StaffAdminRepo : gestion du personnel et des rôles (écrans d'administration).
+type StaffAdminRepo interface {
+	ListStaff(ctx context.Context, query string, limit, offset int) ([]*domain.StaffUser, int, error)
+	SetStaffRoles(ctx context.Context, staffID string, roleIDs []string) error
+	ClearTwoFactor(ctx context.Context, staffID string) error
+	// Invitations : un seul jeton valable par membre (le précédent est remplacé).
+	PutStaffInvitation(ctx context.Context, hash, staffID string, expires time.Time) error
+	// ConsumeStaffInvitation est ATOMIQUE : renvoie l'identifiant du membre si le jeton est valide, non utilisé, non expiré.
+	ConsumeStaffInvitation(ctx context.Context, hash string, now time.Time) (staffID string, ok bool, err error)
+
+	ListRoles(ctx context.Context, query string, limit, offset int) ([]domain.Role, int, error)
+	RoleByID(ctx context.Context, id string) (*domain.Role, error)
+	CreateRole(ctx context.Context, r *domain.Role) error // ErrRoleNameTaken
+	UpdateRole(ctx context.Context, r *domain.Role) error
+	DeleteRole(ctx context.Context, id string) error // ErrRoleInUse si encore attribué
+	RolesByIDsExist(ctx context.Context, ids []string) (int, error)
+}
+
+// AuditRepo : journal d'audit append-only.
+type AuditRepo interface {
+	AppendAudit(ctx context.Context, e *domain.AuditEntry) error
+	ListAudit(ctx context.Context, f domain.AuditFilter) ([]*domain.AuditEntry, string, error)
+}
+
+// Erreurs de dépôt supplémentaires.
+var (
+	ErrRoleNameTaken = errors.New("nom de rôle déjà utilisé")
+	ErrRoleInUse     = errors.New("rôle encore attribué")
+)
+
+// CustomerAdminRepo : consultation des clients et des entreprises (écrans d'administration).
+// Les modifications passent par UserRepo.Update (le compte porte son entreprise).
+type CustomerAdminRepo interface {
+	// ListCustomers : `kind` et `status` vides = tous. Tri : plus récents d'abord.
+	ListCustomers(ctx context.Context, query, kind, status string, limit, offset int) ([]*domain.User, int, error)
+	// UserByCompanyID renvoie le compte titulaire de l'entreprise (ErrNotFound si inconnue).
+	UserByCompanyID(ctx context.Context, companyID string) (*domain.User, error)
+	// ListCompanies : `status` vide = tous. Tri : plus anciennes en attente d'abord pour « pending », sinon plus récentes.
+	ListCompanies(ctx context.Context, query, status string, limit, offset int) ([]*domain.Company, int, error)
+	CountCompanies(ctx context.Context, status string) (int, error)
+}
+
+// SettingsRepo persiste les réglages modifiables d'identity (une seule ligne).
+type SettingsRepo interface {
+	LoadIdentitySettings(ctx context.Context) (domain.IdentitySettings, error)
+	SaveIdentitySettings(ctx context.Context, s domain.IdentitySettings, updatedBy string, at time.Time) error
+}

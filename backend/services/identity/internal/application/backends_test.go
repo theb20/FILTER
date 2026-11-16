@@ -21,6 +21,13 @@ type store interface {
 	application.SessionRepo
 	application.TokenRepo
 	application.FailureStore
+	application.StaffRepo
+	application.ChallengeRepo
+	application.StaffAdminRepo
+	application.AuditRepo
+	application.SettingsRepo
+	application.CustomerAdminRepo
+	StaffSessions() application.SessionRepo
 }
 
 // eventReader lit les événements publiés (mémoire : liste ; PostgreSQL : lignes de l'outbox décodées).
@@ -90,6 +97,10 @@ func (r outboxReader) OfType(typ string) []events.Event {
 			msg = &eventsv1.RegistrationAttemptOnExistingAccount{}
 		case application.EvSuspiciousLogin:
 			msg = &eventsv1.SuspiciousLoginAlertRequested{}
+		case application.EvStaffInvitationRequested:
+			msg = &eventsv1.StaffInvitationRequested{}
+		case application.EvStaffTwoFactorReset:
+			msg = &eventsv1.StaffTwoFactorReset{}
 		default:
 			r.t.Fatalf("type d'événement inconnu du test : %s", env.Type)
 		}
