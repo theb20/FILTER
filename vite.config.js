@@ -44,7 +44,7 @@ export default defineConfig({
     },
   },
   server: {
-    host: 'localhost', // plus d'exposition sur le réseau local
+    host: '0.0.0.0', // plus d'exposition sur le réseau local
     port: 3001,
     open: true,
     strictPort: false,

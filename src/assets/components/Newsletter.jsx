@@ -14,10 +14,13 @@ export default function Newsletter() {
   };
 
   return (
-    <section className="mx-2.5 mt-2.5 bg-news px-4 py-10 text-center" aria-labelledby="newsletter-title">
-      <h2 id="newsletter-title" className="text-[28px] font-bold">{t("newsletter.title")}</h2>
-      <p className="mt-1 font-bold text-white">{t("newsletter.subtitle")}</p>
-      <form onSubmit={submit} className="mx-auto mt-5 flex max-w-md">
+    <section className="relative mx-2.5 mt-2.5 overflow-hidden bg-news bg-[url('/img/background/bg_newsletter.webp')] bg-cover bg-center bg-no-repeat px-4 py-10 text-center" aria-labelledby="newsletter-title">
+      {/* Flou permanent (sans voile noir) */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 backdrop-blur-[4px]" />
+      <h2 id="newsletter-title" className="relative text-[28px] font-bold ">{t("newsletter.title")}</h2>
+      <p className="relative mt-1 font-bold text-white">{t("newsletter.subtitle")}</p>
+
+      <form onSubmit={submit} className="relative mx-auto mt-5 flex max-w-md">
         <label htmlFor="newsletter-email" className="sr-only">{t("newsletter.email")}</label>
         <input
           id="newsletter-email"
@@ -32,6 +35,7 @@ export default function Newsletter() {
           {t("newsletter.subscribe")}
         </button>
       </form>
+
     </section>
   );
 }

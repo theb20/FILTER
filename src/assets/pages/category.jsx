@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CATEGORIES, DEMO_PRODUCTS } from "../data/demoProducts.js";
-import { useNotify } from "../configurations/notificationContext.js";
 import { useI18n } from "../i18n/i18nContext.js";
-import LineArt from "../components/LineArt.jsx";
-
-const btnPrimary =
-  "inline-flex items-center gap-2 rounded-[3px] bg-action px-4 py-2 font-bold text-black hover:bg-action-dark transition-colors";
+import ProductCard from "../components/ProductCard.jsx";
 
 function Check({ checked, onChange, children }) {
   return (
@@ -18,8 +14,7 @@ function Check({ checked, onChange, children }) {
 }
 
 export default function Category() {
-  const notify = useNotify();
-  const { t, formatPrice } = useI18n();
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const rawQ = (params.get("q") || "").trim();
   const q = rawQ.toLowerCase();
@@ -96,28 +91,7 @@ export default function Category() {
             <li className="rounded-[4px] bg-white p-8 text-center shadow-card">{t("list.none")}</li>
           )}
           {results.map((p) => (
-            <li key={p.id} className="flex flex-col gap-4 rounded-[4px] bg-white p-4 shadow-card sm:flex-row">
-              <Link to={`/card?id=${p.id}`} className="flex h-36 w-full shrink-0 items-center justify-center bg-gray-50 sm:w-36" aria-label={t(`prod.${p.id}`)}>
-                <LineArt stroke="#9ca3af" className="h-28" />
-              </Link>
-              <div className="min-w-0 flex-1">
-                <Link to={`/card?id=${p.id}`} className="text-[24px] font-semibold leading-tight text-link hover:underline">
-                  {t(`prod.${p.id}`)}
-                </Link>
-                <p className="mt-1 text-sm text-gray-700">
-                  {t("list.ref")} <strong>{p.reference}</strong> · {p.brand}
-                </p>
-                <p className={`mt-1 text-sm font-medium ${p.inStock ? "text-green-700" : "text-orange-700"}`}>
-                  {p.inStock ? t("stock.in") : t("stock.back")}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
-                <p className="text-[24px] font-bold">{formatPrice(p.price)}</p>
-                <button type="button" onClick={() => notify(t("demo.notice"), "demo")} className={btnPrimary}>
-                  {t("list.addToCart")} <span aria-hidden="true">→</span>
-                </button>
-              </div>
-            </li>
+            <ProductCard key={p.id} product={p} />
           ))}
         </ul>
       </section>

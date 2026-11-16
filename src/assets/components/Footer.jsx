@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Logo from "./Logo.jsx";
 import Todo from "./Todo.jsx";
+import PaymentMethods from "./PaymentMethods.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
 import { SITE } from "../config/site.js";
 
@@ -59,7 +60,7 @@ export default function Footer() {
         </Section>
 
         <Section title={t("footer.accept")}>
-          <Todo>{t("todo.payments")}</Todo>
+          <PaymentMethods />
         </Section>
       </div>
       <p className="border-t border-white/20 px-6 py-4 text-center text-sm text-white/80">

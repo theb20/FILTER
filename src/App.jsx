@@ -13,12 +13,14 @@ const Reset = lazy(() => import("./assets/pages/reset.jsx"));
 const Contact = lazy(() => import("./assets/pages/contact.jsx"));
 const Basket = lazy(() => import("./assets/pages/basket.jsx"));
 const Category = lazy(() => import("./assets/pages/category.jsx"));
-const Card = lazy(() => import("./assets/pages/card.jsx"));
+const Card = lazy(() => import("./assets/pages/productDetail.jsx"));
 const Home = lazy(() => import("./assets/pages/home.jsx"));
 const Profil = lazy(() => import("./assets/pages/profil.jsx"));
 const Quote = lazy(() => import("./assets/pages/quote.jsx"));
 const Privacy = lazy(() => import("./assets/pages/privacy.jsx"));
 const InfoPage = lazy(() => import("./assets/pages/info.jsx"));
+const Blog = lazy(() => import("./assets/pages/blog.jsx"));
+const BlogPost = lazy(() => import("./assets/pages/blogDetail.jsx"));
 
 function NotFound() {
   const { t } = useI18n();
@@ -62,7 +64,8 @@ function App() {
               <Route path="/profil" element={<Profil />} />
               <Route path="/quote" element={<Quote />} />
               <Route path="/privacy" element={<Privacy />} />
-              <Route path="/blog" element={<InfoPage titleKey="info.blog" />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/brands" element={<InfoPage titleKey="info.brands" />} />
               <Route path="/terms" element={<InfoPage titleKey="info.terms" />} />
               <Route path="/refund" element={<InfoPage titleKey="info.refund" />} />

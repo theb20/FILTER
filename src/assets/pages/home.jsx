@@ -4,14 +4,26 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import LineArt from "../components/LineArt.jsx";
 import Todo from "../components/Todo.jsx";
 import SearchBar from "../components/SearchBar.jsx";
+import Reviews from "../components/Reviews.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
 import { CATEGORIES } from "../data/demoProducts.js";
-import { CLAIMS, SITE } from "../config/site.js";
+import { CLAIMS } from "../config/site.js";
 
 const btnPrimary =
   "inline-flex items-center gap-2 rounded-[3px] bg-action px-5 py-2.5 font-bold text-black hover:bg-action-dark transition-colors";
 
-const SECTORS = ["aerospace", "defense", "medical", "energy", "marine", "datacenters", "industry", "transport", "rd"];
+// Les textes viennent de i18n (sector.<key>, sector.<key>.text) ; seule l'image est ici.
+const SECTORS = [
+  { key: "automotive", img: "/img/background/bg_card_1.png" },
+  { key: "defense", img: "/img/background/bg_card_2.png" },
+  { key: "medical", img: "/img/background/bg_card_3.png" },
+  { key: "energy", img: "/img/background/bg_card_4.png" },
+  { key: "marine", img: "/img/background/bg_card_5.png" },
+  { key: "datacenters", img: "/img/background/bg_card_6.png" },
+  { key: "industry", img: "/img/background/bg_card_7.png" },
+  { key: "transport", img: "/img/background/bg_card_8.png" },
+  { key: "rd", img: "/img/background/bg_card_9.png" },
+];
 
 function RoundArrow({ to, label, light = false }) {
   return (
@@ -27,10 +39,17 @@ function RoundArrow({ to, label, light = false }) {
   );
 }
 
-function PhotoCard({ title, subtitle, to }) {
+function PhotoCard({ title, subtitle, to, image }) {
   return (
     <div className="relative flex min-h-[150px] flex-col justify-between overflow-hidden rounded-[4px] bg-gradient-to-br from-navy to-night p-5 text-white md:aspect-[2.5/1]">
-      <LineArt className="pointer-events-none absolute -right-6 -top-4 h-[120%] opacity-20" />
+      {image ? (
+        <>
+          <img src={image} alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-night/85 via-night/55 to-night/20" aria-hidden="true" />
+        </>
+      ) : (
+        <LineArt className="pointer-events-none absolute -right-6 -top-4 h-[120%] opacity-20" />
+      )}
       <div className="relative">
         <h2 className="text-[24px] font-semibold leading-tight">{title}</h2>
         <p className="text-sm text-white/85">{subtitle}</p>
@@ -46,6 +65,28 @@ export default function Home() {
   const { t } = useI18n();
   const carousel = useRef(null);
   const heroVideo = useRef(null);
+
+  const logoLinks = [
+    { to: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeI1ruSYczwnA31XIFE4tFH-5AdZIAEqjsK8sTJX9lMg&s=10", label: t("home.partners.logo") },
+    { to: 'https://tukuz.com/wp-content/uploads/2021/06/pall-corporation-logo-vector.png', label: "Pall" },
+    { to: 'https://www.setem.fr/images/uploads/marques/marque_logo_hydac.png', label: "Hydac" },
+    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQTYW1S67VDC4lkY3LrXF8z7JN6PWUDmm1fuKxUDJBEw&s=10', label: t("home.partners.logo") },
+    { to: 'https://rodavigo.net/datos/logos-marcas-png/internormen.png', label: "Internormen" },
+    { to: 'https://www.pagesjaunes.fr/media/newdam/preset-export-large/ae/02/a4/00/00/dc/27/be/ab/30/5d39ae02a40000dc27beab30/5d39ae02a40000dc27beab31.jpg', label: t("home.partners.logo") },
+    { to: 'https://stauff.fr/assets/b572eb58f6ddc0eae73f907b0462e36b36d50d27/default/images/logo-stauff.svg', label: "Stauff" },
+    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVEgPURZwj4eSWMfT690zMPqvAxT4_rsaIHXaP24RXRQU5bNEm1YGYMYY&s=10', label: t("home.partners.logo") },
+
+    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSScymNOClvXTLH3S-hjf1iq4nnfW-hqPg3j5LfkkoKjnNB0OA1gOjglfnG&s=10', label: t("home.partners.logo") },
+    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Pentair_Schroff_Logo.svg/3840px-Pentair_Schroff_Logo.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail', label: "Pentair" },
+    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/3M_wordmark.svg/1280px-3M_wordmark.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail', label: "3M" },
+    { to: 'https://arnax.ru/wp-content/uploads/2019/08/vokes-air-group-e1567548162567.png', label: "Vokes Air" },
+
+
+    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Atlas-Copco-Logo.svg/1280px-Atlas-Copco-Logo.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail', label: "Atlas Copco" },
+    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Merck_Millipore_Logo.svg/1280px-Merck_Millipore_Logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail', label: "Merck Millipore" },
+    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1etVwoz_nxh071EvRUrTChQRNwBx1Ua7cqiOZb26sA9E3i_Zb068ufPMp&s=10', label: t("home.partners.logo") },
+    { to: 'https://www.autobiz.ie/cms/partrequest/resources/company_logos/UFI_Filters_500x422.png', label: "UFI Filters" },
+  ];
 
   useEffect(() => {
     document.title = t("meta.home");
@@ -81,7 +122,7 @@ export default function Home() {
           <source src="/videos/hero-web.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/80 to-navy/40" aria-hidden="true" />
-        <div className="relative max-w-3xl px-6 py-10 md:min-h-[300px] md:px-12">
+        <div className="pointer-events-none relative max-w-3xl px-6 py-10 md:min-h-[300px] md:px-12 [&_a]:pointer-events-auto [&_button]:pointer-events-auto [&_input]:pointer-events-auto [&_form]:pointer-events-auto [&_[role=search]]:pointer-events-auto">
           <h1 id="hero-title" className="text-[40px] font-bold leading-tight">
             {t("home.hero.title1")} <span className="text-action">{t("home.hero.title2")}</span>
           </h1>
@@ -95,9 +136,9 @@ export default function Home() {
 
       {/* 2. Trois cartes */}
       <section className="mx-2.5 grid gap-2.5 md:grid-cols-3" aria-label={t("home.cards.aria")}>
-        <PhotoCard title={t("home.cards.shipping")} subtitle={t("home.cards.shippingSub")} to="/contact" />
-        <PhotoCard title={t("home.cards.account")} subtitle={t("home.cards.accountSub")} to="/sign" />
-        <PhotoCard title={t("home.cards.chat")} subtitle={t("home.cards.chatSub")} to="/contact" />
+        <PhotoCard title={t("home.cards.shipping")} subtitle={t("home.cards.shippingSub")} to="/contact" image="/img/background/bg_delivery.webp" />
+        <PhotoCard title={t("home.cards.account")} subtitle={t("home.cards.accountSub")} to="/sign" image="https://i.pinimg.com/736x/93/6c/98/936c98197847e337320be3acf233e1e5.jpg" />
+        <PhotoCard title={t("home.cards.chat")} subtitle={t("home.cards.chatSub")} to="/contact" image="https://i.pinimg.com/1200x/b0/ff/d2/b0ffd2e3bc3332239595bdec18e7e9cf.jpg" />
       </section>
 
       {/* 3. Partenaires + catégories */}
@@ -109,14 +150,14 @@ export default function Home() {
           </Link>
         </div>
 
-        <ul className="mx-auto mt-8 grid max-w-5xl grid-cols-3 gap-x-6 gap-y-8 sm:grid-cols-4 lg:grid-cols-7">
-          {Array.from({ length: 14 }, (_, i) => (
+        <ul className="mx-auto mt-8 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8">
+          {logoLinks.map((logo) => (
             <li
-              key={i}
-              className="flex h-14 items-center justify-center rounded-[3px] border border-dashed border-gray-300 text-xs text-gray-400"
+              key={logo.to}
+              className="flex h-28 items-center justify-center "
               title={t("home.partners.logoTitle")}
             >
-              {t("home.partners.logo")}
+              <img src={logo.to} alt={logo.label} loading="lazy" className="max-h-full max-w-full object-contain" />
             </li>
           ))}
         </ul>
@@ -151,11 +192,17 @@ export default function Home() {
           </div>
         </div>
 
-        <ul ref={carousel} className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:-mr-[10vw]">
-          {SECTORS.map((key) => (
+        <ul ref={carousel} className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+          {SECTORS.map(({ key, img }) => (
             <li key={key} className="w-[280px] shrink-0 snap-start overflow-hidden rounded-[4px] bg-white shadow-card">
-              <div className="flex h-40 items-center justify-center bg-gray-100" title={t("home.sectors.photo")}>
-                <LineArt stroke="#cbd5e1" className="h-32" />
+              <div className="h-40 bg-gray-100" title={t("home.sectors.photo")}>
+                <img
+                  src={img}
+                  alt=""
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="p-4">
                 <h3 className="text-[24px] font-semibold leading-tight">{t(`sector.${key}`)}</h3>
@@ -193,18 +240,7 @@ export default function Home() {
       </section>
 
       {/* 6. Avis */}
-      <section className="mx-2.5 px-4 py-12 md:px-10" aria-labelledby="reviews-title">
-        <p className="font-medium text-link">{t("home.reviews.eyebrow")}</p>
-        <h2 id="reviews-title" className="mt-1 text-[37px] font-bold leading-tight">{t("home.reviews.title")}</h2>
-        <p className="mt-3 max-w-xl">{t("home.reviews.text", { name: SITE.name })}</p>
-        {SITE.reviewsUrl ? (
-          <a href={SITE.reviewsUrl} target="_blank" rel="noopener noreferrer" className={`${btnPrimary} mt-6`}>
-            {t("home.reviews.button")} <span aria-hidden="true">→</span>
-          </a>
-        ) : (
-          <p className="mt-6"><Todo>{t("todo.reviewsLink")}</Todo></p>
-        )}
-      </section>
+      <Reviews />
     </div>
   );
 }

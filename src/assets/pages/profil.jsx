@@ -5,9 +5,9 @@ import { useI18n } from "../i18n/i18nContext.js";
 // Données entièrement fictives (démonstration).
 const USER = { name: "John Doe", email: "john.doe@example.com", phone: "+00 000 000 000", address: "—" };
 const ORDERS = [
-  { id: "DEMO-4587", date: "2025-10-15", total: 450, status: "delivered" },
-  { id: "DEMO-4512", date: "2025-10-02", total: 1250, status: "progress" },
-  { id: "DEMO-4468", date: "2025-09-22", total: 750, status: "cancelled" },
+  { id: "DEMO-4587", date: "2025-10-15", total: 295000, status: "delivered" },
+  { id: "DEMO-4512", date: "2025-10-02", total: 820000, status: "progress" },
+  { id: "DEMO-4468", date: "2025-09-22", total: 492500, status: "cancelled" },
 ];
 
 export default function Profile() {

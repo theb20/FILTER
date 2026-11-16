@@ -3,6 +3,7 @@ import { I18nContext } from "./i18nContext.js";
 import en from "./locales/en.js";
 import fr from "./locales/fr.js";
 import es from "./locales/es.js";
+import { CURRENCIES, DEFAULT_CURRENCY, formatMoney, isCurrencyCode } from "../config/currency.js";
 
 export const LANGUAGES = [
   { code: "en", label: "English", locale: "en-US" },
@@ -12,6 +13,7 @@ export const LANGUAGES = [
 
 const DICTIONARIES = { en, fr, es };
 const STORAGE_KEY = "ff_lang";
+const CURRENCY_KEY = "ff_currency";
 
 function initialLang() {
   try {
@@ -24,8 +26,19 @@ function initialLang() {
   return DICTIONARIES[nav] ? nav : "en";
 }
 
+function initialCurrency() {
+  try {
+    const saved = localStorage.getItem(CURRENCY_KEY);
+    if (saved && isCurrencyCode(saved)) return saved;
+  } catch {
+    // stockage indisponible : devise par défaut (XOF)
+  }
+  return DEFAULT_CURRENCY;
+}
+
 export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(initialLang);
+  const [currency, setCurrencyState] = useState(initialCurrency);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -36,6 +49,16 @@ export function I18nProvider({ children }) {
     setLangState(code);
     try {
       localStorage.setItem(STORAGE_KEY, code);
+    } catch {
+      // préférence non mémorisée, sans conséquence
+    }
+  }, []);
+
+  const setCurrency = useCallback((code) => {
+    if (!isCurrencyCode(code)) return;
+    setCurrencyState(code);
+    try {
+      localStorage.setItem(CURRENCY_KEY, code);
     } catch {
       // préférence non mémorisée, sans conséquence
     }
@@ -53,11 +76,11 @@ export function I18nProvider({ children }) {
       return text;
     };
 
-    const formatPrice = (n) =>
-      new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(n);
+    // Les montants du site sont en XOF ; formatPrice les convertit dans la devise choisie.
+    const formatPrice = (amountXof) => formatMoney(amountXof, currency, locale);
 
-    return { lang, setLang, t, locale, formatPrice };
-  }, [lang, setLang]);
+    return { lang, setLang, t, locale, formatPrice, currency, setCurrency, currencies: Object.keys(CURRENCIES) };
+  }, [lang, setLang, currency, setCurrency]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

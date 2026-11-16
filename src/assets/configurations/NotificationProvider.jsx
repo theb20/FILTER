@@ -18,9 +18,10 @@ export function NotificationProvider({ children }) {
   }, []);
 
   const notify = useCallback(
-    (message, type = "info", duration = 5000) => {
+    // action (optionnelle) : { label, onClick } — ex. bouton « Annuler »
+    (message, type = "info", duration = 5000, action = null) => {
       const id = nextId.current++;
-      setItems((prev) => [...prev, { id, message, type }]);
+      setItems((prev) => [...prev, { id, message, type, action }]);
       if (duration > 0) setTimeout(() => dismiss(id), duration);
       return id;
     },
@@ -42,6 +43,15 @@ export function NotificationProvider({ children }) {
             className={`flex items-start gap-3 rounded-xl px-4 py-3 text-sm shadow-lg ${STYLES[n.type] ?? STYLES.info}`}
           >
             <p className="flex-1">{n.message}</p>
+            {n.action && (
+              <button
+                type="button"
+                onClick={() => { n.action.onClick(); dismiss(n.id); }}
+                className="shrink-0 font-bold underline underline-offset-2 hover:no-underline"
+              >
+                {n.action.label}
+              </button>
+            )}
             <button
               type="button"
               aria-label="Fermer la notification"

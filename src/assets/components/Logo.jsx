@@ -9,7 +9,7 @@ export default function Logo({ to = "/", className = "" }) {
     >
       <img src="/img/logo/favicon.svg" alt="Logo" className="h-9 w-9" />
       <div className="flex flex-col leading-none">
-          <span className="text-white">HOLDING</span>
+          <span className="text-brand-action">HOLDING</span>
           <span className=" text-[0.8rem] text-brand-action">Ledan & Associe</span>
       </div>
     </Link>

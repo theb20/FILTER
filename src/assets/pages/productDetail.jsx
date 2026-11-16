@@ -1,103 +1,81 @@
-import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { DEMO_PRODUCTS } from "../data/demoProducts.js";
-import { useNotify } from "../configurations/notificationContext.js";
+import { CART_PRODUCT_MOCKS } from "../data/cartMocks.js";
+import { DEMO_REVIEWS } from "../data/productMocks.js";
+import { ratingStats, relatedProducts } from "../lib/productUtils.js";
+import { usePageMeta } from "../lib/usePageMeta.js";
 import { useI18n } from "../i18n/i18nContext.js";
-import LineArt from "../components/LineArt.jsx";
-import Todo from "../components/Todo.jsx";
+import JsonLd from "../components/JsonLd.jsx";
+import Stars from "../components/Stars.jsx";
+import BuyBox from "../components/product/BuyBox.jsx";
+import Gallery from "../components/product/Gallery.jsx";
+import ProductDetails from "../components/product/ProductDetails.jsx";
+import RelatedProducts from "../components/product/RelatedProducts.jsx";
+import ReviewsPanel from "../components/product/ReviewsPanel.jsx";
+import FaqAccordion from "../components/sections/FaqAccordion.jsx";
+import ReassuranceStrip from "../components/sections/ReassuranceStrip.jsx";
 
-export default function ProductPage() {
-  const notify = useNotify();
-  const { t, formatPrice } = useI18n();
+// Fiche produit détaillée : galerie, prix et achat, réassurance, détails / avis / FAQ, produits associés.
+export default function ProductDetail() {
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const product = DEMO_PRODUCTS.find((p) => String(p.id) === params.get("id")) ?? DEMO_PRODUCTS[0];
+  const mock = CART_PRODUCT_MOCKS[product.id];
   const name = t(`prod.${product.id}`);
-  const [qty, setQty] = useState(1);
+  const stats = ratingStats(DEMO_REVIEWS);
 
-  useEffect(() => {
-    document.title = t("meta.product", { name });
-  }, [t, name]);
+  usePageMeta(t("meta.product", { name }), t("pd.meta.desc", { name, ref: product.reference, brand: product.brand }));
 
-  const specs = [
-    [t("prod.reference"), product.reference],
-    [t("prod.spec.brand"), product.brand],
-    [t("prod.spec.category"), t(`cat.${product.category}`)],
-    [t("prod.spec.dimensions"), null],
-    [t("prod.spec.rating"), null],
-    [t("prod.spec.materials"), null],
+  const faq = [1, 2, 3, 4].map((n) => ({ q: t(`pd.faq.q${n}`), a: t(`pd.faq.a${n}`) }));
+  const crumbs = [
+    [t("nav.home"), "/"],
+    [t("nav.products"), "/category"],
+    [t(`cat.${product.category}`), `/category?cat=${product.category}`],
   ];
 
   return (
     <div className="mx-2.5 mt-2.5 space-y-2.5">
+      <JsonLd data={{
+        "@context": "https://schema.org", "@type": "Product",
+        name, sku: product.reference, brand: { "@type": "Brand", name: product.brand },
+      }} />
+
       <nav aria-label={t("prod.breadcrumb")} className="px-1 text-sm text-gray-600">
-        <Link to="/" className="text-link hover:underline">{t("nav.home")}</Link> /{" "}
-        <Link to="/category" className="text-link hover:underline">{t("nav.products")}</Link> / {name}
+        <ol className="flex flex-wrap items-center gap-x-1.5">
+          {crumbs.map(([label, to]) => (
+            <li key={to} className="flex items-center gap-1.5"><Link to={to} className="text-link hover:underline">{label}</Link><span aria-hidden="true">/</span></li>
+          ))}
+          <li aria-current="page" className="text-gray-800">{name}</li>
+        </ol>
       </nav>
 
-      <section className="grid gap-6 rounded-[4px] bg-white p-6 shadow-card md:grid-cols-2">
-        <div className="flex aspect-square items-center justify-center bg-gray-50" title={t("prod.photo")}>
-          <LineArt stroke="#9ca3af" className="h-4/5" />
-        </div>
-
+      <section className="grid gap-6 rounded-[8px] bg-white p-5 shadow-card md:grid-cols-2 lg:grid-cols-[1fr_1fr] lg:p-6">
+        <Gallery name={name} />
         <div>
-          <h1 className="text-[40px] font-bold leading-tight">{name}</h1>
-          <p className="mt-2">{t("prod.reference")}: <strong>{product.reference}</strong> · {product.brand}</p>
-
-          <div className="mt-4">
-            <h2 className="text-[24px] font-semibold">{t("prod.crossRefs")}</h2>
-            {product.crossRefs.length ? (
-              <ul className="mt-1 flex flex-wrap gap-2">
-                {product.crossRefs.map((r) => (
-                  <li key={r} className="rounded-[3px] bg-gray-100 px-2 py-1 text-sm">{r}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-1 text-sm text-gray-600">{t("prod.noCross")}</p>
-            )}
-          </div>
-
-          <p className="mt-6 text-[37px] font-bold">{formatPrice(product.price)}</p>
-          <p className={`font-medium ${product.inStock ? "text-green-700" : "text-orange-700"}`}>
-            {product.inStock ? t("stock.in") : t("stock.back")}
+          <h1 className="text-[32px] font-bold leading-tight sm:text-[36px]">{name}</h1>
+          <p className="mt-1 text-gray-700">{t("prod.reference")} : <strong>{product.reference}</strong> · {product.brand}</p>
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <Stars value={stats.average} />
+            <a href="#reviews" className="text-link hover:underline">{t("pd.reviews.count", { n: stats.count })}</a>
+            <span className="text-gray-500">({t("pd.reviews.demoShort")})</span>
           </p>
-
-          <div className="mt-5 flex flex-wrap items-end gap-4">
-            <div>
-              <label htmlFor="qty" className="block text-sm font-medium">{t("prod.quantity")}</label>
-              <input
-                id="qty"
-                type="number"
-                min="1"
-                value={qty}
-                onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-                className="mt-1 w-24 rounded-[3px] border border-gray-300 px-3 py-2"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => notify(t("demo.notice"), "demo")}
-              className="inline-flex items-center gap-2 rounded-[3px] bg-action px-6 py-2.5 font-bold text-black hover:bg-action-dark"
-            >
-              {t("list.addToCart")} <span aria-hidden="true">→</span>
-            </button>
-          </div>
-          <p className="mt-3 text-sm text-amber-800">{t("prod.demoNote")} {t("demo.notice")}</p>
+          <div className="mt-4"><BuyBox product={product} mock={mock} name={name} /></div>
+          <p className="mt-4 text-sm text-amber-800">{t("prod.demoNote")}</p>
         </div>
       </section>
 
-      <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="specs-title">
-        <h2 id="specs-title" className="text-[37px] font-bold leading-tight">{t("prod.specs")}</h2>
-        <table className="mt-4 w-full text-left">
-          <tbody>
-            {specs.map(([label, value]) => (
-              <tr key={label} className="border-t border-gray-200">
-                <th scope="row" className="w-1/3 py-2.5 pr-4 font-medium">{label}</th>
-                <td className="py-2.5">{value ?? <Todo>{t("todo.toComplete")}</Todo>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <ReassuranceStrip />
+
+      <div className="grid items-start gap-2.5 lg:grid-cols-3">
+        <ProductDetails product={product} mock={mock} name={name} />
+        <ReviewsPanel />
+        <section aria-labelledby="pd-faq-title" className="rounded-[8px] bg-white p-5 shadow-card">
+          <h2 id="pd-faq-title" className="text-[20px] font-bold">{t("pd.faq")}</h2>
+          <div className="mt-2"><FaqAccordion items={faq} /></div>
+        </section>
+      </div>
+
+      <RelatedProducts products={relatedProducts(product, DEMO_PRODUCTS, 6)} />
     </div>
   );
 }
