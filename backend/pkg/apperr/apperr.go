@@ -32,6 +32,8 @@ const (
 	CodeCSRFFailed          = "CSRF_FAILED"
 	CodeInternal            = "INTERNAL"
 	CodeNotImplemented      = "NOT_IMPLEMENTED"
+	CodeSelfActionForbidden = "SELF_ACTION_FORBIDDEN"
+	CodeLastSuperAdmin      = "LAST_SUPER_ADMIN"
 )
 
 // Field décrit une erreur de champ (pointeur JSON).

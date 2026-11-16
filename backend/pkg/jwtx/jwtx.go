@@ -170,3 +170,13 @@ func (v *Verifier) Verify(token string, now time.Time) (*Claims, error) {
 	}
 	return &claims, nil
 }
+
+// HasPermission : le joker `*` donne toutes les permissions ; sinon la permission doit figurer dans le jeton.
+func (c *Claims) HasPermission(required string) bool {
+	for _, p := range c.Perms {
+		if p == "*" || p == required {
+			return true
+		}
+	}
+	return false
+}
