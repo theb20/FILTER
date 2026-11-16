@@ -1,0 +1,37 @@
+name: backend
+
+# Génère le code depuis le contrat, vérifie le format, lance vet + tests (course aux données incluse) et compile.
+# NB : ce workflow n'a pas encore tourné sur GitHub ; les mêmes commandes ont été exécutées en local.
+on:
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+
+jobs:
+  go:
+    name: generate · fmt · vet · test · build
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26" }
+      - uses: bufbuild/buf-setup-action@v1
+        with: { github_token: "${{ github.token }}" }
+      - name: Outils de génération (versions pinées)
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
+          go install github.com/ogen-go/ogen/cmd/ogen@v1.25.0
+      - name: Génération depuis le contrat
+        run: make generate
+      - name: gofmt
+        run: make fmt-check
+      - name: vet + tests (-race)
+        run: |
+          for m in pkg services/identity services/gateway; do (cd $m && go vet ./... && go test -race -count=1 ./...); done
+      - name: build
+        run: |
+          for m in services/identity services/gateway; do (cd $m && go build ./...); done

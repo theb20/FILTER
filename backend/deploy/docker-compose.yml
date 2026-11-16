@@ -1,0 +1,55 @@
+# Développement local : réseau Docker PRIVÉ, aucun port publié sauf le gateway (mTLS entre services plus tard).
+#
+#   make generate && docker compose -f deploy/docker-compose.yml up --build
+#   docker compose -f deploy/docker-compose.yml --profile infra up      # + PostgreSQL, Redis, NATS
+#
+# NON TESTÉ : Docker n'est pas installé sur la machine de développement. Les binaires, eux, ont été exécutés en local
+# (gateway ↔ identity par gRPC, voir le test de bout en bout décrit dans docs/).
+name: filterfinder
+
+services:
+  gateway:
+    build: { context: .., dockerfile: deploy/Dockerfile, args: { SERVICE: gateway } }
+    environment:
+      ENV: dev
+      GATEWAY_ADDR: ":8080"
+      IDENTITY_ADDR: identity:9001
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on: [identity]
+    networks: [internal]
+
+  identity:
+    build: { context: .., dockerfile: deploy/Dockerfile, args: { SERVICE: identity } }
+    environment:
+      ENV: dev # clés éphémères et stockage en mémoire : développement UNIQUEMENT (la production exige JWT_KEY_*_FILE)
+      IDENTITY_GRPC_ADDR: ":9001"
+    expose: ["9001"]
+    networks: [internal]
+
+  # ── Infrastructure prête mais PAS encore branchée (les adaptateurs arrivent avec les services) ──
+  postgres:
+    image: postgres:17-alpine
+    profiles: [infra]
+    environment:
+      POSTGRES_USER: filterfinder
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans deploy/.env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    profiles: [infra]
+    networks: [internal]
+
+  nats:
+    image: nats:2-alpine
+    profiles: [infra]
+    command: ["-js"] # JetStream
+    networks: [internal]
+
+networks:
+  internal: { driver: bridge, internal: false }
+
+volumes:
+  pgdata: {}
