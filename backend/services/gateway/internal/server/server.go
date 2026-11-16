@@ -8,6 +8,7 @@ import (
 
 	"github.com/theb20/FILTER/backend/pkg/apperr"
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
+	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/services/gateway/internal/api"
 )
 
@@ -18,6 +19,7 @@ type Server struct {
 	limiter Limiter
 	now     func() time.Time
 	ready   func(context.Context) error
+	probes  []HealthProbe
 }
 
 // Deps regroupe les dépendances (ports) du gateway.
@@ -25,6 +27,8 @@ type Deps struct {
 	Config   Config
 	Log      *slog.Logger
 	Identity identityv1.IdentityServiceClient
+	Sourcing sourcingv1.SourcingServiceClient // facultatif
+	Probes   []HealthProbe                    // sondes de « Santé des services »
 	Keys     *KeyCache
 	Limiter  Limiter
 	Ready    func(context.Context) error
@@ -33,7 +37,7 @@ type Deps struct {
 
 // New assemble le gateway : serveur ogen GÉNÉRÉ + middlewares.
 func New(d Deps) (http.Handler, error) {
-	s := &Server{cfg: d.Config, log: d.Log, limiter: d.Limiter, now: d.Now, ready: d.Ready}
+	s := &Server{cfg: d.Config, log: d.Log, limiter: d.Limiter, now: d.Now, ready: d.Ready, probes: d.Probes}
 	if s.now == nil {
 		s.now = time.Now
 	}
@@ -43,7 +47,7 @@ func New(d Deps) (http.Handler, error) {
 	if s.ready == nil {
 		s.ready = func(context.Context) error { return nil }
 	}
-	h := &handler{srv: s, id: d.Identity}
+	h := &handler{srv: s, id: d.Identity, src: d.Sourcing}
 	gen, err := api.NewServer(h, &security{keys: d.Keys},
 		api.WithPathPrefix("/v1"),
 		api.WithErrorHandler(s.errorHandler),

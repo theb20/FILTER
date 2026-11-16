@@ -22,13 +22,18 @@ type Server struct {
 	Svc *application.Service
 }
 
-func actorID(ctx context.Context) string {
+func meta(ctx context.Context, key string) string {
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if v := md.Get("x-actor-id"); len(v) > 0 {
+		if v := md.Get(key); len(v) > 0 {
 			return v[0]
 		}
 	}
 	return ""
+}
+
+// actor : l'acteur transmis par le gateway (identifiant tiré d'un jeton déjà vérifié).
+func actor(ctx context.Context) application.Actor {
+	return application.Actor{ID: meta(ctx, "x-actor-id"), IP: meta(ctx, "x-client-ip"), TraceID: meta(ctx, "x-request-id")}
 }
 
 func kindToProto(k string) sourcingv1.SourceKind {
@@ -102,7 +107,7 @@ func (s *Server) GetSource(ctx context.Context, r *sourcingv1.GetSourceRequest) 
 }
 
 func (s *Server) CreateSource(ctx context.Context, r *sourcingv1.CreateSourceRequest) (*sourcingv1.CreateSourceResponse, error) {
-	x, err := s.Svc.CreateSource(ctx, srcFromProto(r.GetSource()))
+	x, err := s.Svc.CreateSource(ctx, actor(ctx), srcFromProto(r.GetSource()))
 	if err != nil {
 		return nil, apperr.ToGRPC(err)
 	}
@@ -110,7 +115,7 @@ func (s *Server) CreateSource(ctx context.Context, r *sourcingv1.CreateSourceReq
 }
 
 func (s *Server) UpdateSource(ctx context.Context, r *sourcingv1.UpdateSourceRequest) (*sourcingv1.UpdateSourceResponse, error) {
-	x, err := s.Svc.UpdateSource(ctx, r.GetSource().GetId(), srcFromProto(r.GetSource()))
+	x, err := s.Svc.UpdateSource(ctx, actor(ctx), r.GetSource().GetId(), srcFromProto(r.GetSource()))
 	if err != nil {
 		return nil, apperr.ToGRPC(err)
 	}
@@ -118,7 +123,7 @@ func (s *Server) UpdateSource(ctx context.Context, r *sourcingv1.UpdateSourceReq
 }
 
 func (s *Server) EnableSource(ctx context.Context, r *sourcingv1.EnableSourceRequest) (*sourcingv1.EnableSourceResponse, error) {
-	x, err := s.Svc.EnableSource(ctx, r.GetId())
+	x, err := s.Svc.EnableSource(ctx, actor(ctx), r.GetId())
 	if err != nil {
 		return nil, apperr.ToGRPC(err)
 	}
@@ -126,7 +131,7 @@ func (s *Server) EnableSource(ctx context.Context, r *sourcingv1.EnableSourceReq
 }
 
 func (s *Server) DisableSource(ctx context.Context, r *sourcingv1.DisableSourceRequest) (*sourcingv1.DisableSourceResponse, error) {
-	x, err := s.Svc.DisableSource(ctx, r.GetId())
+	x, err := s.Svc.DisableSource(ctx, actor(ctx), r.GetId())
 	if err != nil {
 		return nil, apperr.ToGRPC(err)
 	}
@@ -134,7 +139,7 @@ func (s *Server) DisableSource(ctx context.Context, r *sourcingv1.DisableSourceR
 }
 
 func (s *Server) PutRawStorage(ctx context.Context, r *sourcingv1.PutRawStorageRequest) (*sourcingv1.PutRawStorageResponse, error) {
-	x, err := s.Svc.SetRawStorage(ctx, r.GetId(), r.GetAllowed())
+	x, err := s.Svc.SetRawStorage(ctx, actor(ctx), r.GetId(), r.GetAllowed())
 	if err != nil {
 		return nil, apperr.ToGRPC(err)
 	}
@@ -142,7 +147,7 @@ func (s *Server) PutRawStorage(ctx context.Context, r *sourcingv1.PutRawStorageR
 }
 
 func (s *Server) TestSource(ctx context.Context, r *sourcingv1.TestSourceRequest) (*sourcingv1.TestSourceResponse, error) {
-	res, err := s.Svc.TestSource(ctx, actorID(ctx), r.GetId(), r.GetQuery(), r.GetLanguage(), r.GetCountry())
+	res, err := s.Svc.TestSource(ctx, actor(ctx), r.GetId(), r.GetQuery(), r.GetLanguage(), r.GetCountry())
 	if err != nil {
 		return nil, apperr.ToGRPC(err)
 	}
@@ -204,7 +209,7 @@ func (s *Server) GetSourceQuota(ctx context.Context, r *sourcingv1.GetSourceQuot
 
 func (s *Server) PutSourceQuota(ctx context.Context, r *sourcingv1.PutSourceQuotaRequest) (*sourcingv1.PutSourceQuotaResponse, error) {
 	in := r.GetQuota()
-	q, err := s.Svc.PutQuota(ctx, domain.Quota{SourceID: in.GetSourceId(), MonthlyBudgetMicros: in.GetMonthlyBudgetMicros(), DailyCapMicros: in.GetDailyCapMicros(), AlertThresholdPct: int(in.GetAlertThresholdPct()), FallbackSourceID: in.FallbackSourceId})
+	q, err := s.Svc.PutQuota(ctx, actor(ctx), domain.Quota{SourceID: in.GetSourceId(), MonthlyBudgetMicros: in.GetMonthlyBudgetMicros(), DailyCapMicros: in.GetDailyCapMicros(), AlertThresholdPct: int(in.GetAlertThresholdPct()), FallbackSourceID: in.FallbackSourceId})
 	if err != nil {
 		return nil, apperr.ToGRPC(err)
 	}

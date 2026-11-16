@@ -21,6 +21,7 @@ type Event struct {
 	ActorID     string
 	ActorType   string
 	Locale      string
+	TraceID     string
 	Payload     proto.Message
 }
 
@@ -71,7 +72,7 @@ func ToEnvelope(e Event, id string) (*eventsv1.Envelope, error) {
 	}
 	return &eventsv1.Envelope{
 		EventId: id, Type: e.Type, SchemaVersion: SchemaVersion, OccurredAt: timestamppb.New(time.Now().UTC()),
-		AggregateId: e.AggregateID, ActorId: e.ActorID, ActorType: e.ActorType, Locale: e.Locale, Payload: payload,
+		AggregateId: e.AggregateID, TraceId: e.TraceID, ActorId: e.ActorID, ActorType: e.ActorType, Locale: e.Locale, Payload: payload,
 	}, nil
 }
 

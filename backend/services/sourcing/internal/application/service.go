@@ -10,8 +10,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/theb20/FILTER/backend/pkg/apperr"
+	"github.com/theb20/FILTER/backend/pkg/events"
+	eventsv1 "github.com/theb20/FILTER/backend/pkg/gen/events/v1"
 	"github.com/theb20/FILTER/backend/services/sourcing/internal/domain"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Paramètres techniques du service (valeurs proposées du contrat).
@@ -27,6 +30,7 @@ const (
 type Service struct {
 	Store      Store
 	Connectors ConnectorFactory
+	Events     events.Publisher // audit : événements `audit.recorded.v1`, écrits dans la MÊME transaction que l'action (outbox)
 	Now        func() time.Time
 	NewID      func() string
 
@@ -43,12 +47,13 @@ type breaker struct {
 type Config struct {
 	Store      Store
 	Connectors ConnectorFactory
+	Events     events.Publisher
 	Now        func() time.Time
 	NewID      func() string
 }
 
 func New(c Config) *Service {
-	s := &Service{Store: c.Store, Connectors: c.Connectors, Now: c.Now, NewID: c.NewID, breakers: map[string]*breaker{}}
+	s := &Service{Store: c.Store, Connectors: c.Connectors, Events: c.Events, Now: c.Now, NewID: c.NewID, breakers: map[string]*breaker{}}
 	if s.Now == nil {
 		s.Now = time.Now
 	}
@@ -65,7 +70,7 @@ func conflict(msg string) error { return apperr.New(codes.AlreadyExists, apperr.
 
 // ── sources ─────────────────────────────────────────────────────────────────
 
-func (s *Service) CreateSource(ctx context.Context, in domain.Source) (*domain.Source, error) {
+func (s *Service) CreateSource(ctx context.Context, a Actor, in domain.Source) (*domain.Source, error) {
 	in.ID, in.CreatedAt = s.NewID(), s.Now()
 	in.Enabled = false // une source est créée DÉSACTIVÉE : on la teste, puis on l'active
 	in.AllowsRawStorage, in.TermsCheckedAt = false, nil
@@ -75,15 +80,21 @@ func (s *Service) CreateSource(ctx context.Context, in domain.Source) (*domain.S
 	if _, err := s.Connectors.For(&in); err != nil {
 		return nil, invalid("/baseUrl", "aucun connecteur disponible pour cette adresse")
 	}
-	if err := s.Store.CreateSource(ctx, &in); errors.Is(err, ErrNameTaken) {
-		return nil, conflict("une source porte déjà ce nom")
-	} else if err != nil {
-		return nil, apperr.Internal(err)
+	err := s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Store.CreateSource(ctx, &in); errors.Is(err, ErrNameTaken) {
+			return conflict("une source porte déjà ce nom")
+		} else if err != nil {
+			return apperr.Internal(err)
+		}
+		return s.audit(ctx, a, "source.create", "source", in.ID, nil, sourceSnapshot(&in))
+	})
+	if err != nil {
+		return nil, err
 	}
 	return &in, nil
 }
 
-func (s *Service) UpdateSource(ctx context.Context, id string, in domain.Source) (*domain.Source, error) {
+func (s *Service) UpdateSource(ctx context.Context, a Actor, id string, in domain.Source) (*domain.Source, error) {
 	cur, err := s.GetSource(ctx, id)
 	if err != nil {
 		return nil, err
@@ -101,10 +112,16 @@ func (s *Service) UpdateSource(ctx context.Context, id string, in domain.Source)
 	if _, err := s.Connectors.For(&in); err != nil {
 		return nil, invalid("/baseUrl", "aucun connecteur disponible pour cette adresse")
 	}
-	if err := s.Store.UpdateSource(ctx, &in); errors.Is(err, ErrNameTaken) {
-		return nil, conflict("une source porte déjà ce nom")
-	} else if err != nil {
-		return nil, apperr.Internal(err)
+	err = s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Store.UpdateSource(ctx, &in); errors.Is(err, ErrNameTaken) {
+			return conflict("une source porte déjà ce nom")
+		} else if err != nil {
+			return apperr.Internal(err)
+		}
+		return s.audit(ctx, a, "source.update", "source", id, sourceSnapshot(cur), sourceSnapshot(&in))
+	})
+	if err != nil {
+		return nil, err
 	}
 	return &in, nil
 }
@@ -139,7 +156,7 @@ func (s *Service) ListSources(ctx context.Context, query string, page, size int)
 }
 
 // EnableSource : activation refusée tant qu'aucun budget n'est défini (une source sans plafond ne doit jamais être appelée).
-func (s *Service) EnableSource(ctx context.Context, id string) (*domain.Source, error) {
+func (s *Service) EnableSource(ctx context.Context, a Actor, id string) (*domain.Source, error) {
 	src, err := s.GetSource(ctx, id)
 	if err != nil {
 		return nil, err
@@ -148,33 +165,48 @@ func (s *Service) EnableSource(ctx context.Context, id string) (*domain.Source, 
 	if err != nil || q.MonthlyBudgetMicros <= 0 || q.DailyCapMicros <= 0 {
 		return nil, conflict("définissez d'abord le budget mensuel et le plafond journalier de cette source")
 	}
-	if err := s.Store.SetEnabled(ctx, id, true); err != nil {
-		return nil, apperr.Internal(err)
+	if err := s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Store.SetEnabled(ctx, id, true); err != nil {
+			return apperr.Internal(err)
+		}
+		return s.audit(ctx, a, "source.enable", "source", id, map[string]any{"enabled": false}, map[string]any{"enabled": true})
+	}); err != nil {
+		return nil, err
 	}
 	src.Enabled = true
 	return src, nil
 }
 
-func (s *Service) DisableSource(ctx context.Context, id string) (*domain.Source, error) {
+func (s *Service) DisableSource(ctx context.Context, a Actor, id string) (*domain.Source, error) {
 	src, err := s.GetSource(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.Store.SetEnabled(ctx, id, false); err != nil {
-		return nil, apperr.Internal(err)
+	if err := s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Store.SetEnabled(ctx, id, false); err != nil {
+			return apperr.Internal(err)
+		}
+		return s.audit(ctx, a, "source.disable", "source", id, map[string]any{"enabled": true}, map[string]any{"enabled": false})
+	}); err != nil {
+		return nil, err
 	}
 	src.Enabled = false
 	return src, nil
 }
 
 // SetRawStorage : à n'autoriser qu'après vérification des conditions d'usage ; refusé pour une source sans date de vérification.
-func (s *Service) SetRawStorage(ctx context.Context, id string, allowed bool) (*domain.Source, error) {
+func (s *Service) SetRawStorage(ctx context.Context, a Actor, id string, allowed bool) (*domain.Source, error) {
 	src, err := s.GetSource(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.Store.SetRawStorage(ctx, id, allowed, s.Now()); err != nil {
-		return nil, apperr.Internal(err)
+	if err := s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Store.SetRawStorage(ctx, id, allowed, s.Now()); err != nil {
+			return apperr.Internal(err)
+		}
+		return s.audit(ctx, a, "source.raw_storage", "source", id, map[string]any{"allowsRawStorage": src.AllowsRawStorage}, map[string]any{"allowsRawStorage": allowed})
+	}); err != nil {
+		return nil, err
 	}
 	src.AllowsRawStorage = allowed
 	return s.GetSource(ctx, id)
@@ -194,7 +226,7 @@ func (s *Service) GetQuota(ctx context.Context, id string) (*domain.Quota, error
 }
 
 // PutQuota remplace le budget. Relever le budget lève la suspension automatique en cours. La bascule est limitée à un saut.
-func (s *Service) PutQuota(ctx context.Context, in domain.Quota) (*domain.Quota, error) {
+func (s *Service) PutQuota(ctx context.Context, a Actor, in domain.Quota) (*domain.Quota, error) {
 	src, err := s.GetSource(ctx, in.SourceID)
 	if err != nil {
 		return nil, err
@@ -208,13 +240,26 @@ func (s *Service) PutQuota(ctx context.Context, in domain.Quota) (*domain.Quota,
 			return nil, invalid("/fallbackSourceId", "la source de secours n'existe pas")
 		}
 	}
-	if err := s.Store.PutQuota(ctx, &in); errors.Is(err, ErrFallbackChain) {
-		return nil, invalid("/fallbackSourceId", "la bascule est limitée à un seul saut : le secours ne peut pas avoir de secours, ni être lui-même un secours")
-	} else if err != nil {
-		return nil, apperr.Internal(err)
-	}
-	if src.SuspendedUntil != nil { // le budget a pu être relevé : on relève la suspension, l'appel suivant la rétablira si besoin
-		_ = s.Store.SetSuspendedUntil(ctx, src.ID, nil)
+	before, _ := s.Store.QuotaByID(ctx, src.ID, s.Now())
+	err = s.tx(ctx, func(ctx context.Context) error {
+		if err := s.Store.PutQuota(ctx, &in); errors.Is(err, ErrFallbackChain) {
+			return invalid("/fallbackSourceId", "la bascule est limitée à un seul saut : le secours ne peut pas avoir de secours, ni être lui-même un secours")
+		} else if err != nil {
+			return apperr.Internal(err)
+		}
+		if src.SuspendedUntil != nil { // le budget a pu être relevé : on relève la suspension, l'appel suivant la rétablira si besoin
+			if err := s.Store.SetSuspendedUntil(ctx, src.ID, nil); err != nil {
+				return apperr.Internal(err)
+			}
+		}
+		var b map[string]any
+		if before != nil {
+			b = quotaSnapshot(before)
+		}
+		return s.audit(ctx, a, "source.quota_update", "source", src.ID, b, quotaSnapshot(&in))
+	})
+	if err != nil {
+		return nil, err
 	}
 	return s.GetQuota(ctx, in.SourceID)
 }
@@ -301,7 +346,14 @@ func (s *Service) callSource(ctx context.Context, src *domain.Source, in CallInp
 			if q.MonthSpent+q.MonthReserved+src.CostPerCallMicros > q.MonthlyBudgetMicros {
 				until = domain.NextMonth(now)
 			}
-			_ = s.Store.SetSuspendedUntil(ctx, src.ID, &until)
+			if !src.Suspended(now) { // une seule trace par suspension
+				_ = s.tx(context.WithoutCancel(ctx), func(ctx context.Context) error {
+					if err := s.Store.SetSuspendedUntil(ctx, src.ID, &until); err != nil {
+						return err
+					}
+					return s.audit(ctx, Actor{}, "source.suspend", "source", src.ID, nil, map[string]any{"reason": "budget_exhausted", "until": until.Format(time.RFC3339)})
+				})
+			}
 			out.Status = domain.CallBudgetExhausted
 			fallback()
 			return out, nil
@@ -414,11 +466,11 @@ type TestResult struct {
 }
 
 // TestSource consomme un appel RÉEL (réservé, compté, journalisé) ; 10 tests par heure et par membre.
-func (s *Service) TestSource(ctx context.Context, actorID, sourceID, query, language, country string) (*TestResult, error) {
+func (s *Service) TestSource(ctx context.Context, a Actor, sourceID, query, language, country string) (*TestResult, error) {
 	if strings.TrimSpace(query) == "" {
 		return nil, invalid("/query", "la requête de test est obligatoire")
 	}
-	n, err := s.Store.CountTests(ctx, actorID, s.Now().Add(-time.Hour))
+	n, err := s.Store.CountTests(ctx, a.ID, s.Now().Add(-time.Hour))
 	if err != nil {
 		return nil, apperr.Internal(err)
 	}
@@ -429,7 +481,7 @@ func (s *Service) TestSource(ctx context.Context, actorID, sourceID, query, lang
 	if err != nil {
 		return nil, err
 	}
-	if err := s.Store.RecordTest(ctx, actorID, s.Now()); err != nil {
+	if err := s.Store.RecordTest(ctx, a.ID, s.Now()); err != nil {
 		return nil, apperr.Internal(err)
 	}
 	// un test n'exige pas que la source soit activée : on l'active virtuellement pour l'appel (on teste AVANT d'activer)
@@ -439,6 +491,11 @@ func (s *Service) TestSource(ctx context.Context, actorID, sourceID, query, lang
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = s.tx(context.WithoutCancel(ctx), func(ctx context.Context) error {
+			return s.audit(ctx, a, "source.test", "source", sourceID, nil, map[string]any{"status": out.Status, "costMicros": out.CostMicros, "currency": out.Currency})
+		})
+	}()
 	res := &TestResult{OK: out.Status == domain.CallOK, Duration: out.Duration, ResultCount: len(out.Hits), CostMicros: out.CostMicros, Currency: out.Currency, ErrorKind: out.ErrorKind}
 	if !res.OK && res.ErrorKind == "" {
 		res.ErrorKind = out.Status
@@ -540,4 +597,62 @@ func (s *Service) RunMaintenance(ctx context.Context, log func(msg string, kv ..
 			}
 		}
 	}
+}
+
+// ── audit ───────────────────────────────────────────────────────────────────
+
+// Actor identifie qui agit (transmis par le gateway). Vide = action du système.
+type Actor struct{ ID, IP, TraceID string }
+
+// audit publie `audit.recorded.v1` dans la transaction en cours ; identity l'inscrit dans son journal (append-only).
+func (s *Service) audit(ctx context.Context, a Actor, action, entity, entityID string, before, after map[string]any) error {
+	if s.Events == nil {
+		return nil
+	}
+	b, err1 := structpb.NewStruct(before)
+	af, err2 := structpb.NewStruct(after)
+	if err1 != nil || err2 != nil {
+		return apperr.Internal(errors.Join(err1, err2))
+	}
+	actorType := "staff"
+	if a.ID == "" {
+		actorType = "system"
+	}
+	msg := &eventsv1.AuditRecorded{ActorType: actorType, ActorId: a.ID, Action: action, Entity: entity, EntityId: entityID, Before: b, After: af, Ip: a.IP}
+	if before == nil {
+		msg.Before = nil
+	}
+	if after == nil {
+		msg.After = nil
+	}
+	if err := s.Events.Publish(ctx, events.Event{Type: "audit.recorded.v1", AggregateID: entityID, ActorID: a.ID, ActorType: actorType, TraceID: a.TraceID, Payload: msg}); err != nil {
+		return apperr.Internal(err)
+	}
+	return nil
+}
+
+func (s *Service) tx(ctx context.Context, f func(ctx context.Context) error) error {
+	err := s.Store.Do(ctx, f)
+	var ae *apperr.Error
+	if err == nil || errors.As(err, &ae) {
+		return err
+	}
+	return apperr.Internal(err)
+}
+
+func sourceSnapshot(x *domain.Source) map[string]any {
+	m := map[string]any{"name": x.Name, "kind": x.Kind, "baseUrl": x.BaseURL, "enabled": x.Enabled, "priority": x.Priority, "timeoutMs": x.TimeoutMs, "maxRetries": x.MaxRetries,
+		"secretRef": x.SecretRef, "costPerCallMicros": x.CostPerCallMicros, "currency": x.Currency, "allowsRawStorage": x.AllowsRawStorage, "maxCacheTtlSeconds": nil}
+	if x.MaxCacheTTLSeconds != nil {
+		m["maxCacheTtlSeconds"] = *x.MaxCacheTTLSeconds
+	}
+	return m
+}
+
+func quotaSnapshot(q *domain.Quota) map[string]any {
+	m := map[string]any{"monthlyBudgetMicros": q.MonthlyBudgetMicros, "dailyCapMicros": q.DailyCapMicros, "alertThresholdPct": q.AlertThresholdPct, "currency": q.Currency, "fallbackSourceId": nil}
+	if q.FallbackSourceID != nil {
+		m["fallbackSourceId"] = *q.FallbackSourceID
+	}
+	return m
 }

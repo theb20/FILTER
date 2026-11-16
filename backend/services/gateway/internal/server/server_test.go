@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/theb20/FILTER/backend/pkg/apperr"
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
+	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/pkg/jwtx"
 	"github.com/theb20/FILTER/backend/services/gateway/internal/server"
 	"google.golang.org/grpc"
@@ -109,7 +110,9 @@ type rig struct {
 	now  *time.Time
 }
 
-func newRig(t *testing.T, mut func(*server.Config)) *rig {
+func newRig(t *testing.T, mut func(*server.Config)) *rig { return newRigWith(t, mut, nil) }
+
+func newRigWith(t *testing.T, mut func(*server.Config), sourcing sourcingv1.SourcingServiceClient) *rig {
 	t.Helper()
 	keys := map[string]*jwtx.KeySet{}
 	for _, aud := range []string{jwtx.AudCustomer, jwtx.AudStaff, jwtx.AudStaffChallenge} {
@@ -128,7 +131,7 @@ func newRig(t *testing.T, mut func(*server.Config)) *rig {
 	src := &jwksSource{keys: keys}
 	id := &fakeID{}
 	lim := server.NewMemoryLimiter()
-	h, err := server.New(server.Deps{Config: cfg, Log: slog.New(slog.NewJSONHandler(io.Discard, nil)), Identity: id, Keys: server.NewKeyCache(src, cfg.ClockLeeway, 0, nil), Limiter: lim})
+	h, err := server.New(server.Deps{Config: cfg, Log: slog.New(slog.NewJSONHandler(io.Discard, nil)), Identity: id, Sourcing: sourcing, Keys: server.NewKeyCache(src, cfg.ClockLeeway, 0, nil), Limiter: lim})
 	if err != nil {
 		t.Fatal(err)
 	}

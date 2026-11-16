@@ -417,3 +417,8 @@ func (s *Store) RecordTest(ctx context.Context, actorID string, at time.Time) er
 	_, err := s.q(ctx).Exec(ctx, `INSERT INTO source_tests (actor_id, at) VALUES ($1,$2)`, actorID, at)
 	return err
 }
+
+// Do : unité de travail (voir application.Store).
+func (s *Store) Do(ctx context.Context, f func(context.Context) error) error {
+	return pgxtx.Run(ctx, s.Pool, f)
+}

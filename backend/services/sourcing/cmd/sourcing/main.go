@@ -16,6 +16,8 @@ import (
 
 	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/pkg/logx"
+	"github.com/theb20/FILTER/backend/pkg/natsbus"
+	"github.com/theb20/FILTER/backend/pkg/outbox"
 	"github.com/theb20/FILTER/backend/services/sourcing/internal/adapters/connectors"
 	"github.com/theb20/FILTER/backend/services/sourcing/internal/adapters/grpcserver"
 	"github.com/theb20/FILTER/backend/services/sourcing/internal/adapters/postgres"
@@ -60,7 +62,19 @@ func run(log *slog.Logger) error {
 	defer st.Close()
 
 	fac := &connectors.Factory{Env: os.Getenv, AllowTest: env == "dev" && os.Getenv("ALLOW_TEST_SOURCES") == "1"}
-	svc := application.New(application.Config{Store: st, Connectors: fac})
+	// Audit : événements `audit.recorded.v1` écrits dans l'outbox (même transaction que l'action) puis relayés vers NATS ;
+	// identity les inscrit dans son journal d'audit append-only.
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		return errors.New("NATS_URL est obligatoire (audit des écritures)")
+	}
+	bus, err := natsbus.Connect(mctx, natsURL, getenv("NATS_AUDIT_STREAM", "AUDIT"), "audit.>")
+	if err != nil {
+		return err
+	}
+	defer bus.Close()
+	go (&outbox.Relay{Pool: st.Pool, Bus: bus, Log: log}).Run(ctx)
+	svc := application.New(application.Config{Store: st, Connectors: fac, Events: &outbox.Publisher{}})
 	go svc.RunMaintenance(ctx, func(msg string, kv ...any) { log.Warn(msg, kv...) })
 
 	lis, err := net.Listen("tcp", getenv("SOURCING_GRPC_ADDR", ":9002"))

@@ -64,6 +64,9 @@ type ActiveSource struct {
 
 // Store : persistance des sources, du budget et du journal.
 type Store interface {
+	// Do exécute f dans UNE transaction (les écritures et l'événement d'audit sont validés ensemble). Un appel imbriqué rejoint la transaction en cours.
+	Do(ctx context.Context, f func(ctx context.Context) error) error
+
 	CreateSource(ctx context.Context, s *domain.Source) error // ErrNameTaken
 	UpdateSource(ctx context.Context, s *domain.Source) error // ErrNameTaken, ErrNotFound
 	SourceByID(ctx context.Context, id string) (*domain.Source, error)

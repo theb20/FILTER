@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/theb20/FILTER/backend/pkg/apperr"
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
+	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/services/gateway/internal/api"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -19,6 +20,7 @@ type handler struct {
 	api.UnimplementedHandler
 	srv *Server
 	id  identityv1.IdentityServiceClient
+	src sourcingv1.SourcingServiceClient // nil tant que le service sourcing n'est pas configuré (les routes répondent alors 501)
 }
 
 var _ api.Handler = (*handler)(nil)

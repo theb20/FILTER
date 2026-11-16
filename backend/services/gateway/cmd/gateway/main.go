@@ -19,6 +19,7 @@ import (
 	"time"
 
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
+	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/pkg/logx"
 	"github.com/theb20/FILTER/backend/services/gateway/internal/server"
 	"google.golang.org/grpc"
@@ -50,9 +51,36 @@ func run(log *slog.Logger) error {
 	id := identityv1.NewIdentityServiceClient(conn)
 	health := healthpb.NewHealthClient(conn)
 
+	// Service sourcing (sources de recherche) : facultatif. Sans SOURCING_ADDR, ses routes répondent 501.
+	var sourcing sourcingv1.SourcingServiceClient
+	probes := []server.HealthProbe{{Name: "identity", Kind: "service", Check: func(ctx context.Context) error {
+		r, err := health.Check(ctx, &healthpb.HealthCheckRequest{})
+		if err == nil && r.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+			err = errors.New("ne sert pas")
+		}
+		return err
+	}}}
+	if addr := os.Getenv("SOURCING_ADDR"); addr != "" {
+		sconn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.Config{BaseDelay: 200 * time.Millisecond, Multiplier: 1.6, Jitter: 0.2, MaxDelay: 3 * time.Second}, MinConnectTimeout: 3 * time.Second}))
+		if err != nil {
+			return err
+		}
+		defer sconn.Close()
+		sourcing = sourcingv1.NewSourcingServiceClient(sconn)
+		sh := healthpb.NewHealthClient(sconn)
+		probes = append(probes, server.HealthProbe{Name: "sourcing", Kind: "service", Check: func(ctx context.Context) error {
+			r, err := sh.Check(ctx, &healthpb.HealthCheckRequest{})
+			if err == nil && r.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+				err = errors.New("ne sert pas")
+			}
+			return err
+		}})
+	}
+
 	keys := server.NewKeyCache(jwksFromIdentity{id}, cfg.ClockLeeway, cfg.JWKSMinRefresh, nil)
 	h, err := server.New(server.Deps{
-		Config: cfg, Log: log, Identity: id, Keys: keys, Limiter: server.NewMemoryLimiter(),
+		Config: cfg, Log: log, Identity: id, Sourcing: sourcing, Probes: probes, Keys: keys, Limiter: server.NewMemoryLimiter(),
 		Ready: func(ctx context.Context) error {
 			r, err := health.Check(ctx, &healthpb.HealthCheckRequest{})
 			if err != nil {

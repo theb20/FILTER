@@ -30,6 +30,7 @@ import (
 	"github.com/theb20/FILTER/backend/pkg/logx"
 	"github.com/theb20/FILTER/backend/pkg/natsbus"
 	"github.com/theb20/FILTER/backend/pkg/outbox"
+	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/auditsink"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/breach"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/devmail"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/grpcserver"
@@ -124,6 +125,20 @@ func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Serv
 			closeDB := cleanup
 			cleanup = func() { bus.Close(); closeDB() }
 			go (&outbox.Relay{Pool: st.Pool, Bus: bus, Log: log}).Run(ctx)
+			// Journal d'audit : inscrit les événements `audit.recorded.v1` des autres services (voie d'écriture unique).
+			auditBus, err := natsbus.Connect(mctx, natsURL, getenv("NATS_AUDIT_STREAM", "AUDIT"), "audit.>")
+			if err != nil {
+				cleanup()
+				return nil, nil, fmt.Errorf("nats (audit) : %w", err)
+			}
+			stopAudit, err := (&auditsink.Sink{Pool: st.Pool, Audit: st, Log: log}).Run(ctx, auditBus)
+			if err != nil {
+				auditBus.Close()
+				cleanup()
+				return nil, nil, fmt.Errorf("audit : %w", err)
+			}
+			prevAudit := cleanup
+			cleanup = func() { stopAudit(); auditBus.Close(); prevAudit() }
 			// Boîte d'envoi de DÉVELOPPEMENT (jetons en clair dans un fichier) : jamais hors ENV=dev.
 			if path := os.Getenv("DEV_MAIL_FILE"); path != "" {
 				if env != "dev" {

@@ -164,4 +164,3 @@ func (h *handler) AdminCompaniesReject(ctx context.Context, req *api.RejectCompa
 	c := toCompany(res.GetCompany())
 	return &c, nil
 }
-

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/theb20/FILTER/backend/pkg/apperr"
+	"github.com/theb20/FILTER/backend/pkg/outbox"
 	"github.com/theb20/FILTER/backend/pkg/testsupport"
 	"github.com/theb20/FILTER/backend/services/sourcing/internal/adapters/connectors"
 	"github.com/theb20/FILTER/backend/services/sourcing/internal/adapters/postgres"
@@ -39,7 +40,7 @@ func newRig(t *testing.T) *rig {
 	now := time.Date(2026, 11, 16, 10, 0, 0, 0, time.UTC)
 	fac := &connectors.Factory{AllowTest: true, Env: func(string) string { return "" }}
 	r := &rig{store: st, fac: fac, now: &now}
-	r.svc = application.New(application.Config{Store: st, Connectors: fac, Now: func() time.Time { return now }})
+	r.svc = application.New(application.Config{Events: &outbox.Publisher{}, Store: st, Connectors: fac, Now: func() time.Time { return now }})
 	return r
 }
 
@@ -54,14 +55,14 @@ func (r *rig) newSource(t *testing.T, name string, f *connectors.Fake, opts ...f
 	for _, o := range opts {
 		o(&in)
 	}
-	s, err := r.svc.CreateSource(context.Background(), in)
+	s, err := r.svc.CreateSource(context.Background(), actor, in)
 	if err != nil {
 		t.Fatalf("CreateSource : %v", err)
 	}
-	if _, err := r.svc.PutQuota(context.Background(), domain.Quota{SourceID: s.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 50_000, AlertThresholdPct: 80}); err != nil {
+	if _, err := r.svc.PutQuota(context.Background(), actor, domain.Quota{SourceID: s.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 50_000, AlertThresholdPct: 80}); err != nil {
 		t.Fatalf("PutQuota : %v", err)
 	}
-	if _, err := r.svc.EnableSource(context.Background(), s.ID); err != nil {
+	if _, err := r.svc.EnableSource(context.Background(), actor, s.ID); err != nil {
 		t.Fatalf("EnableSource : %v", err)
 	}
 	return s
@@ -85,6 +86,8 @@ func code(err error) string {
 	}
 	return "?"
 }
+
+var actor = application.Actor{ID: "staff-1", IP: "10.0.0.1", TraceID: "trace-1"}
 
 var hit = []domain.RawHit{{Title: "Roulement 6204 2RS"}}
 
@@ -146,7 +149,7 @@ func TestSuspensionEtReprisePeriodeSuivanteOuRelevementDuBudget(t *testing.T) {
 		t.Fatal("un appel a été fait pendant la suspension")
 	}
 	// relèvement du plafond : la suspension est levée
-	if _, err := r.svc.PutQuota(ctx, domain.Quota{SourceID: src.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 100_000, AlertThresholdPct: 80}); err != nil {
+	if _, err := r.svc.PutQuota(ctx, actor, domain.Quota{SourceID: src.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 100_000, AlertThresholdPct: 80}); err != nil {
 		t.Fatal(err)
 	}
 	if r.call(src, "").Status != domain.CallOK {
@@ -166,7 +169,7 @@ func TestBudgetMensuelEpuiseSuspendJusquAuMoisSuivant(t *testing.T) {
 	f := &connectors.Fake{Hits: hit}
 	src := r.newSource(t, "m", f)
 	ctx := context.Background()
-	if _, err := r.svc.PutQuota(ctx, domain.Quota{SourceID: src.ID, MonthlyBudgetMicros: 10_000, DailyCapMicros: 10_000, AlertThresholdPct: 80}); err != nil {
+	if _, err := r.svc.PutQuota(ctx, actor, domain.Quota{SourceID: src.ID, MonthlyBudgetMicros: 10_000, DailyCapMicros: 10_000, AlertThresholdPct: 80}); err != nil {
 		t.Fatal(err)
 	}
 	r.call(src, "")
@@ -342,7 +345,7 @@ func TestDisjoncteurOuvreApresDesEchecsEtSeReferme(t *testing.T) {
 	r := newRig(t)
 	f := &connectors.Fake{Script: []func(context.Context) ([]domain.RawHit, error){step(nil, &application.CallError{Kind: "http_4xx", HTTPStatus: 400, Sent: true})}}
 	src := r.newSource(t, "br", f, func(s *domain.Source) { s.MaxRetries = 0 })
-	if _, err := r.svc.PutQuota(context.Background(), domain.Quota{SourceID: src.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 1_000_000, AlertThresholdPct: 80}); err != nil {
+	if _, err := r.svc.PutQuota(context.Background(), actor, domain.Quota{SourceID: src.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 1_000_000, AlertThresholdPct: 80}); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < application.BreakerThreshold; i++ {
@@ -372,17 +375,17 @@ func TestSourceCreeeDesactiveeEtActivationExigeUnBudget(t *testing.T) {
 	r := newRig(t)
 	ctx := context.Background()
 	r.fac.RegisterTest("n", &connectors.Fake{Hits: hit})
-	s, err := r.svc.CreateSource(ctx, domain.Source{Kind: domain.KindWebSearchAPI, Name: "N", BaseURL: "test://n", TimeoutMs: 1000, SecretRef: "K", CostPerCallMicros: 5000, Currency: "USD", Enabled: true, AllowsRawStorage: true})
+	s, err := r.svc.CreateSource(ctx, actor, domain.Source{Kind: domain.KindWebSearchAPI, Name: "N", BaseURL: "test://n", TimeoutMs: 1000, SecretRef: "K", CostPerCallMicros: 5000, Currency: "USD", Enabled: true, AllowsRawStorage: true})
 	if err != nil || s.Enabled || s.AllowsRawStorage || s.TermsCheckedAt != nil {
 		t.Fatalf("une source naît désactivée, sans droit de stockage : %v %+v", err, s)
 	}
-	if _, err := r.svc.EnableSource(ctx, s.ID); code(err) != apperr.CodeConflict {
+	if _, err := r.svc.EnableSource(ctx, actor, s.ID); code(err) != apperr.CodeConflict {
 		t.Fatalf("activation sans budget : %v", err)
 	}
 	if o := r.call(s, ""); o.Status != domain.CallDisabled {
 		t.Fatalf("appel d'une source désactivée : %s", o.Status)
 	}
-	if _, err := r.svc.CreateSource(ctx, domain.Source{Kind: domain.KindWebSearchAPI, Name: "n", BaseURL: "test://n", TimeoutMs: 1, SecretRef: "K", Currency: "USD"}); code(err) != apperr.CodeConflict {
+	if _, err := r.svc.CreateSource(ctx, actor, domain.Source{Kind: domain.KindWebSearchAPI, Name: "n", BaseURL: "test://n", TimeoutMs: 1, SecretRef: "K", Currency: "USD"}); code(err) != apperr.CodeConflict {
 		t.Fatalf("nom en double (insensible à la casse) : %v", err)
 	}
 	for name, in := range map[string]domain.Source{
@@ -396,7 +399,7 @@ func TestSourceCreeeDesactiveeEtActivationExigeUnBudget(t *testing.T) {
 		"cache":    {Kind: domain.KindWebSearchAPI, Name: "h", BaseURL: "test://n", TimeoutMs: 1, SecretRef: "K", Currency: "USD", MaxCacheTTLSeconds: ptr(0)},
 		"priorité": {Kind: domain.KindWebSearchAPI, Name: "i", BaseURL: "test://n", TimeoutMs: 1, SecretRef: "K", Currency: "USD", Priority: -1},
 	} {
-		if _, err := r.svc.CreateSource(ctx, in); code(err) != apperr.CodeValidation {
+		if _, err := r.svc.CreateSource(ctx, actor, in); code(err) != apperr.CodeValidation {
 			t.Errorf("%s invalide accepté : %v", name, err)
 		}
 	}
@@ -411,7 +414,7 @@ func TestQuotaValidationsEtBasculeUnSeulSaut(t *testing.T) {
 	b := r.newSource(t, "b", &connectors.Fake{Hits: hit})
 	c := r.newSource(t, "c", &connectors.Fake{Hits: hit})
 	put := func(id string, fb *string) error {
-		_, err := r.svc.PutQuota(ctx, domain.Quota{SourceID: id, MonthlyBudgetMicros: 1000, DailyCapMicros: 100, AlertThresholdPct: 80, FallbackSourceID: fb})
+		_, err := r.svc.PutQuota(ctx, actor, domain.Quota{SourceID: id, MonthlyBudgetMicros: 1000, DailyCapMicros: 100, AlertThresholdPct: 80, FallbackSourceID: fb})
 		return err
 	}
 	if err := put(a.ID, &a.ID); code(err) != apperr.CodeValidation {
@@ -420,10 +423,10 @@ func TestQuotaValidationsEtBasculeUnSeulSaut(t *testing.T) {
 	if err := put(a.ID, ptr(uuid.NewString())); code(err) != apperr.CodeValidation {
 		t.Fatalf("secours inexistant : %v", err)
 	}
-	if _, err := r.svc.PutQuota(ctx, domain.Quota{SourceID: a.ID, MonthlyBudgetMicros: 100, DailyCapMicros: 200, AlertThresholdPct: 80}); code(err) != apperr.CodeValidation {
+	if _, err := r.svc.PutQuota(ctx, actor, domain.Quota{SourceID: a.ID, MonthlyBudgetMicros: 100, DailyCapMicros: 200, AlertThresholdPct: 80}); code(err) != apperr.CodeValidation {
 		t.Fatalf("plafond journalier > budget mensuel : %v", err)
 	}
-	if _, err := r.svc.PutQuota(ctx, domain.Quota{SourceID: a.ID, MonthlyBudgetMicros: 100, DailyCapMicros: 10, AlertThresholdPct: 0}); code(err) != apperr.CodeValidation {
+	if _, err := r.svc.PutQuota(ctx, actor, domain.Quota{SourceID: a.ID, MonthlyBudgetMicros: 100, DailyCapMicros: 10, AlertThresholdPct: 0}); code(err) != apperr.CodeValidation {
 		t.Fatalf("seuil 0 : %v", err)
 	}
 	if err := put(a.ID, &b.ID); err != nil { // A → B
@@ -449,7 +452,7 @@ func TestLaBasculeIndiqueLeSecoursSansLAppeler(t *testing.T) {
 	fa, fb := &connectors.Fake{Hits: hit}, &connectors.Fake{Hits: hit}
 	a := r.newSource(t, "pa", fa)
 	b := r.newSource(t, "pb", fb)
-	if _, err := r.svc.PutQuota(ctx, domain.Quota{SourceID: a.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 5_000, AlertThresholdPct: 80, FallbackSourceID: &b.ID}); err != nil {
+	if _, err := r.svc.PutQuota(ctx, actor, domain.Quota{SourceID: a.ID, MonthlyBudgetMicros: 5_000_000, DailyCapMicros: 5_000, AlertThresholdPct: 80, FallbackSourceID: &b.ID}); err != nil {
 		t.Fatal(err)
 	}
 	r.call(a, "")
@@ -467,11 +470,11 @@ func TestTestSourceAvantActivationEtLimiteParHeure(t *testing.T) {
 	ctx := context.Background()
 	f := &connectors.Fake{Hits: hit}
 	r.fac.RegisterTest("t", f)
-	s, _ := r.svc.CreateSource(ctx, domain.Source{Kind: domain.KindWebSearchAPI, Name: "T", BaseURL: "test://t", TimeoutMs: 500, SecretRef: "K", CostPerCallMicros: 1000, Currency: "USD"})
-	if _, err := r.svc.PutQuota(ctx, domain.Quota{SourceID: s.ID, MonthlyBudgetMicros: 1_000_000, DailyCapMicros: 1_000_000, AlertThresholdPct: 80}); err != nil {
+	s, _ := r.svc.CreateSource(ctx, actor, domain.Source{Kind: domain.KindWebSearchAPI, Name: "T", BaseURL: "test://t", TimeoutMs: 500, SecretRef: "K", CostPerCallMicros: 1000, Currency: "USD"})
+	if _, err := r.svc.PutQuota(ctx, actor, domain.Quota{SourceID: s.ID, MonthlyBudgetMicros: 1_000_000, DailyCapMicros: 1_000_000, AlertThresholdPct: 80}); err != nil {
 		t.Fatal(err)
 	}
-	res, err := r.svc.TestSource(ctx, "staff-1", s.ID, "roulement", "fr", "ci")
+	res, err := r.svc.TestSource(ctx, application.Actor{ID: "staff-1"}, s.ID, "roulement", "fr", "ci")
 	if err != nil || !res.OK || res.ResultCount != 1 || res.CostMicros != 1000 || res.Sample[0] != "Roulement 6204 2RS" {
 		t.Fatalf("test avant activation : %v %+v", err, res)
 	}
@@ -482,21 +485,21 @@ func TestTestSourceAvantActivationEtLimiteParHeure(t *testing.T) {
 		t.Fatalf("le test consomme du budget : %+v", q)
 	}
 	for i := 1; i < application.TestsPerHour; i++ {
-		if _, err := r.svc.TestSource(ctx, "staff-1", s.ID, "x", "", ""); err != nil {
+		if _, err := r.svc.TestSource(ctx, application.Actor{ID: "staff-1"}, s.ID, "x", "", ""); err != nil {
 			t.Fatalf("test %d : %v", i+1, err)
 		}
 	}
-	if _, err := r.svc.TestSource(ctx, "staff-1", s.ID, "x", "", ""); code(err) != apperr.CodeRateLimited {
+	if _, err := r.svc.TestSource(ctx, application.Actor{ID: "staff-1"}, s.ID, "x", "", ""); code(err) != apperr.CodeRateLimited {
 		t.Fatalf("11e test dans l'heure : %v", err)
 	}
-	if _, err := r.svc.TestSource(ctx, "staff-2", s.ID, "x", "", ""); err != nil {
+	if _, err := r.svc.TestSource(ctx, application.Actor{ID: "staff-2"}, s.ID, "x", "", ""); err != nil {
 		t.Fatalf("la limite est PAR membre : %v", err)
 	}
 	r.advance(61 * time.Minute)
-	if _, err := r.svc.TestSource(ctx, "staff-1", s.ID, "x", "", ""); err != nil {
+	if _, err := r.svc.TestSource(ctx, application.Actor{ID: "staff-1"}, s.ID, "x", "", ""); err != nil {
 		t.Fatalf("après une heure : %v", err)
 	}
-	if _, err := r.svc.TestSource(ctx, "staff-1", s.ID, " ", "", ""); code(err) != apperr.CodeValidation {
+	if _, err := r.svc.TestSource(ctx, application.Actor{ID: "staff-1"}, s.ID, " ", "", ""); code(err) != apperr.CodeValidation {
 		t.Fatalf("requête vide : %v", err)
 	}
 }
@@ -505,14 +508,14 @@ func TestStockageBrutExigeUneVerificationDatee(t *testing.T) {
 	r := newRig(t)
 	ctx := context.Background()
 	s := r.newSource(t, "raw", &connectors.Fake{Hits: hit})
-	got, err := r.svc.SetRawStorage(ctx, s.ID, true)
+	got, err := r.svc.SetRawStorage(ctx, actor, s.ID, true)
 	if err != nil || !got.AllowsRawStorage || got.TermsCheckedAt == nil {
 		t.Fatalf("autorisation : %v %+v", err, got)
 	}
 	if _, err := r.store.Pool.Exec(ctx, `UPDATE sources SET terms_checked_at = NULL WHERE id = $1`, s.ID); err == nil {
 		t.Fatal("la base doit refuser un stockage autorisé sans date de vérification")
 	}
-	got, _ = r.svc.SetRawStorage(ctx, s.ID, false)
+	got, _ = r.svc.SetRawStorage(ctx, actor, s.ID, false)
 	if got.AllowsRawStorage {
 		t.Fatal("retrait de l'autorisation")
 	}
@@ -537,7 +540,7 @@ func TestSanteEtCouts(t *testing.T) {
 	if _, err := r.svc.Costs(ctx, "", *r.now, r.now.Add(-time.Hour)); code(err) != apperr.CodeValidation {
 		t.Fatalf("période inversée : %v", err)
 	}
-	if _, err := r.svc.DisableSource(ctx, src.ID); err != nil {
+	if _, err := r.svc.DisableSource(ctx, actor, src.ID); err != nil {
 		t.Fatal(err)
 	}
 	if h, _ := r.svc.GetHealth(ctx, src.ID); h.Status != "disabled" {
