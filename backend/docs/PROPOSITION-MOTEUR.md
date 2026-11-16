@@ -180,7 +180,15 @@ Sources : [brave.com/search/api](https://brave.com/search/api/), [documentation 
 
 **Recherche web : deux protections obligatoires dès l'ouverture au public.**
 1. **Aucun appel automatique.** La source externe n'est jamais interrogée par une recherche ordinaire : le visiteur déclenche l'appel avec un bouton **« Chercher aussi sur le web »**, affiché sous les résultats du catalogue interne (ou à leur place s'il n'y en a aucun). La recherche ordinaire ne coûte donc rien.
-2. **Limite par visiteur.** Nombre maximal de recherches web par visiteur (session anonyme) et par période. **Valeur proposée : 3 par jour et par visiteur, 10 par jour et par adresse réseau** (deux plafonds, pour qu'ouvrir une nouvelle session ne contourne pas la limite). Au-delà : message clair (« Limite atteinte, revenez demain ») et aucun appel. Ces plafonds s'ajoutent à celui du budget de la source (≈ 66 appels par jour). **Valeurs à valider.**
+2. **Limite par jour, validée le 17 nov. 2026 :** **3 recherches web par visiteur anonyme, 10 par client connecté, 30 par adresse réseau.** Les trois plafonds s'appliquent ensemble (le plus bas atteint bloque) et s'ajoutent à celui du budget de la source (≈ 66 appels par jour). Au-delà : message clair (« Limite atteinte, revenez demain ») et aucun appel, donc aucun coût. Le compteur d'un visiteur est tenu par son identifiant de session anonyme (aléatoire, sans lien avec une personne), celui d'un client par son compte.
+
+**Adresse réseau : jamais stockée en clair (décision du 17 nov. 2026, cohérente avec la règle 9).**
+- On ne conserve qu'une **empreinte** : `HMAC-SHA256(clé du jour, adresse)`. La **clé du jour** est dérivée d'un secret serveur (`SEARCH_NETWORK_PEPPER`, lu dans l'environnement, jamais en base) et de la date : `HMAC-SHA256(secret, date UTC)`. Elle **change donc chaque jour** : l'empreinte d'hier ne peut pas être rapprochée de celle d'aujourd'hui.
+- **Purge quotidienne** : à chaque changement de jour, tous les compteurs de la veille (empreintes comprises) sont **supprimés**. Table `web_search_counters(day, subject_kind ('visitor'|'customer'|'network'), subject_hash, count)` ; rétention : le jour courant seulement.
+- **IPv6** : l'adresse est ramenée à son préfixe /64 avant empreinte (un client IPv6 dispose de milliards d'adresses ; sans cela la limite serait contournable).
+- **Absente du journal des recherches** (`search_queries`) et de tout journal applicatif : l'adresse n'est lue que pour calculer l'empreinte, en mémoire.
+- **Limite honnête de la méthode** : l'espace des adresses IPv4 est petit ; avec la clé du jour, une base volée permettrait de retrouver les adresses par essais. **C'est le secret serveur (hors base) qui protège** : il ne doit jamais être stocké avec les données. Je propose en plus que l'empreinte soit **tronquée à 16 octets** et que le secret soit renouvelable sans arrêt.
+- Derrière un proxy, seule l'adresse transmise par le proxy **de confiance** est utilisée (jamais un en-tête fourni par le client).
 
 **Ordre des travaux validé :** (1) gateway + audit des écritures de `sourcing` *(fait)* ; (2) **CRUD Produits** : ajout manuel, prioritaire car le catalogue interne est la base de la recherche ; (3) service `search` ; (4) écrans du moteur dans le backoffice.
 
