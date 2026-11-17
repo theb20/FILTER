@@ -58,7 +58,7 @@ func TestCompromisViaPrefixeDeCondensat(t *testing.T) {
 	if strings.Contains(lastPath.Load().(string), full[5:]) {
 		t.Fatal("le suffixe ne doit JAMAIS être envoyé")
 	}
-	ok, _ := c.Compromised(context.Background(), "un mot de passe jamais vu 7f3a9c")
+	ok, _ := c.Compromised(context.Background(), "valeur-factice-jamais-vue-7f3a9c")
 	if ok {
 		t.Fatal("un mot de passe absent de la plage ne doit pas être refusé")
 	}
@@ -66,7 +66,7 @@ func TestCompromisViaPrefixeDeCondensat(t *testing.T) {
 
 func TestLignesDeRemplissageIgnorees(t *testing.T) {
 	// la ligne de remplissage a un compteur à 0 : même si son suffixe correspond, ce n'est PAS une fuite
-	pw := "un mot de passe quelconque 1234"
+	pw := "valeur-factice-remplissage"
 	h := sha1Upper(pw)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "%s:0\r\n", h[5:]) }))
 	defer srv.Close()
@@ -79,7 +79,7 @@ func TestEnTeteDeRemplissageEtUserAgentNeutre(t *testing.T) {
 	var got http.Header
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { got = r.Header.Clone() }))
 	defer srv.Close()
-	_, _ = NewChecker(srv.URL+"/", time.Second, nil, nil).Compromised(context.Background(), "whatever password")
+	_, _ = NewChecker(srv.URL+"/", time.Second, nil, nil).Compromised(context.Background(), "valeur-factice")
 	if got.Get("Add-Padding") != "true" || got.Get("User-Agent") != "filterfinder-identity" {
 		t.Fatalf("en-têtes inattendus : %v", got)
 	}
@@ -94,7 +94,7 @@ func TestRepliLocalSiLeServiceNeRepondPas(t *testing.T) {
 	c := NewChecker(slow.URL+"/", 80*time.Millisecond, NewLocal(), nil) // délai court
 
 	start := time.Now()
-	bad, err := c.Compromised(context.Background(), "password123")
+	bad, err := c.Compromised(context.Background(), commonPasswords[0])
 	if err != nil {
 		t.Fatalf("une panne du service ne doit JAMAIS produire d'erreur (inscription non bloquée) : %v", err)
 	}
@@ -105,7 +105,7 @@ func TestRepliLocalSiLeServiceNeRepondPas(t *testing.T) {
 		t.Fatalf("le délai court n'est pas respecté : %v", time.Since(start))
 	}
 	// un mot de passe inconnu de la liste locale passe : le repli n'est qu'un filet, il ne bloque pas
-	if bad, err := c.Compromised(context.Background(), "mot de passe long et unique 9x!"); bad || err != nil {
+	if bad, err := c.Compromised(context.Background(), "valeur-factice-longue-et-unique-9x"); bad || err != nil {
 		t.Fatalf("hors liste locale : accepté, sans erreur : %v %v", bad, err)
 	}
 }
@@ -136,7 +136,7 @@ func TestAucunSecretDansLesLogs(t *testing.T) {
 	down := httptest.NewServer(http.NotFoundHandler())
 	url := down.URL + "/"
 	down.Close()
-	pw := "mon-mot-de-passe-secret-42"
+	pw := "valeur-factice-temoin-journaux"
 	_, _ = NewChecker(url, 100*time.Millisecond, NewLocal(), log).Compromised(context.Background(), pw)
 	out := strings.ToUpper(buf.String())
 	full := sha1Upper(pw)

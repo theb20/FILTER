@@ -1,0 +1,9 @@
+# Configuration de GitGuardian (analyse des secrets sur les pull requests, et ggshield en local).
+# Les tests Go contiennent volontairement des valeurs factices (mots de passe, clés) pour vérifier
+# qu'un mot de passe courant est refusé ou qu'une clé ne fuit jamais dans les journaux.
+# Aucun vrai secret ne doit JAMAIS être écrit dans un test : les vrais secrets passent par l'environnement
+# ou par ~/.filterfinder/secrets, hors du dépôt.
+version: 2
+secret:
+  ignored_paths:
+    - "**/*_test.go"

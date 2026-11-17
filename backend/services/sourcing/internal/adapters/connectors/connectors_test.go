@@ -14,7 +14,7 @@ import (
 	"github.com/theb20/FILTER/backend/services/sourcing/internal/domain"
 )
 
-const secret = "BSA-SECRET-KEY-123"
+const cleTest = "cle-de-test-factice"
 
 func brave(t *testing.T, h http.HandlerFunc, key string) (*connectors.Brave, *httptest.Server) {
 	t.Helper()
@@ -29,12 +29,12 @@ func TestBraveEnvoieLaCleLesParametresEtLitLesResultats(t *testing.T) {
 		gotKey, gotPath = r.Header.Get("X-Subscription-Token"), r.URL.Path
 		gotQ, gotCountry, gotLang, gotCount = r.URL.Query().Get("q"), r.URL.Query().Get("country"), r.URL.Query().Get("search_lang"), r.URL.Query().Get("count")
 		_, _ = w.Write([]byte(`{"web":{"results":[{"title":"Roulement 6204","url":"https://a.test/1","description":"x"},{"title":"","url":"https://a.test/2"},{"title":"Autre","url":"https://a.test/3"}]}}`))
-	}, secret)
+	}, cleTest)
 	hits, err := b.Search(context.Background(), application.SearchParams{Query: "roulement 6204 & co", Language: "FR", Country: "ci", Count: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if gotKey != secret || gotPath != "/res/v1/web/search" || gotQ != "roulement 6204 & co" || gotCountry != "CI" || gotLang != "fr" || gotCount != "10" {
+	if gotKey != cleTest || gotPath != "/res/v1/web/search" || gotQ != "roulement 6204 & co" || gotCountry != "CI" || gotLang != "fr" || gotCount != "10" {
 		t.Fatalf("requête : clé=%q chemin=%q q=%q pays=%q langue=%q count=%q", gotKey, gotPath, gotQ, gotCountry, gotLang, gotCount)
 	}
 	if len(hits) != 2 || hits[0].Title != "Roulement 6204" || *hits[0].URL != "https://a.test/1" {
@@ -53,14 +53,14 @@ func TestBraveClassementDesErreurs(t *testing.T) {
 		retryable bool
 		sent      bool
 	}{{429, "quota", false, true}, {500, "http_5xx", true, true}, {503, "http_5xx", true, true}, {401, "http_4xx", false, true}, {422, "http_4xx", false, true}} {
-		b, _ := brave(t, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(c.status) }, secret)
+		b, _ := brave(t, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(c.status) }, cleTest)
 		_, err := b.Search(context.Background(), application.SearchParams{Query: "x"})
 		var ce *application.CallError
 		if !errors.As(err, &ce) || ce.Kind != c.kind || ce.Retryable != c.retryable || ce.Sent != c.sent || ce.HTTPStatus != c.status {
 			t.Errorf("statut %d : %+v", c.status, ce)
 		}
 	}
-	b, _ := brave(t, func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("<html>")) }, secret)
+	b, _ := brave(t, func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("<html>")) }, cleTest)
 	if _, err := b.Search(context.Background(), application.SearchParams{Query: "x"}); err == nil || !strings.Contains(err.Error(), "decode") {
 		t.Fatalf("réponse illisible : %v", err)
 	}
@@ -73,19 +73,19 @@ func TestBraveSansCleOuReseauHorsService(t *testing.T) {
 	if !errors.As(err, &ce) || ce.Kind != "secret_missing" || ce.Retryable {
 		t.Fatalf("clé absente : %v", err)
 	}
-	b2, srv := brave(t, func(http.ResponseWriter, *http.Request) {}, secret)
+	b2, srv := brave(t, func(http.ResponseWriter, *http.Request) {}, cleTest)
 	srv.Close()
 	_, err = b2.Search(context.Background(), application.SearchParams{Query: "x"})
 	if !errors.As(err, &ce) || ce.Kind != "network" || !ce.Retryable || ce.Sent {
 		t.Fatalf("réseau : %v", err)
 	}
-	if strings.Contains(err.Error(), secret) || strings.Contains(err.Error(), "127.0.0.1") {
+	if strings.Contains(err.Error(), cleTest) || strings.Contains(err.Error(), "127.0.0.1") {
 		t.Fatalf("l'erreur ne doit révéler ni la clé ni l'adresse : %v", err)
 	}
 }
 
 func TestBraveRespecteLeDelai(t *testing.T) {
-	b, _ := brave(t, func(w http.ResponseWriter, r *http.Request) { time.Sleep(300 * time.Millisecond) }, secret)
+	b, _ := brave(t, func(w http.ResponseWriter, r *http.Request) { time.Sleep(300 * time.Millisecond) }, cleTest)
 	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
 	defer cancel()
 	start := time.Now()
@@ -96,15 +96,15 @@ func TestBraveRespecteLeDelai(t *testing.T) {
 }
 
 func TestLaCleNEstJamaisDansLesErreursNiLesJournaux(t *testing.T) {
-	b, _ := brave(t, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(500) }, secret)
-	_, err := b.Search(context.Background(), application.SearchParams{Query: secret})
+	b, _ := brave(t, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(500) }, cleTest)
+	_, err := b.Search(context.Background(), application.SearchParams{Query: cleTest})
 	if err == nil || strings.Contains(err.Error(), "BSA-") && !strings.Contains(err.Error(), "5") {
 		t.Fatalf("erreur : %v", err)
 	}
 }
 
 func TestChoixDuConnecteur(t *testing.T) {
-	env := func(n string) string { return map[string]string{"BRAVE_SEARCH_API_KEY": secret}[n] }
+	env := func(n string) string { return map[string]string{"BRAVE_SEARCH_API_KEY": cleTest}[n] }
 	f := &connectors.Factory{Env: env}
 	src := func(u string) *domain.Source { return &domain.Source{BaseURL: u, SecretRef: "BRAVE_SEARCH_API_KEY"} }
 	if c, err := f.For(src("https://api.search.brave.com/res/v1/web/search")); err != nil || c == nil {
