@@ -1,0 +1,298 @@
+// Contrat gRPC interne.
+// STATUS: validated
+syntax = "proto3";
+
+package events.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/events/v1;eventsv1";
+
+// Enveloppe de TOUS les événements. `type` = sujet NATS (ex. `order.placed.v1`). `payload` = message protobuf du type correspondant. Publiés via la table `outbox` (même transaction que l'écriture) ; consommateurs idempotents (`processed_events`).
+message Envelope {
+  string event_id = 1;
+  string type = 2;
+  int32 schema_version = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string aggregate_id = 5;
+  string trace_id = 6;
+  string actor_id = 7;
+  string actor_type = 8;
+  string locale = 9;
+  bytes payload = 10;
+}
+
+message OrderPlaced {
+  string order_id = 1;
+  string number = 2;
+  string user_id = 3;
+  string currency = 4;
+  common.v1.Money total = 5;
+  repeated string product_ids = 6;
+  string customer_email = 7;
+  string locale = 8;
+}
+
+message OrderStatusChanged {
+  string order_id = 1;
+  string from = 2;
+  string to = 3;
+  string actor = 4;
+  optional string reason = 5;
+}
+
+message OrderPaymentStatusChanged {
+  string order_id = 1;
+  string from = 2;
+  string to = 3;
+  bool refund_pending = 4;
+}
+
+// Annulation automatique d'un prépaiement non payé (placed→cancelled, voided).
+message OrderPaymentExpired {
+  string order_id = 1;
+  string payment_kind = 2;
+}
+
+message OrderPaid {
+  string order_id = 1;
+  string payment_id = 2;
+  common.v1.Money amount = 3;
+}
+
+message OrderCancelled {
+  string order_id = 1;
+  string reason = 2;
+}
+
+// Créé à l'annulation d'une commande payée (automatic = true) ou manuellement.
+message RefundRequested {
+  string order_id = 1;
+  string refund_id = 2;
+  common.v1.Money amount = 3;
+  string reason = 4;
+  string channel = 5;
+  bool automatic = 6;
+}
+
+message RefundSucceeded {
+  string order_id = 1;
+  string refund_id = 2;
+  common.v1.Money amount = 3;
+  bool restock = 4;
+  string credit_note_number = 5;
+}
+
+// Lève l'alerte du backoffice ; `refund_pending` reste vrai.
+message RefundFailed {
+  string order_id = 1;
+  string refund_id = 2;
+  string reason = 3;
+}
+
+// source : provider | manual.
+message PaymentSucceeded {
+  string payment_id = 1;
+  string order_id = 2;
+  common.v1.Money amount = 3;
+  string provider = 4;
+  string provider_reference = 5;
+  string source = 6;
+}
+
+message PaymentFailed {
+  string payment_id = 1;
+  string order_id = 2;
+  string reason = 3;
+}
+
+message PaymentRefunded {
+  string payment_id = 1;
+  string order_id = 2;
+  common.v1.Money amount = 3;
+}
+
+message StockReserved {
+  string owner_ref = 1;
+  string reservation_id = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message StockReservationExpired {
+  string owner_ref = 1;
+  string reservation_id = 2;
+}
+
+message StockAdjusted {
+  string product_id = 1;
+  string warehouse_id = 2;
+  int64 delta = 3;
+  int64 available_after = 4;
+}
+
+// kind : created | updated | deleted. Déclenche la mise à jour de l'index search.
+message ProductChanged {
+  string product_id = 1;
+  string kind = 2;
+}
+
+message PriceChanged {
+  string product_id = 1;
+  string currency = 2;
+}
+
+message QuoteRequested {
+  string request_id = 1;
+  string source = 2;
+  string contact_email = 3;
+  string locale = 4;
+}
+
+message QuoteSent {
+  string quote_id = 1;
+  string request_id = 2;
+  string contact_email = 3;
+  string locale = 4;
+}
+
+message QuoteAccepted {
+  string quote_id = 1;
+  string order_id = 2;
+  string actor = 3;
+}
+
+message UserRegistered {
+  string user_id = 1;
+  string email = 2;
+  string kind = 3;
+  string locale = 4;
+}
+
+message CompanyDecided {
+  string company_id = 1;
+  string user_id = 2;
+  string decision = 3;
+  optional string reason = 4;
+  string locale = 5;
+}
+
+// Chaque service anonymise ses données personnelles dans le respect des durées de conservation légales (réglages), puis publie la confirmation.
+message UserErasureRequested {
+  string request_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp requested_at = 3;
+}
+
+message UserErasureCompleted {
+  string request_id = 1;
+  string user_id = 2;
+  string service = 3;
+}
+
+// Chaque service fournit ses données ; identity assemble l'archive.
+message UserDataExportRequested {
+  string request_id = 1;
+  string user_id = 2;
+}
+
+// Consommé par notification (le code n'est jamais journalisé).
+message PasswordResetRequested {
+  string email = 1;
+  string code = 2;
+  string locale = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// Consommé par notification : e-mail « un compte existe déjà » au titulaire (la réponse HTTP reste uniforme).
+message RegistrationAttemptOnExistingAccount {
+  string email = 1;
+  string locale = 2;
+}
+
+// Alerte au titulaire après plusieurs échecs de connexion (seuil réglable).
+message SuspiciousLoginAlertRequested {
+  string user_id = 1;
+  string email = 2;
+  int32 failures = 3;
+  string last_ip = 4;
+  string locale = 5;
+}
+
+// Vérification envoyée à la NOUVELLE adresse ; l'ANCIENNE est notifiée. Le jeton n'est jamais journalisé.
+message EmailChangeRequested {
+  string user_id = 1;
+  string old_email = 2;
+  string new_email = 3;
+  string token = 4;
+  string locale = 5;
+}
+
+// Notification à l'ANCIENNE adresse après bascule.
+message EmailChangeConfirmed {
+  string user_id = 1;
+  string old_email = 2;
+  string new_email = 3;
+  string locale = 4;
+}
+
+// Notifie la personne concernée.
+message StaffTwoFactorReset {
+  string staff_id = 1;
+  string email = 2;
+  string actor_id = 3;
+  string locale = 4;
+}
+
+// Consommé par notification ; le jeton n'est jamais journalisé.
+message EmailVerificationRequested {
+  string user_id = 1;
+  string email = 2;
+  string token = 3;
+  string locale = 4;
+}
+
+// Consommé par notification ; le jeton n'est jamais journalisé.
+message StaffInvitationRequested {
+  string staff_id = 1;
+  string email = 2;
+  string token = 3;
+  string locale = 4;
+}
+
+message NewsletterConfirmationRequested {
+  string email = 1;
+  string token = 2;
+  string locale = 3;
+}
+
+message ContactReceived {
+  string message_id = 1;
+  string reference = 2;
+  string email = 3;
+  string locale = 4;
+}
+
+message ReviewSubmitted {
+  string review_id = 1;
+  string product_id = 2;
+}
+
+// Chaque service publie le changement de SES réglages ; les services concernés relisent la source.
+message SettingsChanged {
+  string service = 1;
+  string section = 2;
+}
+
+// Sujet `audit.*` ; hébergé par identity.
+message AuditRecorded {
+  string actor_type = 1;
+  string actor_id = 2;
+  string action = 3;
+  string entity = 4;
+  string entity_id = 5;
+  google.protobuf.Struct before = 6;
+  google.protobuf.Struct after = 7;
+  string ip = 8;
+}

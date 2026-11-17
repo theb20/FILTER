@@ -1,0 +1,447 @@
+// Contrat gRPC interne de l'administration du catalogue (taxonomie : catégories, attributs, marques, secteurs), porté par
+// le service `catalog`. STATUS: validated (voir docs/PROPOSITION-FICHE-PRODUIT.md).
+syntax = "proto3";
+
+package catalogadmin.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/catalogadmin/v1;catalogadminv1";
+
+// Texte par langue (BCP 47). La langue par défaut (fr) est obligatoire.
+message Localized {
+  map<string, string> texts = 1;
+}
+
+// ── catégories ──
+
+message Category {
+  string id = 1;
+  string slug = 2;
+  optional string parent_id = 3;
+  int32 sort_order = 4;
+  Localized name = 5;
+  optional Localized description = 6;
+  int32 depth = 7;
+  int64 product_count = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message ListCategoriesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string parent_id = 3;
+}
+
+message ListCategoriesResponse {
+  repeated Category items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetCategoryRequest {
+  string id = 1;
+}
+
+message GetCategoryResponse {
+  Category category = 1;
+}
+
+message CreateCategoryRequest {
+  Category category = 1;
+}
+
+message CreateCategoryResponse {
+  Category category = 1;
+}
+
+message UpdateCategoryRequest {
+  Category category = 1;
+}
+
+message UpdateCategoryResponse {
+  Category category = 1;
+}
+
+// Refusée si la catégorie a des sous-catégories, des produits ou des attributs.
+message DeleteCategoryRequest {
+  string id = 1;
+}
+
+message DeleteCategoryResponse {}
+
+// Déplace dans l'arbre : refusé si le nouveau parent est la catégorie elle-même ou l'un de ses descendants.
+message MoveCategoryRequest {
+  string id = 1;
+  optional string parent_id = 2;
+  int32 position = 3;
+}
+
+message MoveCategoryResponse {
+  Category category = 1;
+}
+
+// ── attributs d'une catégorie (hérités par les sous-catégories) ──
+
+enum AttributeType {
+  ATTRIBUTE_TYPE_UNSPECIFIED = 0;
+  ATTRIBUTE_TYPE_TEXT = 1;
+  ATTRIBUTE_TYPE_NUMBER = 2;
+  ATTRIBUTE_TYPE_BOOLEAN = 3;
+  ATTRIBUTE_TYPE_ENUM = 4;
+}
+
+message AttributeOption {
+  string value = 1;
+  Localized label = 2;
+}
+
+message AttributeDef {
+  string id = 1;
+  string category_id = 2;
+  string key = 3;
+  Localized label = 4;
+  AttributeType type = 5;
+  optional string unit = 6;
+  bool filterable = 7;
+  bool required = 8;
+  repeated AttributeOption options = 9;
+  int32 sort_order = 10;
+}
+
+message ListAttributeDefsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string category_id = 3;
+}
+
+message ListAttributeDefsResponse {
+  repeated AttributeDef items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetAttributeDefRequest {
+  string id = 1;
+}
+
+message GetAttributeDefResponse {
+  AttributeDef attribute = 1;
+}
+
+message CreateAttributeDefRequest {
+  AttributeDef attribute = 1;
+}
+
+message CreateAttributeDefResponse {
+  AttributeDef attribute = 1;
+}
+
+message UpdateAttributeDefRequest {
+  AttributeDef attribute = 1;
+}
+
+message UpdateAttributeDefResponse {
+  AttributeDef attribute = 1;
+}
+
+// Refusée si des produits portent une valeur pour cet attribut.
+message DeleteAttributeDefRequest {
+  string id = 1;
+}
+
+message DeleteAttributeDefResponse {}
+
+// ── marques ──
+
+message Brand {
+  string id = 1;
+  string slug = 2;
+  string name = 3;
+  optional string logo_url = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message ListBrandsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListBrandsResponse {
+  repeated Brand items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetBrandRequest {
+  string id = 1;
+}
+
+message GetBrandResponse {
+  Brand brand = 1;
+}
+
+message CreateBrandRequest {
+  Brand brand = 1;
+}
+
+message CreateBrandResponse {
+  Brand brand = 1;
+}
+
+message UpdateBrandRequest {
+  Brand brand = 1;
+}
+
+message UpdateBrandResponse {
+  Brand brand = 1;
+}
+
+// Refusée si des produits portent cette marque.
+message DeleteBrandRequest {
+  string id = 1;
+}
+
+message DeleteBrandResponse {}
+
+// ── secteurs d'activité ──
+
+message Sector {
+  string id = 1;
+  string slug = 2;
+  Localized name = 3;
+  optional string image_url = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message ListSectorsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListSectorsResponse {
+  repeated Sector items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetSectorRequest {
+  string id = 1;
+}
+
+message GetSectorResponse {
+  Sector sector = 1;
+}
+
+message CreateSectorRequest {
+  Sector sector = 1;
+}
+
+message CreateSectorResponse {
+  Sector sector = 1;
+}
+
+message UpdateSectorRequest {
+  Sector sector = 1;
+}
+
+message UpdateSectorResponse {
+  Sector sector = 1;
+}
+
+message DeleteSectorRequest {
+  string id = 1;
+}
+
+message DeleteSectorResponse {}
+
+// ── produits ──
+
+message ProductMedia {
+  string id = 1;
+  string url = 2;
+  optional string alt = 3;
+  int32 sort_order = 4;
+}
+
+message CrossReference {
+  string brand = 1;
+  string number = 2;
+  string kind = 3; // oem | equivalent | supersedes
+}
+
+message AttributeValue {
+  string key = 1;
+  oneof value {
+    string text = 2;
+    double number = 3;
+    bool boolean = 4;
+  }
+}
+
+// Fiche produit. Prix HORS TAXES en unités mineures de la devise de base (XOF : le franc).
+message Product {
+  string id = 1;
+  string sku = 2;
+  string slug = 3;
+  Localized name = 4;
+  optional Localized description = 5;
+  optional string brand_id = 6;
+  string category_id = 7;
+  optional string manufacturer_ref = 8;
+  string status = 9;           // draft | review | active | archived
+  string fulfillment_mode = 10; // stock | made_to_order
+  optional int32 lead_time_days = 11;
+  string price_mode = 12;      // fixed | on_quote
+  optional int64 price_amount = 13;
+  string currency = 14;
+  optional string gtin = 15;
+  optional string sale_unit = 16;
+  optional int32 min_order_quantity = 17;
+  optional int32 weight_grams = 18;
+  optional int32 length_mm = 19;
+  optional int32 width_mm = 20;
+  optional int32 height_mm = 21;
+  repeated AttributeValue attributes = 22;
+  repeated string sector_ids = 23;
+  repeated ProductMedia media = 24;
+  repeated CrossReference cross_references = 25;
+  map<string, string> origins = 26;
+  int32 version = 27;
+  optional google.protobuf.Timestamp published_at = 28;
+  google.protobuf.Timestamp created_at = 29;
+  google.protobuf.Timestamp updated_at = 30;
+}
+
+message ListProductsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string category_id = 3;
+  optional string brand_id = 4;
+  optional string status = 5;
+}
+
+message ListProductsResponse {
+  repeated Product items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+// `product.id` est ignoré à la création. `expected_version` (si présent) protège contre les écritures concurrentes.
+message CreateProductRequest {
+  Product product = 1;
+}
+
+message CreateProductResponse {
+  Product product = 1;
+}
+
+message UpdateProductRequest {
+  Product product = 1;
+  optional int32 expected_version = 2;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+// Supprime un produit jamais publié ; sinon l'archive.
+message DeleteProductRequest {
+  string id = 1;
+}
+
+message DeleteProductResponse {}
+
+message SubmitProductReviewRequest {
+  string id = 1;
+}
+
+message SubmitProductReviewResponse {
+  Product product = 1;
+}
+
+message PublishProductRequest {
+  string id = 1;
+}
+
+message PublishProductResponse {
+  Product product = 1;
+}
+
+message ArchiveProductRequest {
+  string id = 1;
+}
+
+message ArchiveProductResponse {
+  Product product = 1;
+}
+
+message RestoreProductRequest {
+  string id = 1;
+}
+
+message RestoreProductResponse {
+  Product product = 1;
+}
+
+message ProductVersion {
+  int32 version = 1;
+  google.protobuf.Timestamp at = 2;
+  optional string actor_id = 3;
+  string action = 4;
+  google.protobuf.Struct changes = 5;
+}
+
+message ListProductVersionsRequest {
+  string id = 1;
+}
+
+message ListProductVersionsResponse {
+  repeated ProductVersion items = 1;
+}
+
+service CatalogAdminService {
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
+  rpc GetCategory(GetCategoryRequest) returns (GetCategoryResponse);
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
+  rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
+  rpc MoveCategory(MoveCategoryRequest) returns (MoveCategoryResponse);
+
+  rpc ListAttributeDefs(ListAttributeDefsRequest) returns (ListAttributeDefsResponse);
+  rpc GetAttributeDef(GetAttributeDefRequest) returns (GetAttributeDefResponse);
+  rpc CreateAttributeDef(CreateAttributeDefRequest) returns (CreateAttributeDefResponse);
+  rpc UpdateAttributeDef(UpdateAttributeDefRequest) returns (UpdateAttributeDefResponse);
+  rpc DeleteAttributeDef(DeleteAttributeDefRequest) returns (DeleteAttributeDefResponse);
+
+  rpc ListBrands(ListBrandsRequest) returns (ListBrandsResponse);
+  rpc GetBrand(GetBrandRequest) returns (GetBrandResponse);
+  rpc CreateBrand(CreateBrandRequest) returns (CreateBrandResponse);
+  rpc UpdateBrand(UpdateBrandRequest) returns (UpdateBrandResponse);
+  rpc DeleteBrand(DeleteBrandRequest) returns (DeleteBrandResponse);
+
+  rpc ListSectors(ListSectorsRequest) returns (ListSectorsResponse);
+  rpc GetSector(GetSectorRequest) returns (GetSectorResponse);
+  rpc CreateSector(CreateSectorRequest) returns (CreateSectorResponse);
+  rpc UpdateSector(UpdateSectorRequest) returns (UpdateSectorResponse);
+  rpc DeleteSector(DeleteSectorRequest) returns (DeleteSectorResponse);
+
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+  rpc SubmitProductReview(SubmitProductReviewRequest) returns (SubmitProductReviewResponse);
+  rpc PublishProduct(PublishProductRequest) returns (PublishProductResponse);
+  rpc ArchiveProduct(ArchiveProductRequest) returns (ArchiveProductResponse);
+  rpc RestoreProduct(RestoreProductRequest) returns (RestoreProductResponse);
+  rpc ListProductVersions(ListProductVersionsRequest) returns (ListProductVersionsResponse);
+}

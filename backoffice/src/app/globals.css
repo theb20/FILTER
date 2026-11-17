@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Charte FilterFinder (identique au site) — le backoffice reste en thème clair. */
+@theme {
+  --font-sans: var(--font-roboto), system-ui, sans-serif;
+  --color-night: #131921;
+  --color-navy: #232f3e;
+  --color-action: #f7be14;
+  --color-action-dark: #e0a900;
+  --color-link: #0275c8;
+  --color-page: #f4f5f7;
+  --color-slate: #3e4861;
+  --color-line: #e3e6eb;
+  --color-danger: #e8472b;
+  --color-ok: #00b67a;
+  --shadow-card: 0 1px 2px rgba(19, 25, 33, 0.06), 0 4px 16px rgba(19, 25, 33, 0.06);
+}
+
+:root { color-scheme: light; }
+
+body {
+  margin: 0;
+  background: var(--color-page);
+  color: #131921;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+:focus-visible { outline: 2px solid var(--color-link); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgb(247 190 20 / 0.45); }
+html { scroll-behavior: smooth; }
+h1, h2, h3 { text-wrap: balance; }
+table { font-variant-numeric: tabular-nums; }
+button:not(:disabled), summary, select { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+/* Apparition douce du contenu à chaque page */
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+main > * { animation: page-in .28s ease-out both; }
+/* Barres de défilement discrètes */
+* { scrollbar-width: thin; scrollbar-color: rgb(62 72 97 / .3) transparent; }

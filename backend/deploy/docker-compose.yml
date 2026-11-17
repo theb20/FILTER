@@ -1,0 +1,83 @@
+# Développement local : réseau Docker PRIVÉ ; seuls le gateway (8080) et, pour les outils locaux, PostgreSQL/NATS en
+# 127.0.0.1 sont publiés.
+#
+#   cp deploy/.env.example deploy/.env      # puis renseigner POSTGRES_PASSWORD
+#   make generate && docker compose -f deploy/docker-compose.yml --env-file deploy/.env up --build
+#
+# NON TESTÉ : Docker n'est pas installé sur la machine de développement. Les mêmes composants (PostgreSQL 17, NATS
+# JetStream) ont été exécutés en local hors Docker (tests d'intégration, gateway ↔ identity ↔ PostgreSQL ↔ NATS).
+name: filterfinder
+
+services:
+  gateway:
+    build: { context: .., dockerfile: deploy/Dockerfile, args: { SERVICE: gateway } }
+    environment:
+      ENV: dev
+      GATEWAY_ADDR: ":8080"
+      IDENTITY_ADDR: identity:9001
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+      COOKIE_SECURE: "false" # développement en http ; la production exige Secure
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on: [identity]
+    networks: [internal]
+
+  identity:
+    build: { context: .., dockerfile: deploy/Dockerfile, args: { SERVICE: identity } }
+    environment:
+      ENV: dev # clés éphémères : développement UNIQUEMENT (la production exige JWT_KEY_*_FILE)
+      STORE: postgres
+      DATABASE_URL: postgres://filterfinder:${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans deploy/.env}@postgres:5432/identity?sslmode=disable
+      NATS_URL: nats://nats:4222
+      IDENTITY_GRPC_ADDR: ":9001"
+    expose: ["9001"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_healthy }
+    networks: [internal]
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: filterfinder
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans deploy/.env}
+      POSTGRES_DB: identity # une base par service (autres bases créées avec les autres services)
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U filterfinder -d identity"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  # Prêt pour la limitation de débit distribuée et le cache ; pas encore utilisé par identity.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  nats:
+    image: nats:2-alpine
+    command: ["-js", "-sd", "/data", "-m", "8222"] # JetStream persistant, surveillance sur 8222
+    ports: ["127.0.0.1:4222:4222"]
+    volumes: [natsdata:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8222/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+networks:
+  internal: { driver: bridge, internal: false }
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  natsdata: {}

@@ -1,0 +1,10 @@
+.git
+**/*_test.go
+docs/
+tools/
+proto/
+api/
+Makefile
+deploy/
+**/__pycache__
+**/.env

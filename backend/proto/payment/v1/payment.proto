@@ -1,0 +1,285 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package payment.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/payment/v1;paymentv1";
+
+enum PaymentKind {
+  PAYMENT_KIND_UNSPECIFIED = 0;
+  PAYMENT_KIND_MOBILE_MONEY = 1;
+  PAYMENT_KIND_CARD = 2;
+  PAYMENT_KIND_BANK_TRANSFER = 3;
+  PAYMENT_KIND_CASH_ON_DELIVERY = 4;
+  PAYMENT_KIND_DEFERRED_INVOICE = 5;
+}
+
+// Statut d'UNE TENTATIVE de paiement. Le statut de paiement de la commande est `order.v1.PaymentStatus`.
+enum IntentStatus {
+  INTENT_STATUS_UNSPECIFIED = 0;
+  INTENT_STATUS_REQUIRES_ACTION = 1;
+  INTENT_STATUS_PROCESSING = 2;
+  INTENT_STATUS_SUCCEEDED = 3;
+  INTENT_STATUS_FAILED = 4;
+  INTENT_STATUS_CANCELLED = 5;
+  INTENT_STATUS_EXPIRED = 6;
+  INTENT_STATUS_REFUNDED = 7;
+  INTENT_STATUS_PARTIALLY_REFUNDED = 8;
+}
+
+enum ActionType {
+  ACTION_TYPE_UNSPECIFIED = 0;
+  ACTION_TYPE_NONE = 1;
+  ACTION_TYPE_REDIRECT = 2;
+  ACTION_TYPE_PUSH_PROMPT = 3;
+  ACTION_TYPE_INSTRUCTIONS = 4;
+}
+
+message PaymentMethod {
+  string code = 1;
+  PaymentKind kind = 2;
+  string display_name = 3;
+  optional string logo_url = 4;
+  repeated string countries = 5;
+  bool requires_payer_phone = 6;
+  optional common.v1.Money min_amount = 7;
+  optional common.v1.Money max_amount = 8;
+}
+
+message ListPaymentMethodsRequest {
+  string country = 1;
+  string customer_kind = 2;
+  bool company_approved = 3;
+  optional string company_id = 4;
+  optional common.v1.Money amount = 5;
+  optional string zone_code = 6;
+}
+
+message ListPaymentMethodsResponse {
+  repeated PaymentMethod items = 1;
+}
+
+message PaymentAction {
+  ActionType type = 1;
+  optional string url = 2;
+  optional string instructions = 3;
+}
+
+message PaymentIntent {
+  string id = 1;
+  string order_id = 2;
+  string method_code = 3;
+  PaymentKind kind = 4;
+  IntentStatus status = 5;
+  common.v1.Money amount = 6;
+  PaymentAction action = 7;
+  optional google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+  optional string provider = 10;
+  optional string provider_reference = 11;
+  optional string failure_reason = 12;
+}
+
+message GetPaymentWindowRequest {
+  PaymentKind kind = 1;
+}
+
+message GetPaymentWindowResponse {
+  optional google.protobuf.Timestamp expires_at = 1;
+}
+
+message CreatePaymentRequest {
+  string order_id = 1;
+  common.v1.Money amount = 2;
+  string method_code = 3;
+  string return_url = 4;
+  optional string cancel_url = 5;
+  optional string payer_phone_e164 = 6;
+  string idempotency_key = 7;
+  string user_id = 8;
+}
+
+message CreatePaymentResponse {
+  PaymentIntent intent = 1;
+}
+
+message GetPaymentRequest {
+  string id = 1;
+  optional string user_id = 2;
+}
+
+message GetPaymentResponse {
+  PaymentIntent intent = 1;
+}
+
+message HandleWebhookRequest {
+  string provider = 1;
+  map<string, string> headers = 2;
+  bytes body = 3;
+}
+
+message HandleWebhookResponse {
+  bool accepted = 1;
+}
+
+message MarkPaymentPaidRequest {
+  string payment_id = 1;
+  common.v1.Money received_amount = 2;
+  google.protobuf.Timestamp received_at = 3;
+  optional string bank_reference = 4;
+  optional string proof_attachment_id = 5;
+  optional string note = 6;
+  string idempotency_key = 7;
+}
+
+message MarkPaymentPaidResponse {
+  PaymentIntent intent = 1;
+}
+
+message RefundPaymentRequest {
+  string order_id = 1;
+  string refund_id = 2;
+  common.v1.Money amount = 3;
+  string reason = 4;
+  string idempotency_key = 5;
+}
+
+message RefundPaymentResponse {
+  string status = 1;
+  optional string provider_reference = 2;
+  optional string failure_reason = 3;
+}
+
+message ListPaymentsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional IntentStatus status = 3;
+  optional google.protobuf.Timestamp from = 4;
+  optional google.protobuf.Timestamp to = 5;
+}
+
+message ListPaymentsResponse {
+  repeated PaymentIntent items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message ListFailedPaymentsRequest {
+  common.v1.PageRequest page = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+
+message ListFailedPaymentsResponse {
+  repeated PaymentIntent items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message PaymentEvent {
+  string id = 1;
+  string provider = 2;
+  string event_id = 3;
+  optional string type = 4;
+  optional string payment_id = 5;
+  google.protobuf.Timestamp received_at = 6;
+  optional google.protobuf.Timestamp processed_at = 7;
+  string outcome = 8;
+}
+
+message ListPaymentEventsRequest {
+  common.v1.CursorRequest cursor = 1;
+  optional string payment_id = 2;
+  optional string outcome = 3;
+}
+
+message ListPaymentEventsResponse {
+  repeated PaymentEvent items = 1;
+  common.v1.CursorResponse cursor = 2;
+}
+
+message CashOnDeliverySettings {
+  optional common.v1.Money max_amount = 1;
+  repeated string eligible_zone_codes = 2;
+}
+
+message PaymentWindows {
+  optional int32 mobile_money_minutes = 1;
+  optional int32 card_minutes = 2;
+  optional int32 bank_transfer_business_days = 3;
+}
+
+// COD et DEFERRED_INVOICE absents de `enabled_method_kinds` au lancement. Valeurs vides tant que non définies (suggestions : 30 min mobile money/carte, 5 jours ouvrés virement).
+message PaymentSettings {
+  repeated PaymentKind enabled_method_kinds = 1;
+  PaymentWindows windows = 2;
+  CashOnDeliverySettings cash_on_delivery = 3;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  PaymentSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  PaymentSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  PaymentSettings settings = 1;
+}
+
+message CreditTerms {
+  string company_id = 1;
+  optional common.v1.Money credit_limit = 2;
+  optional int32 payment_terms_days = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message GetCreditTermsRequest {
+  string company_id = 1;
+}
+
+message GetCreditTermsResponse {
+  CreditTerms terms = 1;
+}
+
+message PutCreditTermsRequest {
+  string company_id = 1;
+  optional common.v1.Money credit_limit = 2;
+  optional int32 payment_terms_days = 3;
+}
+
+message PutCreditTermsResponse {
+  CreditTerms terms = 1;
+}
+
+// Abstraction multi-prestataires (premier et seul adaptateur au lancement : GeniusPay), tentatives de paiement, webhooks, remboursements, rapprochement manuel.
+service PaymentService {
+  // Seulement les moyens RÉELLEMENT activés (prestataire + réglages). `deferred_invoice` : entreprise validée avec conditions de crédit renseignées ; `cash_on_delivery` : montant et zone dans les garde-fous. Les deux sont DÉSACTIVÉS au lancement.
+  rpc ListPaymentMethods(ListPaymentMethodsRequest) returns (ListPaymentMethodsResponse);
+  // Échéance du paiement pour un type donné (réglages `windows`) ; absente pour la livraison et le différé.
+  rpc GetPaymentWindow(GetPaymentWindowRequest) returns (GetPaymentWindowResponse);
+  // Le TYPE est fixé à la création de la commande ; `method_code` peut changer à l'intérieur du même type.
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
+  // Le format exact (corps, signature) est celui du prestataire : l'adaptateur le vérifie. Idempotent via `provider_events`. À reprendre de la documentation officielle avant implémentation.
+  rpc HandleWebhook(HandleWebhookRequest) returns (HandleWebhookResponse);
+  // Rapprochement MANUEL (virement, espèces, règlement de facture). Réservé comptabilité + super-admin ; audité ; publie payment.succeeded (source = manual).
+  rpc MarkPaymentPaid(MarkPaymentPaidRequest) returns (MarkPaymentPaidResponse);
+  // Exécute un remboursement chez le prestataire pour un remboursement créé par `order`. Les canaux manuels ne passent pas par ici (order.CompleteRefund).
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+  rpc ListPayments(ListPaymentsRequest) returns (ListPaymentsResponse);
+  rpc ListFailedPayments(ListFailedPaymentsRequest) returns (ListFailedPaymentsResponse);
+  // Pagination PAR CURSEUR.
+  rpc ListPaymentEvents(ListPaymentEventsRequest) returns (ListPaymentEventsResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Publie `settings.changed`.
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+  rpc GetCreditTerms(GetCreditTermsRequest) returns (GetCreditTermsResponse);
+  // Valeurs vides au lancement (différé désactivé).
+  rpc PutCreditTerms(PutCreditTermsRequest) returns (PutCreditTermsResponse);
+}

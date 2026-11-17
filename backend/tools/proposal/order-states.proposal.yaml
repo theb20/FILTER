@@ -1,0 +1,51 @@
+# PROPOSITION (non validée) — source UNIQUE de la table de transitions commande × paiement.
+# Destination après validation : backend/api/order-states.yaml, lu par :
+#   - tools/check_order_states.py (exploration exhaustive + invariants) ;
+#   - le service `order` (code Go GÉNÉRÉ depuis ce fichier par tools/genfsm, jamais écrit à la main).
+version: 2-proposition
+statuses: [placed, preparing, shipped, delivered, cancelled]
+payment_statuses: [pending, paid, partially_refunded, refunded, failed, voided]
+kinds: [mobile_money, card, bank_transfer, cash_on_delivery, deferred_invoice]
+kind_groups:
+  prepaid: [mobile_money, card, bank_transfer]
+  other: [cash_on_delivery, deferred_invoice]
+
+# État = (status, payment, rf, held)
+#   rf   : un remboursement DE LA COMMANDE est en cours ou en échec (action requise)
+#   held : de l'argent a été encaissé que la commande ne peut pas absorber (paiement tardif ou en double) ;
+#          il est tracé au niveau du PAIEMENT et remboursé automatiquement. N'altère jamais status/payment.
+#   refundPending (API) = rf OU held
+initial: { status: placed, payment: pending, rf: false, held: false }
+
+# `from` : contraintes (status, payment : listes ; rf, held : booléens ; absent = indifférent).
+# `to`   : valeurs imposées (absent = inchangé). `kinds` : groupe, liste ou `all`.
+transitions:
+  # ── paiement attendu ───────────────────────────────────────────────────────
+  - { id: pay,                label: payer,                               kinds: prepaid,            from: { status: [placed], payment: [pending], rf: false }, to: { payment: paid } }
+  - { id: pay_fail,           label: échec du paiement,                   kinds: prepaid,            from: { status: [placed], payment: [pending], rf: false }, to: { payment: failed } }
+  - { id: pay_retry,          label: nouvelle tentative,                  kinds: prepaid,            from: { status: [placed], payment: [failed] },                to: { payment: pending } }
+  - { id: pay_after_failure,  label: paiement reçu après un échec déclaré, kinds: prepaid,           from: { status: [placed], payment: [failed] },                to: { payment: paid } }
+  - { id: collect,            label: encaissement à la livraison,         kinds: [cash_on_delivery], from: { status: [delivered], payment: [pending] },             to: { payment: paid } }
+  - { id: settle,             label: règlement de la facture,             kinds: [deferred_invoice], from: { status: [placed, preparing, shipped, delivered], payment: [pending] }, to: { payment: paid } }
+  - { id: expire,             label: expiration automatique,              kinds: prepaid,            from: { status: [placed], payment: [pending, failed] },     to: { status: cancelled, payment: voided } }
+  # ── cycle logistique ───────────────────────────────────────────────────────
+  - { id: start_prep_prepaid, label: démarrer la préparation,             kinds: prepaid,            from: { status: [placed], payment: [paid, partially_refunded] }, to: { status: preparing } }
+  - { id: start_prep_other,   label: démarrer la préparation,             kinds: other,              from: { status: [placed], payment: [pending, paid] },       to: { status: preparing } }
+  - { id: ship,               label: expédier,                            kinds: all,                from: { status: [preparing] },                              to: { status: shipped } }
+  - { id: deliver,            label: livrer,                              kinds: all,                from: { status: [shipped] },                                to: { status: delivered } }
+  # ── annulation ─────────────────────────────────────────────────────────────
+  - { id: cancel_unpaid,      label: annuler (sans encaissement),         kinds: all,                from: { status: [placed, preparing, shipped], payment: [pending, failed] },            to: { status: cancelled, payment: voided } }
+  - { id: cancel_paid,        label: annuler (remboursement automatique), kinds: all,                from: { status: [placed, preparing, shipped], payment: [paid, partially_refunded] },   to: { status: cancelled, rf: true } }
+  # ── remboursements de la commande ──────────────────────────────────────────
+  - { id: refund_partial_req, label: remboursement partiel demandé,       kinds: all,                from: { status: [placed, preparing, shipped, delivered], payment: [paid, partially_refunded], rf: false }, to: { rf: true } }
+  - { id: refund_full_req,    label: remboursement total demandé,         kinds: all,                from: { status: [delivered], payment: [paid, partially_refunded], rf: false },                          to: { rf: true } }
+  - { id: refund_failed,      label: remboursement échoué (alerte),       kinds: all,                from: { payment: [paid, partially_refunded], rf: true },                                               to: { rf: true } }
+  - { id: refund_full_ok,     label: remboursement total réussi,          kinds: all,                from: { status: [cancelled, delivered], payment: [paid, partially_refunded], rf: true },                to: { payment: refunded, rf: false } }
+  - { id: refund_partial_ok,  label: remboursement partiel réussi,        kinds: all,                from: { status: [placed, preparing, shipped, delivered], payment: [paid, partially_refunded], rf: true }, to: { payment: partially_refunded, rf: false } }
+  # ── NOUVEAU : argent encaissé que la commande ne peut pas absorber (tardif, en double, hors attente) ──
+  - { id: unabsorbed_prepaid_placed, label: paiement tardif ou en double reçu, kinds: prepaid,       from: { status: [placed], payment: [paid, partially_refunded, refunded, voided] }, to: { held: true } }
+  - { id: unabsorbed_prepaid_later,  label: paiement tardif ou en double reçu, kinds: prepaid,       from: { status: [preparing, shipped, delivered, cancelled] },                        to: { held: true } }
+  - { id: unabsorbed_cod,            label: paiement en ligne inattendu reçu,  kinds: [cash_on_delivery], from: {},                                                                         to: { held: true } }
+  - { id: unabsorbed_deferred,       label: paiement tardif ou en double reçu, kinds: [deferred_invoice], from: { payment: [paid, partially_refunded, refunded, voided] },                  to: { held: true } }
+  - { id: held_refund_failed,        label: remboursement automatique échoué (alerte), kinds: all,    from: { held: true },                                                                to: { held: true } }
+  - { id: held_refund_ok,            label: remboursement automatique réussi,  kinds: all,            from: { held: true },                                                                to: { held: false } }

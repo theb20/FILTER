@@ -1,0 +1,101 @@
+// Contrat gRPC interne.
+// STATUS: validated
+syntax = "proto3";
+
+package common.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/common/v1;commonv1";
+
+// Unités MINEURES (entier décimal en chaîne) + ISO 4217. Jamais de flottant.
+message Money {
+  string amount = 1;
+  string currency = 2;
+}
+
+message Address {
+  string line1 = 1;
+  optional string line2 = 2;
+  string city = 3;
+  optional string region = 4;
+  optional string postal_code = 5;
+  string country = 6;
+  optional string contact_name = 7;
+  optional string phone_e164 = 8;
+}
+
+// page ≥ 1 ; page_size ≤ 100 ; sort préfixé de `-` pour décroissant.
+message PageRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string sort = 3;
+}
+
+message PageResponse {
+  int32 page = 1;
+  int32 page_size = 2;
+  int64 total = 3;
+  int32 total_pages = 4;
+}
+
+// Pagination par curseur (listes qui grossissent sans fin) : limit ≤ 200.
+message CursorRequest {
+  string cursor = 1;
+  int32 limit = 2;
+}
+
+// Vide = dernière page.
+message CursorResponse {
+  string next_cursor = 1;
+}
+
+message DayRange {
+  int32 min = 1;
+  int32 max = 2;
+}
+
+// `source` : product | category (la remise la plus avantageuse est retenue, jamais cumulée).
+message LineDiscount {
+  double percent = 1;
+  string source = 2;
+  Money savings = 3;
+}
+
+message Totals {
+  Money subtotal = 1;
+  Money volume_discount_total = 2;
+  Money promo_discount = 3;
+  Money shipping = 4;
+  bool free_shipping = 5;
+  Money total_excl_tax = 6;
+  int32 tax_rate_bp = 7;
+  Money tax = 8;
+  Money total_incl_tax = 9;
+  optional Money free_shipping_remaining = 10;
+}
+
+message Job {
+  string id = 1;
+  string kind = 2;
+  string status = 3;
+  int64 total = 4;
+  int64 succeeded = 5;
+  int64 failed = 6;
+  optional string error_report_url = 7;
+  google.protobuf.Timestamp created_at = 8;
+  optional google.protobuf.Timestamp finished_at = 9;
+}
+
+message UploadTicket {
+  string attachment_id = 1;
+  string upload_url = 2;
+  map<string, string> headers = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// type : customer | staff | system. Transmis en métadonnées gRPC (`x-actor-id`, `x-actor-type`).
+message Actor {
+  string id = 1;
+  string type = 2;
+}

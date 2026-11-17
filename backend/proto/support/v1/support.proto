@@ -1,0 +1,297 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package support.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/support/v1;supportv1";
+
+enum ContactStatus {
+  CONTACT_STATUS_UNSPECIFIED = 0;
+  CONTACT_STATUS_NEW = 1;
+  CONTACT_STATUS_IN_PROGRESS = 2;
+  CONTACT_STATUS_DONE = 3;
+  CONTACT_STATUS_SPAM = 4;
+}
+
+enum TicketStatus {
+  TICKET_STATUS_UNSPECIFIED = 0;
+  TICKET_STATUS_OPEN = 1;
+  TICKET_STATUS_PENDING = 2;
+  TICKET_STATUS_RESOLVED = 3;
+  TICKET_STATUS_CLOSED = 4;
+}
+
+enum ScanStatus {
+  SCAN_STATUS_UNSPECIFIED = 0;
+  SCAN_STATUS_PENDING = 1;
+  SCAN_STATUS_CLEAN = 2;
+  SCAN_STATUS_INFECTED = 3;
+}
+
+message Attachment {
+  string id = 1;
+  string file_name = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+  ScanStatus scan = 5;
+  optional string download_url = 6;
+}
+
+message CreateUploadRequest {
+  string file_name = 1;
+  string content_type = 2;
+  int64 size_bytes = 3;
+  optional string user_id = 4;
+}
+
+message CreateUploadResponse {
+  common.v1.UploadTicket ticket = 1;
+}
+
+message ContactMessage {
+  string id = 1;
+  string reference = 2;
+  string kind = 3;
+  optional string company = 4;
+  optional string tax_id = 5;
+  string name = 6;
+  string email = 7;
+  optional string phone_e164 = 8;
+  string message = 9;
+  repeated Attachment attachments = 10;
+  google.protobuf.Timestamp consent_at = 11;
+  ContactStatus status = 12;
+  optional string assigned_to = 13;
+  google.protobuf.Timestamp created_at = 14;
+}
+
+message CreateContactMessageRequest {
+  string kind = 1;
+  optional string company = 2;
+  optional string tax_id = 3;
+  string name = 4;
+  string email = 5;
+  optional string phone_e164 = 6;
+  string message = 7;
+  repeated string attachment_ids = 8;
+  bool consent = 9;
+  string locale = 10;
+  string client_ip = 11;
+}
+
+message CreateContactMessageResponse {
+  ContactMessage message = 1;
+}
+
+message ListContactMessagesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional ContactStatus status = 3;
+}
+
+message ListContactMessagesResponse {
+  repeated ContactMessage items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetContactMessageRequest {
+  string id = 1;
+}
+
+message GetContactMessageResponse {
+  ContactMessage message = 1;
+}
+
+message UpdateContactMessageRequest {
+  string id = 1;
+  optional ContactStatus status = 2;
+  optional string assigned_to = 3;
+}
+
+message UpdateContactMessageResponse {
+  ContactMessage message = 1;
+}
+
+message ChatMessage {
+  string id = 1;
+  string session_id = 2;
+  string sender = 3;
+  string text = 4;
+  google.protobuf.Timestamp at = 5;
+}
+
+message ChatSession {
+  string id = 1;
+  string status = 2;
+  optional string visitor_name = 3;
+  optional string visitor_email = 4;
+  google.protobuf.Timestamp created_at = 5;
+  optional string ws_token = 6;
+}
+
+message CreateChatSessionRequest {
+  optional string name = 1;
+  optional string email = 2;
+  string locale = 3;
+  string client_ip = 4;
+}
+
+message CreateChatSessionResponse {
+  ChatSession session = 1;
+}
+
+message PostChatMessageRequest {
+  string session_id = 1;
+  string sender = 2;
+  string text = 3;
+}
+
+message PostChatMessageResponse {
+  ChatMessage message = 1;
+}
+
+message ListChatMessagesRequest {
+  string session_id = 1;
+  optional google.protobuf.Timestamp after = 2;
+}
+
+message ListChatMessagesResponse {
+  repeated ChatMessage items = 1;
+}
+
+message StreamChatRequest {
+  string session_id = 1;
+  string text = 2;
+}
+
+message StreamChatResponse {
+  ChatMessage message = 1;
+}
+
+message ListChatSessionsRequest {
+  common.v1.PageRequest page = 1;
+  optional string status = 2;
+}
+
+message ListChatSessionsResponse {
+  repeated ChatSession items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message CloseChatSessionRequest {
+  string id = 1;
+}
+
+message CloseChatSessionResponse {}
+
+message TicketMessage {
+  string id = 1;
+  string sender = 2;
+  string text = 3;
+  repeated string attachment_ids = 4;
+  google.protobuf.Timestamp at = 5;
+}
+
+message Ticket {
+  string id = 1;
+  string reference = 2;
+  string subject = 3;
+  TicketStatus status = 4;
+  optional string customer_id = 5;
+  optional string customer_email = 6;
+  optional string assigned_to = 7;
+  string priority = 8;
+  repeated TicketMessage messages = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message ListTicketsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string customer_id = 3;
+  optional TicketStatus status = 4;
+  optional string assigned_to = 5;
+}
+
+message ListTicketsResponse {
+  repeated Ticket items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetTicketRequest {
+  string id = 1;
+  optional string customer_id = 2;
+}
+
+message GetTicketResponse {
+  Ticket ticket = 1;
+}
+
+message ReplyToTicketRequest {
+  string id = 1;
+  string sender = 2;
+  string text = 3;
+  repeated string attachment_ids = 4;
+  optional string customer_id = 5;
+}
+
+message ReplyToTicketResponse {
+  TicketMessage message = 1;
+}
+
+message UpdateTicketRequest {
+  string id = 1;
+  optional TicketStatus status = 2;
+  optional string assigned_to = 3;
+  optional string priority = 4;
+}
+
+message UpdateTicketResponse {
+  Ticket ticket = 1;
+}
+
+message SupportSettings {
+  optional int32 support_days = 1;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  SupportSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  SupportSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  SupportSettings settings = 1;
+}
+
+// Contact, pièces jointes, chat, tickets.
+service SupportService {
+  // URL pré-signée ; antivirus avant rattachement.
+  rpc CreateUpload(CreateUploadRequest) returns (CreateUploadResponse);
+  rpc CreateContactMessage(CreateContactMessageRequest) returns (CreateContactMessageResponse);
+  rpc ListContactMessages(ListContactMessagesRequest) returns (ListContactMessagesResponse);
+  rpc GetContactMessage(GetContactMessageRequest) returns (GetContactMessageResponse);
+  rpc UpdateContactMessage(UpdateContactMessageRequest) returns (UpdateContactMessageResponse);
+  rpc CreateChatSession(CreateChatSessionRequest) returns (CreateChatSessionResponse);
+  rpc PostChatMessage(PostChatMessageRequest) returns (PostChatMessageResponse);
+  rpc ListChatMessages(ListChatMessagesRequest) returns (ListChatMessagesResponse);
+  // Flux bidirectionnel derrière le WebSocket du gateway.
+  rpc StreamChat(stream StreamChatRequest) returns (stream StreamChatResponse);
+  rpc ListChatSessions(ListChatSessionsRequest) returns (ListChatSessionsResponse);
+  rpc CloseChatSession(CloseChatSessionRequest) returns (CloseChatSessionResponse);
+  rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
+  rpc GetTicket(GetTicketRequest) returns (GetTicketResponse);
+  rpc ReplyToTicket(ReplyToTicketRequest) returns (ReplyToTicketResponse);
+  rpc UpdateTicket(UpdateTicketRequest) returns (UpdateTicketResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+}

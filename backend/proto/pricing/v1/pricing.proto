@@ -1,0 +1,542 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package pricing.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/pricing/v1;pricingv1";
+
+enum PromoKind {
+  PROMO_KIND_UNSPECIFIED = 0;
+  PROMO_KIND_PERCENT = 1;
+  PROMO_KIND_FIXED = 2;
+}
+
+enum PromoStatus {
+  PROMO_STATUS_UNSPECIFIED = 0;
+  PROMO_STATUS_VALID = 1;
+  PROMO_STATUS_INVALID = 2;
+  PROMO_STATUS_EXPIRED = 3;
+  PROMO_STATUS_MINIMUM_NOT_MET = 4;
+}
+
+enum DiscountScope {
+  DISCOUNT_SCOPE_UNSPECIFIED = 0;
+  DISCOUNT_SCOPE_PRODUCT = 1;
+  DISCOUNT_SCOPE_CATEGORY = 2;
+}
+
+message VolumeTier {
+  int32 min_quantity = 1;
+  double percent = 2;
+  common.v1.Money unit_price = 3;
+  DiscountScope scope = 4;
+}
+
+message PriceInfo {
+  string product_id = 1;
+  common.v1.Money unit_price = 2;
+  bool tax_included = 3;
+  string source = 4;
+  optional string fx_rate_id = 5;
+  repeated VolumeTier volume_tiers = 6;
+}
+
+message GetPricesRequest {
+  repeated string product_ids = 1;
+  string currency = 2;
+  repeated string category_path_ids = 3;
+}
+
+message GetPricesResponse {
+  repeated PriceInfo prices = 1;
+}
+
+message PricedLineInput {
+  string product_id = 1;
+  repeated string category_path_ids = 2;
+  int32 quantity = 3;
+}
+
+message PricedLine {
+  string product_id = 1;
+  int32 quantity = 2;
+  common.v1.Money list_unit_price = 3;
+  common.v1.Money unit_price = 4;
+  optional common.v1.LineDiscount discount = 5;
+  common.v1.Money line_total = 6;
+}
+
+message PriceLinesRequest {
+  string currency = 1;
+  repeated PricedLineInput lines = 2;
+  optional string promo_code = 3;
+  optional string user_id = 4;
+}
+
+message PriceLinesResponse {
+  repeated PricedLine lines = 1;
+  common.v1.Money subtotal = 2;
+  common.v1.Money volume_discount_total = 3;
+  common.v1.Money promo_discount = 4;
+  common.v1.Money after_discount = 5;
+  optional PromoResult promo = 6;
+}
+
+message ComputeTaxesRequest {
+  string currency = 1;
+  common.v1.Money after_discount = 2;
+  common.v1.Money shipping = 3;
+  string country = 4;
+  string customer_kind = 5;
+  bool company_approved = 6;
+  string tax_id = 7;
+}
+
+message ComputeTaxesResponse {
+  int32 tax_rate_bp = 1;
+  common.v1.Money tax = 2;
+  common.v1.Money total_excl_tax = 3;
+  common.v1.Money total_incl_tax = 4;
+}
+
+message PromoResult {
+  PromoStatus status = 1;
+  optional string code = 2;
+  optional PromoKind kind = 3;
+  optional common.v1.Money discount = 4;
+  optional common.v1.Money minimum_subtotal = 5;
+}
+
+message ValidatePromoRequest {
+  string code = 1;
+  common.v1.Money subtotal = 2;
+  optional string user_id = 3;
+}
+
+message ValidatePromoResponse {
+  PromoResult result = 1;
+}
+
+message RedeemPromoRequest {
+  string code = 1;
+  string order_id = 2;
+  optional string user_id = 3;
+  common.v1.Money discount = 4;
+}
+
+message RedeemPromoResponse {}
+
+message ReleasePromoRequest {
+  string order_id = 1;
+}
+
+message ReleasePromoResponse {}
+
+message FxRate {
+  string id = 1;
+  string base = 2;
+  string quote = 3;
+  string rate = 4;
+  string source = 5;
+  google.protobuf.Timestamp fetched_at = 6;
+}
+
+message ConvertRequest {
+  common.v1.Money amount = 1;
+  string to_currency = 2;
+}
+
+message ConvertResponse {
+  common.v1.Money converted = 1;
+  optional string fx_rate_id = 2;
+}
+
+message GetFxRateRequest {
+  string id = 1;
+}
+
+message GetFxRateResponse {
+  FxRate rate = 1;
+}
+
+message ListCurrentFxRatesRequest {}
+
+message ListCurrentFxRatesResponse {
+  repeated FxRate items = 1;
+}
+
+message ListFxRatesRequest {
+  common.v1.PageRequest page = 1;
+  optional string quote = 2;
+  optional google.protobuf.Timestamp from = 3;
+  optional google.protobuf.Timestamp to = 4;
+}
+
+message ListFxRatesResponse {
+  repeated FxRate items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message RefreshFxRatesRequest {}
+
+message RefreshFxRatesResponse {
+  repeated FxRate items = 1;
+}
+
+message Currency {
+  string code = 1;
+  string name = 2;
+  int32 minor_exponent = 3;
+  bool enabled = 4;
+  optional string fixed_peg_to = 5;
+  optional string fixed_rate = 6;
+  optional string rate_source = 7;
+}
+
+message ListCurrenciesRequest {
+  bool enabled_only = 1;
+}
+
+message ListCurrenciesResponse {
+  repeated Currency items = 1;
+}
+
+message PutCurrencyRequest {
+  Currency currency = 1;
+}
+
+message PutCurrencyResponse {
+  Currency currency = 1;
+}
+
+message FixedPrice {
+  string product_id = 1;
+  string currency = 2;
+  common.v1.Money price = 3;
+  optional google.protobuf.Timestamp valid_from = 4;
+  optional google.protobuf.Timestamp valid_to = 5;
+}
+
+message ListFixedPricesRequest {
+  common.v1.PageRequest page = 1;
+  optional string product_id = 2;
+  optional string currency = 3;
+}
+
+message ListFixedPricesResponse {
+  repeated FixedPrice items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message SetFixedPriceRequest {
+  FixedPrice price = 1;
+}
+
+message SetFixedPriceResponse {
+  FixedPrice price = 1;
+}
+
+message DeleteFixedPriceRequest {
+  string product_id = 1;
+  string currency = 2;
+}
+
+message DeleteFixedPriceResponse {}
+
+message VolumeDiscount {
+  string id = 1;
+  DiscountScope scope = 2;
+  string scope_id = 3;
+  int32 min_quantity = 4;
+  double percent = 5;
+  optional google.protobuf.Timestamp valid_from = 6;
+  optional google.protobuf.Timestamp valid_to = 7;
+  bool active = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message ListVolumeDiscountsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional DiscountScope scope = 3;
+  optional string scope_id = 4;
+}
+
+message ListVolumeDiscountsResponse {
+  repeated VolumeDiscount items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetVolumeDiscountRequest {
+  string id = 1;
+}
+
+message GetVolumeDiscountResponse {
+  VolumeDiscount volume_discount = 1;
+}
+
+message CreateVolumeDiscountRequest {
+  VolumeDiscount volume_discount = 1;
+}
+
+message CreateVolumeDiscountResponse {
+  VolumeDiscount volume_discount = 1;
+}
+
+message UpdateVolumeDiscountRequest {
+  VolumeDiscount volume_discount = 1;
+  string if_match = 2;
+}
+
+message UpdateVolumeDiscountResponse {
+  VolumeDiscount volume_discount = 1;
+}
+
+message DeleteVolumeDiscountRequest {
+  string id = 1;
+}
+
+message DeleteVolumeDiscountResponse {}
+
+message PromoCode {
+  string id = 1;
+  string code = 2;
+  PromoKind kind = 3;
+  optional double percent = 4;
+  optional common.v1.Money fixed_amount = 5;
+  optional common.v1.Money minimum_subtotal = 6;
+  optional google.protobuf.Timestamp starts_at = 7;
+  optional google.protobuf.Timestamp expires_at = 8;
+  optional int32 max_uses = 9;
+  optional int32 per_user_limit = 10;
+  bool active = 11;
+  int32 used_count = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message ListPromoCodesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional bool active = 3;
+}
+
+message ListPromoCodesResponse {
+  repeated PromoCode items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetPromoCodeRequest {
+  string id = 1;
+}
+
+message GetPromoCodeResponse {
+  PromoCode promo_code = 1;
+}
+
+message CreatePromoCodeRequest {
+  PromoCode promo_code = 1;
+}
+
+message CreatePromoCodeResponse {
+  PromoCode promo_code = 1;
+}
+
+message UpdatePromoCodeRequest {
+  PromoCode promo_code = 1;
+  string if_match = 2;
+}
+
+message UpdatePromoCodeResponse {
+  PromoCode promo_code = 1;
+}
+
+message DeletePromoCodeRequest {
+  string id = 1;
+}
+
+message DeletePromoCodeResponse {}
+
+message PromoRedemption {
+  string id = 1;
+  string promo_code_id = 2;
+  string order_id = 3;
+  optional string user_id = 4;
+  common.v1.Money discount = 5;
+  google.protobuf.Timestamp at = 6;
+}
+
+message ListPromoRedemptionsRequest {
+  string promo_code_id = 1;
+  common.v1.PageRequest page = 2;
+}
+
+message ListPromoRedemptionsResponse {
+  repeated PromoRedemption items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message TaxRule {
+  string id = 1;
+  string country = 2;
+  string customer_kind = 3;
+  int32 rate_bp = 4;
+  google.protobuf.Timestamp valid_from = 5;
+  optional google.protobuf.Timestamp valid_to = 6;
+  optional string exemption_reason = 7;
+  bool reverse_charge = 8;
+  bool active = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message ListTaxRulesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string country = 3;
+}
+
+message ListTaxRulesResponse {
+  repeated TaxRule items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetTaxRuleRequest {
+  string id = 1;
+}
+
+message GetTaxRuleResponse {
+  TaxRule tax_rule = 1;
+}
+
+message CreateTaxRuleRequest {
+  TaxRule tax_rule = 1;
+}
+
+message CreateTaxRuleResponse {
+  TaxRule tax_rule = 1;
+}
+
+message UpdateTaxRuleRequest {
+  TaxRule tax_rule = 1;
+  string if_match = 2;
+}
+
+message UpdateTaxRuleResponse {
+  TaxRule tax_rule = 1;
+}
+
+message DeleteTaxRuleRequest {
+  string id = 1;
+}
+
+message DeleteTaxRuleResponse {}
+
+message ValidateTaxIdRequest {
+  string country = 1;
+  string tax_id = 2;
+}
+
+message ValidateTaxIdResponse {
+  bool valid = 1;
+  string source = 2;
+}
+
+message StartPriceImportRequest {
+  string object_key = 1;
+  string mode = 2;
+  bool dry_run = 3;
+}
+
+message StartPriceImportResponse {
+  common.v1.Job job = 1;
+}
+
+// tax_base : items_and_shipping | items_only (règle à confirmer par le comptable, configurable).
+message PricingSettings {
+  optional string tax_base = 1;
+  optional int32 fx_refresh_hour_utc = 2;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  PricingSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  PricingSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  PricingSettings settings = 1;
+}
+
+// Devises, taux, prix par devise, remises volume, codes promo, taxes, validation des identifiants fiscaux.
+service PricingService {
+  // Prix d'affichage (HT). Le prix fixe d'une devise prend le dessus sur la conversion depuis le XOF.
+  rpc GetPrices(GetPricesRequest) returns (GetPricesResponse);
+  // Étape 1 du calcul du panier : remises volume (la plus avantageuse par ligne) puis code promo (un seul, cumulable avec le volume).
+  rpc PriceLines(PriceLinesRequest) returns (PriceLinesResponse);
+  // Étape 3 (après estimation de la livraison par fulfillment). Assiette selon `PricingSettings.tax_base` (règle configurable).
+  rpc ComputeTaxes(ComputeTaxesRequest) returns (ComputeTaxesResponse);
+  // Ordre de contrôle : inconnu → expiré (fin du jour UTC) → minimum d'achat → valide.
+  rpc ValidatePromo(ValidatePromoRequest) returns (ValidatePromoResponse);
+  // Idempotent par order_id.
+  rpc RedeemPromo(RedeemPromoRequest) returns (RedeemPromoResponse);
+  rpc ReleasePromo(ReleasePromoRequest) returns (ReleasePromoResponse);
+  rpc Convert(ConvertRequest) returns (ConvertResponse);
+  // Relecture du taux figé à la commande.
+  rpc GetFxRate(GetFxRateRequest) returns (GetFxRateResponse);
+  rpc ListCurrentFxRates(ListCurrentFxRatesRequest) returns (ListCurrentFxRatesResponse);
+  rpc ListFxRates(ListFxRatesRequest) returns (ListFxRatesResponse);
+  // EUR : parité fixe 655,957 (aucun fournisseur). USD : fournisseur, 1 fois/jour, taux horodaté.
+  rpc RefreshFxRates(RefreshFxRatesRequest) returns (RefreshFxRatesResponse);
+  rpc ListCurrencies(ListCurrenciesRequest) returns (ListCurrenciesResponse);
+  rpc PutCurrency(PutCurrencyRequest) returns (PutCurrencyResponse);
+  rpc ListFixedPrices(ListFixedPricesRequest) returns (ListFixedPricesResponse);
+  rpc SetFixedPrice(SetFixedPriceRequest) returns (SetFixedPriceResponse);
+  rpc DeleteFixedPrice(DeleteFixedPriceRequest) returns (DeleteFixedPriceResponse);
+  // Lister : VolumeDiscounts.
+  rpc ListVolumeDiscounts(ListVolumeDiscountsRequest) returns (ListVolumeDiscountsResponse);
+  // Lire : VolumeDiscount.
+  rpc GetVolumeDiscount(GetVolumeDiscountRequest) returns (GetVolumeDiscountResponse);
+  // Créer : VolumeDiscount (`id` ignoré).
+  rpc CreateVolumeDiscount(CreateVolumeDiscountRequest) returns (CreateVolumeDiscountResponse);
+  // Modifier : VolumeDiscount (concurrence optimiste via `if_match`).
+  rpc UpdateVolumeDiscount(UpdateVolumeDiscountRequest) returns (UpdateVolumeDiscountResponse);
+  // Supprimer : VolumeDiscount.
+  rpc DeleteVolumeDiscount(DeleteVolumeDiscountRequest) returns (DeleteVolumeDiscountResponse);
+  // Lister : PromoCodes.
+  rpc ListPromoCodes(ListPromoCodesRequest) returns (ListPromoCodesResponse);
+  // Lire : PromoCode.
+  rpc GetPromoCode(GetPromoCodeRequest) returns (GetPromoCodeResponse);
+  // Créer : PromoCode (`id` ignoré).
+  rpc CreatePromoCode(CreatePromoCodeRequest) returns (CreatePromoCodeResponse);
+  // Modifier : PromoCode (concurrence optimiste via `if_match`).
+  rpc UpdatePromoCode(UpdatePromoCodeRequest) returns (UpdatePromoCodeResponse);
+  // Supprimer : PromoCode.
+  rpc DeletePromoCode(DeletePromoCodeRequest) returns (DeletePromoCodeResponse);
+  rpc ListPromoRedemptions(ListPromoRedemptionsRequest) returns (ListPromoRedemptionsResponse);
+  // Lister : TaxRules.
+  rpc ListTaxRules(ListTaxRulesRequest) returns (ListTaxRulesResponse);
+  // Lire : TaxRule.
+  rpc GetTaxRule(GetTaxRuleRequest) returns (GetTaxRuleResponse);
+  // Créer : TaxRule (`id` ignoré).
+  rpc CreateTaxRule(CreateTaxRuleRequest) returns (CreateTaxRuleResponse);
+  // Modifier : TaxRule (concurrence optimiste via `if_match`).
+  rpc UpdateTaxRule(UpdateTaxRuleRequest) returns (UpdateTaxRuleResponse);
+  // Supprimer : TaxRule.
+  rpc DeleteTaxRule(DeleteTaxRuleRequest) returns (DeleteTaxRuleResponse);
+  // Fournisseur à définir (règle métier non fixée).
+  rpc ValidateTaxId(ValidateTaxIdRequest) returns (ValidateTaxIdResponse);
+  rpc StartPriceImport(StartPriceImportRequest) returns (StartPriceImportResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Publie `settings.changed`.
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+}

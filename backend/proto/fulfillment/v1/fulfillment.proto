@@ -1,0 +1,621 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package fulfillment.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/fulfillment/v1;fulfillmentv1";
+
+enum AvailabilityStatus {
+  AVAILABILITY_STATUS_UNSPECIFIED = 0;
+  AVAILABILITY_STATUS_IN_STOCK = 1;
+  AVAILABILITY_STATUS_LOW_STOCK = 2;
+  AVAILABILITY_STATUS_OUT_OF_STOCK = 3;
+  AVAILABILITY_STATUS_MADE_TO_ORDER = 4;
+}
+
+enum ReservationStatus {
+  RESERVATION_STATUS_UNSPECIFIED = 0;
+  RESERVATION_STATUS_ACTIVE = 1;
+  RESERVATION_STATUS_CONFIRMED = 2;
+  RESERVATION_STATUS_RELEASED = 3;
+  RESERVATION_STATUS_EXPIRED = 4;
+}
+
+enum ShipmentStatus {
+  SHIPMENT_STATUS_UNSPECIFIED = 0;
+  SHIPMENT_STATUS_PREPARING = 1;
+  SHIPMENT_STATUS_IN_TRANSIT = 2;
+  SHIPMENT_STATUS_DELIVERED = 3;
+  SHIPMENT_STATUS_FAILED = 4;
+  SHIPMENT_STATUS_RETURNED = 5;
+}
+
+enum ReservationMode {
+  RESERVATION_MODE_UNSPECIFIED = 0;
+  RESERVATION_MODE_PAYMENT_WINDOW = 1;
+  RESERVATION_MODE_FIXED_MINUTES = 2;
+  RESERVATION_MODE_UNTIL_DELIVERY = 3;
+}
+
+// Le mode de livraison vient du catalogue (l'appelant le transmet).
+message AvailabilityRequestItem {
+  string product_id = 1;
+  bool made_to_order = 2;
+  optional int32 lead_time_days = 3;
+}
+
+message Availability {
+  string product_id = 1;
+  AvailabilityStatus status = 2;
+  optional int64 quantity = 3;
+  common.v1.DayRange ships_within_days = 4;
+  optional int32 lead_time_days = 5;
+}
+
+message GetAvailabilityRequest {
+  repeated AvailabilityRequestItem items = 1;
+  optional string zone_code = 2;
+}
+
+message GetAvailabilityResponse {
+  repeated Availability items = 1;
+}
+
+message ReservationLine {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message ReserveStockRequest {
+  string owner_ref = 1;
+  repeated ReservationLine lines = 2;
+  string payment_kind = 3;
+  optional google.protobuf.Timestamp payment_expires_at = 4;
+  repeated string made_to_order_product_ids = 5;
+}
+
+message ReserveStockResponse {
+  string reservation_id = 1;
+  optional google.protobuf.Timestamp expires_at = 2;
+  repeated string unavailable_product_ids = 3;
+}
+
+message ReservationPolicy {
+  ReservationMode mode = 1;
+  optional int32 minutes = 2;
+}
+
+// Valeurs par défaut : mobile_money et card = FIXED_MINUTES (minutes non définies, suggestion 30) ; bank_transfer = PAYMENT_WINDOW ; livraison et différé = UNTIL_DELIVERY.
+message FulfillmentSettings {
+  ReservationPolicy mobile_money = 1;
+  ReservationPolicy card = 2;
+  ReservationPolicy bank_transfer = 3;
+  ReservationPolicy cash_on_delivery = 4;
+  ReservationPolicy deferred_invoice = 5;
+  optional int32 low_stock_threshold = 6;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  FulfillmentSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  FulfillmentSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  FulfillmentSettings settings = 1;
+}
+
+message ConfirmReservationRequest {
+  string owner_ref = 1;
+}
+
+message ConfirmReservationResponse {}
+
+message ReleaseReservationRequest {
+  string owner_ref = 1;
+}
+
+message ReleaseReservationResponse {}
+
+message ShippingZone {
+  string id = 1;
+  string code = 2;
+  map<string, string> name = 3;
+  repeated string countries = 4;
+  bool free_shipping_eligible = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message ListZoneViewsRequest {}
+
+message ListZoneViewsResponse {
+  repeated ShippingZone items = 1;
+}
+
+message EstimateShippingRequest {
+  string zone_code = 1;
+  common.v1.Money after_discount_subtotal = 2;
+  repeated ReservationLine items = 3;
+  string destination_country = 4;
+  string currency = 5;
+}
+
+message EstimateShippingResponse {
+  common.v1.Money fee = 1;
+  bool free_shipping = 2;
+  optional common.v1.Money free_shipping_threshold = 3;
+  string estimated_from = 4;
+  string estimated_to = 5;
+  common.v1.DayRange ships_within_days = 6;
+}
+
+message StockLevel {
+  string product_id = 1;
+  string sku = 2;
+  string warehouse_id = 3;
+  int64 on_hand = 4;
+  int64 reserved = 5;
+  int64 available = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message ListStockRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string product_id = 3;
+  optional string warehouse_id = 4;
+  bool out_of_stock_only = 5;
+  bool low_stock_only = 6;
+}
+
+message ListStockResponse {
+  repeated StockLevel items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message StockMovement {
+  string id = 1;
+  string product_id = 2;
+  string warehouse_id = 3;
+  int64 delta = 4;
+  string reason = 5;
+  optional string reference = 6;
+  string actor = 7;
+  google.protobuf.Timestamp at = 8;
+}
+
+message AdjustStockRequest {
+  string product_id = 1;
+  string warehouse_id = 2;
+  int64 delta = 3;
+  string reason = 4;
+  optional string reference = 5;
+  optional string note = 6;
+}
+
+message AdjustStockResponse {
+  StockMovement movement = 1;
+}
+
+message ListStockMovementsRequest {
+  common.v1.CursorRequest cursor = 1;
+  optional string product_id = 2;
+  optional string warehouse_id = 3;
+  optional google.protobuf.Timestamp from = 4;
+  optional google.protobuf.Timestamp to = 5;
+}
+
+message ListStockMovementsResponse {
+  repeated StockMovement items = 1;
+  common.v1.CursorResponse cursor = 2;
+}
+
+message ListStockOutsRequest {
+  common.v1.PageRequest page = 1;
+}
+
+message ListStockOutsResponse {
+  repeated StockLevel items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message StartStockImportRequest {
+  string object_key = 1;
+  string mode = 2;
+  bool dry_run = 3;
+}
+
+message StartStockImportResponse {
+  common.v1.Job job = 1;
+}
+
+message Warehouse {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+  string country = 4;
+  optional string region = 5;
+  bool active = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message ListWarehousesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListWarehousesResponse {
+  repeated Warehouse items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetWarehouseRequest {
+  string id = 1;
+}
+
+message GetWarehouseResponse {
+  Warehouse warehouse = 1;
+}
+
+message CreateWarehouseRequest {
+  Warehouse warehouse = 1;
+}
+
+message CreateWarehouseResponse {
+  Warehouse warehouse = 1;
+}
+
+message UpdateWarehouseRequest {
+  Warehouse warehouse = 1;
+  string if_match = 2;
+}
+
+message UpdateWarehouseResponse {
+  Warehouse warehouse = 1;
+}
+
+message DeleteWarehouseRequest {
+  string id = 1;
+}
+
+message DeleteWarehouseResponse {}
+
+message ListShippingZonesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListShippingZonesResponse {
+  repeated ShippingZone items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetShippingZoneRequest {
+  string id = 1;
+}
+
+message GetShippingZoneResponse {
+  ShippingZone shipping_zone = 1;
+}
+
+message CreateShippingZoneRequest {
+  ShippingZone shipping_zone = 1;
+}
+
+message CreateShippingZoneResponse {
+  ShippingZone shipping_zone = 1;
+}
+
+message UpdateShippingZoneRequest {
+  ShippingZone shipping_zone = 1;
+  string if_match = 2;
+}
+
+message UpdateShippingZoneResponse {
+  ShippingZone shipping_zone = 1;
+}
+
+message DeleteShippingZoneRequest {
+  string id = 1;
+}
+
+message DeleteShippingZoneResponse {}
+
+message Carrier {
+  string id = 1;
+  string name = 2;
+  optional string tracking_url_template = 3;
+  bool active = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message ListCarriersRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListCarriersResponse {
+  repeated Carrier items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetCarrierRequest {
+  string id = 1;
+}
+
+message GetCarrierResponse {
+  Carrier carrier = 1;
+}
+
+message CreateCarrierRequest {
+  Carrier carrier = 1;
+}
+
+message CreateCarrierResponse {
+  Carrier carrier = 1;
+}
+
+message UpdateCarrierRequest {
+  Carrier carrier = 1;
+  string if_match = 2;
+}
+
+message UpdateCarrierResponse {
+  Carrier carrier = 1;
+}
+
+message DeleteCarrierRequest {
+  string id = 1;
+}
+
+message DeleteCarrierResponse {}
+
+message ShippingRate {
+  string id = 1;
+  string zone_id = 2;
+  optional string carrier_id = 3;
+  common.v1.Money fee = 4;
+  optional common.v1.Money free_threshold = 5;
+  int32 eta_min_days = 6;
+  int32 eta_max_days = 7;
+  bool active = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message ListShippingRatesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string zone_id = 3;
+}
+
+message ListShippingRatesResponse {
+  repeated ShippingRate items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetShippingRateRequest {
+  string id = 1;
+}
+
+message GetShippingRateResponse {
+  ShippingRate shipping_rate = 1;
+}
+
+message CreateShippingRateRequest {
+  ShippingRate shipping_rate = 1;
+}
+
+message CreateShippingRateResponse {
+  ShippingRate shipping_rate = 1;
+}
+
+message UpdateShippingRateRequest {
+  ShippingRate shipping_rate = 1;
+  string if_match = 2;
+}
+
+message UpdateShippingRateResponse {
+  ShippingRate shipping_rate = 1;
+}
+
+message DeleteShippingRateRequest {
+  string id = 1;
+}
+
+message DeleteShippingRateResponse {}
+
+message PickupPoint {
+  string id = 1;
+  string name = 2;
+  common.v1.Address address = 3;
+  optional string opening_hours = 4;
+  bool active = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message ListPickupPointsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListPickupPointsResponse {
+  repeated PickupPoint items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetPickupPointRequest {
+  string id = 1;
+}
+
+message GetPickupPointResponse {
+  PickupPoint pickup_point = 1;
+}
+
+message CreatePickupPointRequest {
+  PickupPoint pickup_point = 1;
+}
+
+message CreatePickupPointResponse {
+  PickupPoint pickup_point = 1;
+}
+
+message UpdatePickupPointRequest {
+  PickupPoint pickup_point = 1;
+  string if_match = 2;
+}
+
+message UpdatePickupPointResponse {
+  PickupPoint pickup_point = 1;
+}
+
+message DeletePickupPointRequest {
+  string id = 1;
+}
+
+message DeletePickupPointResponse {}
+
+message TrackingEvent {
+  google.protobuf.Timestamp at = 1;
+  string status = 2;
+  optional string note = 3;
+}
+
+message Shipment {
+  string id = 1;
+  string order_id = 2;
+  optional string carrier_id = 3;
+  optional string tracking_number = 4;
+  ShipmentStatus status = 5;
+  repeated TrackingEvent events = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message ListShipmentsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string order_id = 3;
+  optional ShipmentStatus status = 4;
+}
+
+message ListShipmentsResponse {
+  repeated Shipment items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetShipmentRequest {
+  string id = 1;
+}
+
+message GetShipmentResponse {
+  Shipment shipment = 1;
+}
+
+message CreateShipmentRequest {
+  Shipment shipment = 1;
+}
+
+message CreateShipmentResponse {
+  Shipment shipment = 1;
+}
+
+message UpdateShipmentRequest {
+  Shipment shipment = 1;
+  string if_match = 2;
+}
+
+message UpdateShipmentResponse {
+  Shipment shipment = 1;
+}
+
+// Stock multi-entrepôts, réservations, délais d'expédition ; zones, tarifs, transporteurs, suivi.
+service FulfillmentService {
+  rpc GetAvailability(GetAvailabilityRequest) returns (GetAvailabilityResponse);
+  // Idempotent par owner_ref. Les produits `made_to_order` ne consomment pas de stock. Durée selon la POLITIQUE du type de paiement (réglages fulfillment) : `payment_window` = `payment_expires_at` (virement), `fixed_minutes` (mobile money, carte), `until_delivery` (expires_at absent).
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Publie `settings.changed`.
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+  rpc ConfirmReservation(ConfirmReservationRequest) returns (ConfirmReservationResponse);
+  rpc ReleaseReservation(ReleaseReservationRequest) returns (ReleaseReservationResponse);
+  rpc ListZoneViews(ListZoneViewsRequest) returns (ListZoneViewsResponse);
+  // Étape 2 du calcul du panier : livraison gratuite si la zone est éligible ET (sous-total − remises) ≥ seuil. Dates en jours ouvrés (lun.–ven.).
+  rpc EstimateShipping(EstimateShippingRequest) returns (EstimateShippingResponse);
+  rpc ListStock(ListStockRequest) returns (ListStockResponse);
+  rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
+  // Pagination PAR CURSEUR.
+  rpc ListStockMovements(ListStockMovementsRequest) returns (ListStockMovementsResponse);
+  rpc ListStockOuts(ListStockOutsRequest) returns (ListStockOutsResponse);
+  rpc StartStockImport(StartStockImportRequest) returns (StartStockImportResponse);
+  // Lister : Warehouses.
+  rpc ListWarehouses(ListWarehousesRequest) returns (ListWarehousesResponse);
+  // Lire : Warehouse.
+  rpc GetWarehouse(GetWarehouseRequest) returns (GetWarehouseResponse);
+  // Créer : Warehouse (`id` ignoré).
+  rpc CreateWarehouse(CreateWarehouseRequest) returns (CreateWarehouseResponse);
+  // Modifier : Warehouse (concurrence optimiste via `if_match`).
+  rpc UpdateWarehouse(UpdateWarehouseRequest) returns (UpdateWarehouseResponse);
+  // Supprimer : Warehouse.
+  rpc DeleteWarehouse(DeleteWarehouseRequest) returns (DeleteWarehouseResponse);
+  // Lister : ShippingZones.
+  rpc ListShippingZones(ListShippingZonesRequest) returns (ListShippingZonesResponse);
+  // Lire : ShippingZone.
+  rpc GetShippingZone(GetShippingZoneRequest) returns (GetShippingZoneResponse);
+  // Créer : ShippingZone (`id` ignoré).
+  rpc CreateShippingZone(CreateShippingZoneRequest) returns (CreateShippingZoneResponse);
+  // Modifier : ShippingZone (concurrence optimiste via `if_match`).
+  rpc UpdateShippingZone(UpdateShippingZoneRequest) returns (UpdateShippingZoneResponse);
+  // Supprimer : ShippingZone.
+  rpc DeleteShippingZone(DeleteShippingZoneRequest) returns (DeleteShippingZoneResponse);
+  // Lister : Carriers.
+  rpc ListCarriers(ListCarriersRequest) returns (ListCarriersResponse);
+  // Lire : Carrier.
+  rpc GetCarrier(GetCarrierRequest) returns (GetCarrierResponse);
+  // Créer : Carrier (`id` ignoré).
+  rpc CreateCarrier(CreateCarrierRequest) returns (CreateCarrierResponse);
+  // Modifier : Carrier (concurrence optimiste via `if_match`).
+  rpc UpdateCarrier(UpdateCarrierRequest) returns (UpdateCarrierResponse);
+  // Supprimer : Carrier.
+  rpc DeleteCarrier(DeleteCarrierRequest) returns (DeleteCarrierResponse);
+  // Lister : ShippingRates.
+  rpc ListShippingRates(ListShippingRatesRequest) returns (ListShippingRatesResponse);
+  // Lire : ShippingRate.
+  rpc GetShippingRate(GetShippingRateRequest) returns (GetShippingRateResponse);
+  // Créer : ShippingRate (`id` ignoré).
+  rpc CreateShippingRate(CreateShippingRateRequest) returns (CreateShippingRateResponse);
+  // Modifier : ShippingRate (concurrence optimiste via `if_match`).
+  rpc UpdateShippingRate(UpdateShippingRateRequest) returns (UpdateShippingRateResponse);
+  // Supprimer : ShippingRate.
+  rpc DeleteShippingRate(DeleteShippingRateRequest) returns (DeleteShippingRateResponse);
+  // Lister : PickupPoints.
+  rpc ListPickupPoints(ListPickupPointsRequest) returns (ListPickupPointsResponse);
+  // Lire : PickupPoint.
+  rpc GetPickupPoint(GetPickupPointRequest) returns (GetPickupPointResponse);
+  // Créer : PickupPoint (`id` ignoré).
+  rpc CreatePickupPoint(CreatePickupPointRequest) returns (CreatePickupPointResponse);
+  // Modifier : PickupPoint (concurrence optimiste via `if_match`).
+  rpc UpdatePickupPoint(UpdatePickupPointRequest) returns (UpdatePickupPointResponse);
+  // Supprimer : PickupPoint.
+  rpc DeletePickupPoint(DeletePickupPointRequest) returns (DeletePickupPointResponse);
+  // Lister : Shipments.
+  rpc ListShipments(ListShipmentsRequest) returns (ListShipmentsResponse);
+  // Lire : Shipment.
+  rpc GetShipment(GetShipmentRequest) returns (GetShipmentResponse);
+  // Créer : Shipment (`id` ignoré).
+  rpc CreateShipment(CreateShipmentRequest) returns (CreateShipmentResponse);
+  // Modifier : Shipment (concurrence optimiste via `if_match`).
+  rpc UpdateShipment(UpdateShipmentRequest) returns (UpdateShipmentResponse);
+}

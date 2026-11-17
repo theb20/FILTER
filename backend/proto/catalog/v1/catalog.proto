@@ -1,0 +1,767 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package catalog.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/catalog/v1;catalogv1";
+
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_DRAFT = 1;
+  PRODUCT_STATUS_ACTIVE = 2;
+  PRODUCT_STATUS_ARCHIVED = 3;
+}
+
+enum FulfillmentMode {
+  FULFILLMENT_MODE_UNSPECIFIED = 0;
+  FULFILLMENT_MODE_STOCK = 1;
+  FULFILLMENT_MODE_MADE_TO_ORDER = 2;
+}
+
+enum AttributeType {
+  ATTRIBUTE_TYPE_UNSPECIFIED = 0;
+  ATTRIBUTE_TYPE_TEXT = 1;
+  ATTRIBUTE_TYPE_NUMBER = 2;
+  ATTRIBUTE_TYPE_BOOLEAN = 3;
+  ATTRIBUTE_TYPE_ENUM = 4;
+}
+
+enum CrossRefKind {
+  CROSS_REF_KIND_UNSPECIFIED = 0;
+  CROSS_REF_KIND_OEM = 1;
+  CROSS_REF_KIND_EQUIVALENT = 2;
+  CROSS_REF_KIND_SUPERSEDES = 3;
+}
+
+message Category {
+  string id = 1;
+  string slug = 2;
+  optional string parent_id = 3;
+  int32 sort_order = 4;
+  map<string, string> name = 5;
+  map<string, string> description = 6;
+  int32 depth = 7;
+  int64 product_count = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message CategoryNode {
+  string id = 1;
+  string slug = 2;
+  string name = 3;
+  optional string parent_id = 4;
+  int32 depth = 5;
+  int64 product_count = 6;
+  repeated CategoryNode children = 7;
+}
+
+message AttributeOption {
+  string value = 1;
+  map<string, string> label = 2;
+}
+
+message AttributeDef {
+  string id = 1;
+  string category_id = 2;
+  string key = 3;
+  map<string, string> label = 4;
+  AttributeType type = 5;
+  optional string unit = 6;
+  bool filterable = 7;
+  bool required = 8;
+  repeated AttributeOption options = 9;
+  int32 sort_order = 10;
+  optional string inherited_from = 11;
+}
+
+message AttributeValue {
+  string key = 1;
+  oneof value {
+    string text_value = 2;
+    double number_value = 3;
+    bool bool_value = 4;
+  }
+}
+
+message Brand {
+  string id = 1;
+  string slug = 2;
+  string name = 3;
+  optional string logo_key = 4;
+  int64 product_count = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message Sector {
+  string id = 1;
+  string slug = 2;
+  map<string, string> name = 3;
+  optional string image_key = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message Machine {
+  string id = 1;
+  string make = 2;
+  string model = 3;
+  optional int32 year_from = 4;
+  optional int32 year_to = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CrossReference {
+  string id = 1;
+  string product_id = 2;
+  string brand = 3;
+  string number = 4;
+  CrossRefKind kind = 5;
+}
+
+message ProductMedia {
+  string id = 1;
+  string product_id = 2;
+  string object_key = 3;
+  map<string, string> alt = 4;
+  int32 sort_order = 5;
+}
+
+// Représentation d'ÉCRITURE (toutes les langues).
+message Product {
+  string id = 1;
+  string sku = 2;
+  optional string slug = 3;
+  map<string, string> name = 4;
+  map<string, string> description = 5;
+  optional string brand_id = 6;
+  string category_id = 7;
+  ProductStatus status = 8;
+  FulfillmentMode fulfillment_mode = 9;
+  optional int32 lead_time_days = 10;
+  repeated AttributeValue attributes = 11;
+  repeated string sector_ids = 12;
+  repeated ProductMedia media = 13;
+  int32 version = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+}
+
+message CategoryPathItem {
+  string id = 1;
+  string slug = 2;
+  string name = 3;
+}
+
+message LocalizedAttribute {
+  string key = 1;
+  string label = 2;
+  AttributeType type = 3;
+  optional string unit = 4;
+  AttributeValue value = 5;
+}
+
+// Représentation de LECTURE, résolue dans la langue demandée (métadonnée `x-locale`).
+message ProductView {
+  string id = 1;
+  string sku = 2;
+  optional string slug = 3;
+  string name = 4;
+  optional string description = 5;
+  optional Brand brand = 6;
+  string category_id = 7;
+  repeated CategoryPathItem category_path = 8;
+  ProductStatus status = 9;
+  FulfillmentMode fulfillment_mode = 10;
+  optional int32 lead_time_days = 11;
+  repeated LocalizedAttribute attributes = 12;
+  repeated Sector sectors = 13;
+  repeated string image_urls = 14;
+  repeated CrossReference cross_references = 15;
+  repeated Machine compatible_machines = 16;
+  string locale = 17;
+  bool translation_fallback = 18;
+}
+
+message GetProductViewRequest {
+  string id_or_sku = 1;
+}
+
+message GetProductViewResponse {
+  ProductView product = 1;
+}
+
+message BatchGetProductViewsRequest {
+  repeated string ids = 1;
+}
+
+message BatchGetProductViewsResponse {
+  repeated ProductView products = 1;
+}
+
+message ListProductViewsRequest {
+  common.v1.PageRequest page = 1;
+  optional string category_id = 2;
+  optional string brand_id = 3;
+  optional string sector_id = 4;
+  optional ProductStatus status = 5;
+  optional FulfillmentMode fulfillment_mode = 6;
+}
+
+message ListProductViewsResponse {
+  repeated ProductView items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message ListRelatedProductsRequest {
+  string product_id = 1;
+  int32 limit = 2;
+}
+
+message ListRelatedProductsResponse {
+  repeated ProductView items = 1;
+}
+
+message ListCategoryTreeRequest {
+  optional string parent_id = 1;
+  optional int32 depth = 2;
+}
+
+message ListCategoryTreeResponse {
+  repeated CategoryNode roots = 1;
+}
+
+message GetCategoryNodeRequest {
+  string id_or_slug = 1;
+}
+
+message GetCategoryNodeResponse {
+  CategoryNode node = 1;
+}
+
+message ListCategoryAttributesRequest {
+  string category_id = 1;
+  bool filterable_only = 2;
+}
+
+message ListCategoryAttributesResponse {
+  repeated AttributeDef items = 1;
+}
+
+message ListBrandViewsRequest {
+  common.v1.PageRequest page = 1;
+}
+
+message ListBrandViewsResponse {
+  repeated Brand items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetBrandBySlugRequest {
+  string slug = 1;
+}
+
+message GetBrandBySlugResponse {
+  Brand brand = 1;
+}
+
+message ListSectorViewsRequest {}
+
+message ListSectorViewsResponse {
+  repeated Sector items = 1;
+}
+
+message ListMachineMakesRequest {
+  string query = 1;
+}
+
+message ListMachineMakesResponse {
+  repeated string makes = 1;
+}
+
+message ListMachineModelsRequest {
+  string make = 1;
+}
+
+message ListMachineModelsResponse {
+  repeated Machine items = 1;
+}
+
+message GetCatalogStatsRequest {}
+
+message GetCatalogStatsResponse {
+  int64 product_count = 1;
+  int64 cross_reference_count = 2;
+  int64 brand_count = 3;
+}
+
+message ListCategoriesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string parent_id = 3;
+}
+
+message ListCategoriesResponse {
+  repeated Category items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetCategoryRequest {
+  string id = 1;
+}
+
+message GetCategoryResponse {
+  Category category = 1;
+}
+
+message CreateCategoryRequest {
+  Category category = 1;
+}
+
+message CreateCategoryResponse {
+  Category category = 1;
+}
+
+message UpdateCategoryRequest {
+  Category category = 1;
+  string if_match = 2;
+}
+
+message UpdateCategoryResponse {
+  Category category = 1;
+}
+
+message DeleteCategoryRequest {
+  string id = 1;
+}
+
+message DeleteCategoryResponse {}
+
+message MoveCategoryRequest {
+  string id = 1;
+  optional string parent_id = 2;
+  int32 position = 3;
+}
+
+message MoveCategoryResponse {
+  Category category = 1;
+}
+
+message ListAttributeDefsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string category_id = 3;
+}
+
+message ListAttributeDefsResponse {
+  repeated AttributeDef items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetAttributeDefRequest {
+  string id = 1;
+}
+
+message GetAttributeDefResponse {
+  AttributeDef attribute_def = 1;
+}
+
+message CreateAttributeDefRequest {
+  AttributeDef attribute_def = 1;
+}
+
+message CreateAttributeDefResponse {
+  AttributeDef attribute_def = 1;
+}
+
+message UpdateAttributeDefRequest {
+  AttributeDef attribute_def = 1;
+  string if_match = 2;
+}
+
+message UpdateAttributeDefResponse {
+  AttributeDef attribute_def = 1;
+}
+
+message DeleteAttributeDefRequest {
+  string id = 1;
+}
+
+message DeleteAttributeDefResponse {}
+
+message ListProductsAdminRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string category_id = 3;
+  optional string brand_id = 4;
+  optional ProductStatus status = 5;
+  optional FulfillmentMode fulfillment_mode = 6;
+}
+
+message ListProductsAdminResponse {
+  repeated Product items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+message CreateProductRequest {
+  Product product = 1;
+}
+
+message CreateProductResponse {
+  Product product = 1;
+}
+
+message UpdateProductRequest {
+  Product product = 1;
+  string if_match = 2;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+message DeleteProductRequest {
+  string id = 1;
+}
+
+message DeleteProductResponse {}
+
+message ListBrandsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListBrandsResponse {
+  repeated Brand items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetBrandRequest {
+  string id = 1;
+}
+
+message GetBrandResponse {
+  Brand brand = 1;
+}
+
+message CreateBrandRequest {
+  Brand brand = 1;
+}
+
+message CreateBrandResponse {
+  Brand brand = 1;
+}
+
+message UpdateBrandRequest {
+  Brand brand = 1;
+  string if_match = 2;
+}
+
+message UpdateBrandResponse {
+  Brand brand = 1;
+}
+
+message DeleteBrandRequest {
+  string id = 1;
+}
+
+message DeleteBrandResponse {}
+
+message ListSectorsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListSectorsResponse {
+  repeated Sector items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetSectorRequest {
+  string id = 1;
+}
+
+message GetSectorResponse {
+  Sector sector = 1;
+}
+
+message CreateSectorRequest {
+  Sector sector = 1;
+}
+
+message CreateSectorResponse {
+  Sector sector = 1;
+}
+
+message UpdateSectorRequest {
+  Sector sector = 1;
+  string if_match = 2;
+}
+
+message UpdateSectorResponse {
+  Sector sector = 1;
+}
+
+message DeleteSectorRequest {
+  string id = 1;
+}
+
+message DeleteSectorResponse {}
+
+message ListMachinesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+}
+
+message ListMachinesResponse {
+  repeated Machine items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetMachineRequest {
+  string id = 1;
+}
+
+message GetMachineResponse {
+  Machine machine = 1;
+}
+
+message CreateMachineRequest {
+  Machine machine = 1;
+}
+
+message CreateMachineResponse {
+  Machine machine = 1;
+}
+
+message UpdateMachineRequest {
+  Machine machine = 1;
+  string if_match = 2;
+}
+
+message UpdateMachineResponse {
+  Machine machine = 1;
+}
+
+message DeleteMachineRequest {
+  string id = 1;
+}
+
+message DeleteMachineResponse {}
+
+message ListCrossReferencesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string product_id = 3;
+  optional string number = 4;
+}
+
+message ListCrossReferencesResponse {
+  repeated CrossReference items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetCrossReferenceRequest {
+  string id = 1;
+}
+
+message GetCrossReferenceResponse {
+  CrossReference cross_reference = 1;
+}
+
+message CreateCrossReferenceRequest {
+  CrossReference cross_reference = 1;
+}
+
+message CreateCrossReferenceResponse {
+  CrossReference cross_reference = 1;
+}
+
+message UpdateCrossReferenceRequest {
+  CrossReference cross_reference = 1;
+  string if_match = 2;
+}
+
+message UpdateCrossReferenceResponse {
+  CrossReference cross_reference = 1;
+}
+
+message DeleteCrossReferenceRequest {
+  string id = 1;
+}
+
+message DeleteCrossReferenceResponse {}
+
+message RequestMediaUploadRequest {
+  string product_id = 1;
+  string file_name = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+  map<string, string> alt = 5;
+}
+
+message RequestMediaUploadResponse {
+  common.v1.UploadTicket ticket = 1;
+}
+
+message ReorderMediaRequest {
+  string product_id = 1;
+  repeated string media_ids = 2;
+}
+
+message ReorderMediaResponse {}
+
+message DeleteMediaRequest {
+  string product_id = 1;
+  string media_id = 2;
+}
+
+message DeleteMediaResponse {}
+
+message SetCompatibilitiesRequest {
+  string product_id = 1;
+  repeated string machine_ids = 2;
+}
+
+message SetCompatibilitiesResponse {}
+
+message StartImportRequest {
+  string kind = 1;
+  string object_key = 2;
+  string mode = 3;
+  bool dry_run = 4;
+}
+
+message StartImportResponse {
+  common.v1.Job job = 1;
+}
+
+message GetImportJobRequest {
+  string id = 1;
+}
+
+message GetImportJobResponse {
+  common.v1.Job job = 1;
+}
+
+message StartExportRequest {
+  string kind = 1;
+  string query = 2;
+}
+
+message StartExportResponse {
+  string object_key = 1;
+}
+
+// Produits génériques, catégories (arbre), attributs par catégorie, marques, secteurs, machines, références croisées.
+service CatalogService {
+  rpc GetProductView(GetProductViewRequest) returns (GetProductViewResponse);
+  // Utilisé par search, cart, order, quote, content.
+  rpc BatchGetProductViews(BatchGetProductViewsRequest) returns (BatchGetProductViewsResponse);
+  rpc ListProductViews(ListProductViewsRequest) returns (ListProductViewsResponse);
+  rpc ListRelatedProducts(ListRelatedProductsRequest) returns (ListRelatedProductsResponse);
+  rpc ListCategoryTree(ListCategoryTreeRequest) returns (ListCategoryTreeResponse);
+  rpc GetCategoryNode(GetCategoryNodeRequest) returns (GetCategoryNodeResponse);
+  // Attributs de la catégorie ET de ses ancêtres (héritage).
+  rpc ListCategoryAttributes(ListCategoryAttributesRequest) returns (ListCategoryAttributesResponse);
+  rpc ListBrandViews(ListBrandViewsRequest) returns (ListBrandViewsResponse);
+  rpc GetBrandBySlug(GetBrandBySlugRequest) returns (GetBrandBySlugResponse);
+  rpc ListSectorViews(ListSectorViewsRequest) returns (ListSectorViewsResponse);
+  rpc ListMachineMakes(ListMachineMakesRequest) returns (ListMachineMakesResponse);
+  rpc ListMachineModels(ListMachineModelsRequest) returns (ListMachineModelsResponse);
+  // Chiffres affichés sur le site : CALCULÉS, jamais saisis.
+  rpc GetCatalogStats(GetCatalogStatsRequest) returns (GetCatalogStatsResponse);
+  // Lister : Categories.
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
+  // Lire : Category.
+  rpc GetCategory(GetCategoryRequest) returns (GetCategoryResponse);
+  // Créer : Category (`id` ignoré).
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  // Modifier : Category (concurrence optimiste via `if_match`).
+  rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
+  // Supprimer : Category.
+  rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
+  rpc MoveCategory(MoveCategoryRequest) returns (MoveCategoryResponse);
+  // Lister : AttributeDefs.
+  rpc ListAttributeDefs(ListAttributeDefsRequest) returns (ListAttributeDefsResponse);
+  // Lire : AttributeDef.
+  rpc GetAttributeDef(GetAttributeDefRequest) returns (GetAttributeDefResponse);
+  // Créer : AttributeDef (`id` ignoré).
+  rpc CreateAttributeDef(CreateAttributeDefRequest) returns (CreateAttributeDefResponse);
+  // Modifier : AttributeDef (concurrence optimiste via `if_match`).
+  rpc UpdateAttributeDef(UpdateAttributeDefRequest) returns (UpdateAttributeDefResponse);
+  // Supprimer : AttributeDef.
+  rpc DeleteAttributeDef(DeleteAttributeDefRequest) returns (DeleteAttributeDefResponse);
+  // Lister : ProductsAdmin.
+  rpc ListProductsAdmin(ListProductsAdminRequest) returns (ListProductsAdminResponse);
+  // Lire : Product.
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  // Créer : Product (`id` ignoré).
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  // Modifier : Product (concurrence optimiste via `if_match`).
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  // Supprimer : Product.
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+  // Lister : Brands.
+  rpc ListBrands(ListBrandsRequest) returns (ListBrandsResponse);
+  // Lire : Brand.
+  rpc GetBrand(GetBrandRequest) returns (GetBrandResponse);
+  // Créer : Brand (`id` ignoré).
+  rpc CreateBrand(CreateBrandRequest) returns (CreateBrandResponse);
+  // Modifier : Brand (concurrence optimiste via `if_match`).
+  rpc UpdateBrand(UpdateBrandRequest) returns (UpdateBrandResponse);
+  // Supprimer : Brand.
+  rpc DeleteBrand(DeleteBrandRequest) returns (DeleteBrandResponse);
+  // Lister : Sectors.
+  rpc ListSectors(ListSectorsRequest) returns (ListSectorsResponse);
+  // Lire : Sector.
+  rpc GetSector(GetSectorRequest) returns (GetSectorResponse);
+  // Créer : Sector (`id` ignoré).
+  rpc CreateSector(CreateSectorRequest) returns (CreateSectorResponse);
+  // Modifier : Sector (concurrence optimiste via `if_match`).
+  rpc UpdateSector(UpdateSectorRequest) returns (UpdateSectorResponse);
+  // Supprimer : Sector.
+  rpc DeleteSector(DeleteSectorRequest) returns (DeleteSectorResponse);
+  // Lister : Machines.
+  rpc ListMachines(ListMachinesRequest) returns (ListMachinesResponse);
+  // Lire : Machine.
+  rpc GetMachine(GetMachineRequest) returns (GetMachineResponse);
+  // Créer : Machine (`id` ignoré).
+  rpc CreateMachine(CreateMachineRequest) returns (CreateMachineResponse);
+  // Modifier : Machine (concurrence optimiste via `if_match`).
+  rpc UpdateMachine(UpdateMachineRequest) returns (UpdateMachineResponse);
+  // Supprimer : Machine.
+  rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
+  // Lister : CrossReferences.
+  rpc ListCrossReferences(ListCrossReferencesRequest) returns (ListCrossReferencesResponse);
+  // Lire : CrossReference.
+  rpc GetCrossReference(GetCrossReferenceRequest) returns (GetCrossReferenceResponse);
+  // Créer : CrossReference (`id` ignoré).
+  rpc CreateCrossReference(CreateCrossReferenceRequest) returns (CreateCrossReferenceResponse);
+  // Modifier : CrossReference (concurrence optimiste via `if_match`).
+  rpc UpdateCrossReference(UpdateCrossReferenceRequest) returns (UpdateCrossReferenceResponse);
+  // Supprimer : CrossReference.
+  rpc DeleteCrossReference(DeleteCrossReferenceRequest) returns (DeleteCrossReferenceResponse);
+  rpc RequestMediaUpload(RequestMediaUploadRequest) returns (RequestMediaUploadResponse);
+  rpc ReorderMedia(ReorderMediaRequest) returns (ReorderMediaResponse);
+  rpc DeleteMedia(DeleteMediaRequest) returns (DeleteMediaResponse);
+  rpc SetCompatibilities(SetCompatibilitiesRequest) returns (SetCompatibilitiesResponse);
+  // kind : products | cross_references.
+  rpc StartImport(StartImportRequest) returns (StartImportResponse);
+  rpc GetImportJob(GetImportJobRequest) returns (GetImportJobResponse);
+  rpc StartExport(StartExportRequest) returns (StartExportResponse);
+}

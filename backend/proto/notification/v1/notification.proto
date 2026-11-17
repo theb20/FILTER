@@ -1,0 +1,186 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package notification.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/notification/v1;notificationv1";
+
+enum Channel {
+  CHANNEL_UNSPECIFIED = 0;
+  CHANNEL_EMAIL = 1;
+  CHANNEL_SMS = 2;
+}
+
+enum SubscriberStatus {
+  SUBSCRIBER_STATUS_UNSPECIFIED = 0;
+  SUBSCRIBER_STATUS_PENDING = 1;
+  SUBSCRIBER_STATUS_CONFIRMED = 2;
+  SUBSCRIBER_STATUS_UNSUBSCRIBED = 3;
+}
+
+message Template {
+  string id = 1;
+  string key = 2;
+  Channel channel = 3;
+  string locale = 4;
+  optional string subject = 5;
+  string body = 6;
+  int32 version = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message ListTemplatesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string key = 3;
+  optional string locale = 4;
+}
+
+message ListTemplatesResponse {
+  repeated Template items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetTemplateRequest {
+  string id = 1;
+}
+
+message GetTemplateResponse {
+  Template template = 1;
+}
+
+message CreateTemplateRequest {
+  Template template = 1;
+}
+
+message CreateTemplateResponse {
+  Template template = 1;
+}
+
+message UpdateTemplateRequest {
+  Template template = 1;
+  string if_match = 2;
+}
+
+message UpdateTemplateResponse {
+  Template template = 1;
+}
+
+message DeleteTemplateRequest {
+  string id = 1;
+}
+
+message DeleteTemplateResponse {}
+
+message SendRequest {
+  string template_key = 1;
+  Channel channel = 2;
+  string recipient = 3;
+  string locale = 4;
+  google.protobuf.Struct payload = 5;
+  string idempotency_key = 6;
+}
+
+message SendResponse {
+  string message_id = 1;
+}
+
+message Message {
+  string id = 1;
+  Channel channel = 2;
+  string recipient = 3;
+  string template_key = 4;
+  string locale = 5;
+  string status = 6;
+  optional string provider_reference = 7;
+  int32 attempts = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message ListMessagesRequest {
+  common.v1.CursorRequest cursor = 1;
+  optional string recipient = 2;
+  optional string status = 3;
+}
+
+message ListMessagesResponse {
+  repeated Message items = 1;
+  common.v1.CursorResponse cursor = 2;
+}
+
+message Subscriber {
+  string id = 1;
+  string email = 2;
+  string locale = 3;
+  SubscriberStatus status = 4;
+  optional google.protobuf.Timestamp consented_at = 5;
+  optional string source = 6;
+}
+
+message SubscribeNewsletterRequest {
+  string email = 1;
+  string locale = 2;
+  string source = 3;
+  string client_ip = 4;
+}
+
+message SubscribeNewsletterResponse {}
+
+message ConfirmNewsletterRequest {
+  string token = 1;
+}
+
+message ConfirmNewsletterResponse {}
+
+message UnsubscribeNewsletterRequest {
+  string token = 1;
+}
+
+message UnsubscribeNewsletterResponse {}
+
+message ListSubscribersRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional SubscriberStatus status = 3;
+}
+
+message ListSubscribersResponse {
+  repeated Subscriber items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message ExportSubscribersRequest {}
+
+message ExportSubscribersResponse {
+  string object_key = 1;
+}
+
+// E-mails/SMS transactionnels, newsletter (double opt-in), modèles multilingues, liste de suppression.
+service NotificationService {
+  // Lister : Templates.
+  rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse);
+  // Lire : Template.
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse);
+  // Créer : Template (`id` ignoré).
+  rpc CreateTemplate(CreateTemplateRequest) returns (CreateTemplateResponse);
+  // Modifier : Template (concurrence optimiste via `if_match`).
+  rpc UpdateTemplate(UpdateTemplateRequest) returns (UpdateTemplateResponse);
+  // Supprimer : Template.
+  rpc DeleteTemplate(DeleteTemplateRequest) returns (DeleteTemplateResponse);
+  // Idempotent. Refus si le destinataire est dans la liste de suppression (sauf messages transactionnels obligatoires).
+  rpc Send(SendRequest) returns (SendResponse);
+  // Pagination PAR CURSEUR (journal).
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  // Envoie l'e-mail de confirmation (double opt-in).
+  rpc SubscribeNewsletter(SubscribeNewsletterRequest) returns (SubscribeNewsletterResponse);
+  rpc ConfirmNewsletter(ConfirmNewsletterRequest) returns (ConfirmNewsletterResponse);
+  rpc UnsubscribeNewsletter(UnsubscribeNewsletterRequest) returns (UnsubscribeNewsletterResponse);
+  rpc ListSubscribers(ListSubscribersRequest) returns (ListSubscribersResponse);
+  rpc ExportSubscribers(ExportSubscribersRequest) returns (ExportSubscribersResponse);
+}

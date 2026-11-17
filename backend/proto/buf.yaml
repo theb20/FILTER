@@ -1,0 +1,24 @@
+version: v2
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
+  # Seuls les contrats VALIDÉS sont protégés contre les ruptures de compatibilité.
+  # Les contrats en brouillon (STATUS: draft) évoluent librement jusqu'à leur validation :
+  # retirer un dossier de cette liste dès qu'il est validé.
+  ignore:
+    - cart
+    - catalog
+    - content
+    - fulfillment
+    - notification
+    - order
+    - payment
+    - pricing
+    - quote
+    - search
+    - support

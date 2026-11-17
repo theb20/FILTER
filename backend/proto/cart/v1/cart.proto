@@ -1,0 +1,242 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package cart.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/cart/v1;cartv1";
+
+message Owner {
+  oneof owner {
+    string user_id = 1;
+    string guest_token = 2;
+  }
+}
+
+message CartItem {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  optional string image_url = 4;
+  int32 quantity = 5;
+  common.v1.Money list_unit_price = 6;
+  common.v1.Money unit_price = 7;
+  common.v1.Money line_total = 8;
+  optional common.v1.LineDiscount discount = 9;
+  string availability_status = 10;
+  optional int64 max_quantity = 11;
+  bool orderable = 12;
+  optional common.v1.Money price_at_add = 13;
+  bool price_changed = 14;
+}
+
+message CartAlert {
+  string code = 1;
+  string product_id = 2;
+  string message = 3;
+}
+
+message QuoteEligibility {
+  bool eligible = 1;
+  int32 min_items = 2;
+  common.v1.Money min_amount = 3;
+  int32 remaining_items = 4;
+  common.v1.Money remaining_amount = 5;
+}
+
+// Totaux calculés par orchestration : pricing.PriceLines → fulfillment.EstimateShipping → pricing.ComputeTaxes.
+message Cart {
+  string id = 1;
+  string currency = 2;
+  string zone_code = 3;
+  optional string promo_code = 4;
+  optional string note = 5;
+  repeated CartItem items = 6;
+  repeated CartItem saved = 7;
+  common.v1.Totals totals = 8;
+  repeated CartAlert alerts = 9;
+  QuoteEligibility quote_eligibility = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message GetCartRequest {
+  Owner owner = 1;
+  string currency = 2;
+}
+
+message GetCartResponse {
+  Cart cart = 1;
+}
+
+message AddItemRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+}
+
+message AddItemResponse {
+  Cart cart = 1;
+}
+
+message SetQuantityRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+}
+
+message SetQuantityResponse {
+  Cart cart = 1;
+}
+
+message RemoveItemRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string product_id = 3;
+}
+
+message RemoveItemResponse {
+  Cart cart = 1;
+}
+
+message SaveForLaterRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string product_id = 3;
+}
+
+message SaveForLaterResponse {
+  Cart cart = 1;
+}
+
+message MoveToCartRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string product_id = 3;
+}
+
+message MoveToCartResponse {
+  Cart cart = 1;
+}
+
+message RemoveSavedRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string product_id = 3;
+}
+
+message RemoveSavedResponse {
+  Cart cart = 1;
+}
+
+message SetZoneRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string zone_code = 3;
+}
+
+message SetZoneResponse {
+  Cart cart = 1;
+}
+
+message ApplyPromoRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string code = 3;
+}
+
+message ApplyPromoResponse {
+  Cart cart = 1;
+}
+
+message RemovePromoRequest {
+  Owner owner = 1;
+  string currency = 2;
+}
+
+message RemovePromoResponse {
+  Cart cart = 1;
+}
+
+message SetNoteRequest {
+  Owner owner = 1;
+  string currency = 2;
+  string note = 3;
+}
+
+message SetNoteResponse {
+  Cart cart = 1;
+}
+
+message MergeLine {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message MergeCartRequest {
+  string user_id = 1;
+  string guest_token = 2;
+  repeated MergeLine items = 3;
+  repeated MergeLine saved = 4;
+  optional string promo_code = 5;
+  optional string zone_code = 6;
+  optional string note = 7;
+  string currency = 8;
+}
+
+message MergeCartResponse {
+  Cart cart = 1;
+}
+
+message GetCheckoutSnapshotRequest {
+  string user_id = 1;
+  string currency = 2;
+}
+
+message GetCheckoutSnapshotResponse {
+  Cart cart = 1;
+  string snapshot_id = 2;
+}
+
+message ClearCartRequest {
+  string user_id = 1;
+  string snapshot_id = 2;
+}
+
+message ClearCartResponse {}
+
+message GetConversionStatsRequest {
+  optional google.protobuf.Timestamp from = 1;
+  optional google.protobuf.Timestamp to = 2;
+}
+
+message GetConversionStatsResponse {
+  int64 sessions_with_cart = 1;
+  int64 carts_converted = 2;
+}
+
+// Panier serveur (invité ou connecté), « plus tard », fusion du panier local.
+service CartService {
+  rpc GetCart(GetCartRequest) returns (GetCartResponse);
+  rpc AddItem(AddItemRequest) returns (AddItemResponse);
+  rpc SetQuantity(SetQuantityRequest) returns (SetQuantityResponse);
+  rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse);
+  rpc SaveForLater(SaveForLaterRequest) returns (SaveForLaterResponse);
+  rpc MoveToCart(MoveToCartRequest) returns (MoveToCartResponse);
+  rpc RemoveSaved(RemoveSavedRequest) returns (RemoveSavedResponse);
+  rpc SetZone(SetZoneRequest) returns (SetZoneResponse);
+  // Un seul code par panier : un nouveau code REMPLACE le précédent. Erreurs métier via google.rpc.Status (PROMO_*).
+  rpc ApplyPromo(ApplyPromoRequest) returns (ApplyPromoResponse);
+  rpc RemovePromo(RemovePromoRequest) returns (RemovePromoResponse);
+  rpc SetNote(SetNoteRequest) returns (SetNoteResponse);
+  // Additionne les quantités (plafonnées au stock), ignore tout prix venant du navigateur. Idempotent par (user_id, hash du contenu).
+  rpc MergeCart(MergeCartRequest) returns (MergeCartResponse);
+  // Instantané figé consommé par order.CreateOrder.
+  rpc GetCheckoutSnapshot(GetCheckoutSnapshotRequest) returns (GetCheckoutSnapshotResponse);
+  rpc ClearCart(ClearCartRequest) returns (ClearCartResponse);
+  rpc GetConversionStats(GetConversionStatsRequest) returns (GetConversionStatsResponse);
+}

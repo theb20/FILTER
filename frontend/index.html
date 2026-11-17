@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <!-- ========================================
+         BASIC META TAGS
+         ======================================== -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- ========================================
+         SITE IDENTITY
+         ======================================== -->
+    <title>Holding Ledan & Associe</title>
+    <meta name="description" content="Holding Ledan & Associe - Votre partenaire de confiance pour les filtres automobiles en Côte d'Ivoire." />
+    <meta name="keywords" content="filtre à huile, filtre à air, filtre à carburant, filtre habitacle, pièces auto, Côte d'Ivoire, FCFA, filter finder" />
+    <meta name="author" content="Filter Finder" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- ========================================
+         FAVICONS & APP ICONS
+         ======================================== -->
+    <link rel="icon" type="image/png" href="/img/logo/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/img/logo/favicon.svg" />
+    <link rel="shortcut icon" href="/img/logo/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/logo/apple-touch-icon.png" />
+    <link rel="manifest" href="/img/logo/site.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="Filter Finder" />
+    
+    <!-- ========================================
+         THEME & BRANDING
+         ======================================== -->
+    <meta name="theme-color" content="#d97706" />
+    <meta name="msapplication-TileColor" content="#d97706" />
+    
+    <!-- ========================================
+         SOCIAL MEDIA - OPEN GRAPH (Facebook, LinkedIn)
+         ======================================== -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Filter Finder" />
+    <meta property="og:locale" content="fr_CI" />
+    <meta property="og:title" content="Filter Finder — Filtres automobiles en Côte d'Ivoire" />
+    <meta property="og:description" content="Trouvez le bon filtre pour votre véhicule, avec des prix en FCFA." />
+    <meta property="og:image" content="/img/logo/web-app-manifest-512x512.png" />
+    
+    <!-- ========================================
+         SOCIAL MEDIA - TWITTER CARD
+         ======================================== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Filter Finder — Filtres automobiles en Côte d'Ivoire" />
+    <meta name="twitter:description" content="Trouvez le bon filtre pour votre véhicule, avec des prix en FCFA." />
+    <meta name="twitter:image" content="/img/logo/web-app-manifest-512x512.png" />
+    
+    <!-- ========================================
+         SECURITY
+         ======================================== -->
+    <!-- Content-Security-Policy : injectée au build par vite.config.js (le mode dev a besoin de scripts inline pour le HMR) -->
+    
+    <!-- ========================================
+         PERFORMANCE OPTIMIZATION
+         ======================================== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Google Fonts - Uncomment if needed -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" /> -->
+    
+    <!-- Development Mode - Uncomment to prevent indexing -->
+    <!-- <meta name="robots" content="noindex, nofollow" /> -->
+    
+    <!-- ========================================
+         CRITICAL CSS - Inline for Performance
+         ======================================== -->
+<style>
+  /* ========================================
+     BASE
+  ======================================== */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Roboto", system-ui, sans-serif;
+    background-color: #F8F8F8;
+    color: #0f172a;
+  }
+
+  /* ========================================
+     LOADING SCREEN
+  ======================================== */
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+    z-index: 9999;
+  }
+
+  #loading-screen.hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    animation: fadeIn 1s ease forwards;
+  }
+
+  /* ========================================
+     ORBITAL LOADER
+  ======================================== */
+  .loader-orbit {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loader-logo {
+    width: 104px;
+    height: 104px;
+    z-index: 2;
+    position: absolute;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  .orbit-spinner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-top: 3px solid #f59e0b; /* or #ffc107 si tu veux plus doré */
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+  }
+
+  .loader-text {
+    color: #0f172a;
+    font-weight: 500;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ========================================
+     ANIMATIONS
+  ======================================== */
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ========================================
+     PRINT
+  ======================================== */
+  @media print {
+    #loading-screen {
+      display: none !important;
+    }
+  }
+</style>
+
+  </head>
+  
+  <body>
+    <!-- ========================================
+         LOADING SCREEN
+         ======================================== -->
+   <div id="loading-screen">
+  <div class="loader">
+    <div class="loader-orbit">
+      <div class="orbit-spinner"></div>
+      <img src="/img/logo/favicon.svg" alt="Logo" class="loader-logo" />
+    </div>
+  </div>
+</div>
+    
+    <!-- ========================================
+         ACCESSIBILITY: Skip Navigation
+         ======================================== -->
+    <a href="#root" class="sr-only">Aller au contenu principal</a>
+    
+    <!-- ========================================
+         MAIN APPLICATION CONTAINER
+         ======================================== -->
+    <div id="root"></div>
+    
+    <!-- ========================================
+         SCRIPTS
+         ======================================== -->
+    
+    <!-- Main Application Script -->
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Loading Screen Controller (fichier externe : compatible CSP sans unsafe-inline) -->
+    <script src="/loader.js"></script>
+    
+    <!-- ========================================
+         NO JAVASCRIPT FALLBACK
+         ======================================== -->
+    <noscript>
+      <div class="no-js-warning">
+        <strong>⚠️ JavaScript est désactivé</strong>
+        Filter Finder nécessite JavaScript pour fonctionner correctement. 
+        Veuillez l'activer dans les paramètres de votre navigateur.
+      </div>
+    </noscript>
+  </body>
+</html>

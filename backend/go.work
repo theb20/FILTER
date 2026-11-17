@@ -1,0 +1,11 @@
+go 1.26.5
+
+use (
+	./pkg
+	./services/gateway
+	./services/identity
+	./services/sourcing
+	./services/catalog
+	./services/finance
+	./services/content
+)

@@ -1,0 +1,500 @@
+// Contrat gRPC interne.
+// STATUS: draft (à relire route par route avant validation)
+syntax = "proto3";
+
+package order.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/order/v1;orderv1";
+
+// Cycle LOGISTIQUE uniquement.
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PLACED = 1;
+  ORDER_STATUS_PREPARING = 2;
+  ORDER_STATUS_SHIPPED = 3;
+  ORDER_STATUS_DELIVERED = 4;
+  ORDER_STATUS_CANCELLED = 5;
+}
+
+// Statut de paiement DE LA COMMANDE (distinct du statut d'une tentative de paiement, voir payment.IntentStatus). `AUTHORIZED` à ajouter si GeniusPay confirme l'autorisation puis capture.
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PAID = 2;
+  PAYMENT_STATUS_PARTIALLY_REFUNDED = 3;
+  PAYMENT_STATUS_REFUNDED = 4;
+  PAYMENT_STATUS_FAILED = 5;
+  PAYMENT_STATUS_VOIDED = 6;
+}
+
+// Obligatoire pour SHIPPED → CANCELLED.
+enum CancellationReason {
+  CANCELLATION_REASON_UNSPECIFIED = 0;
+  CANCELLATION_REASON_CUSTOMER_REQUEST = 1;
+  CANCELLATION_REASON_PAYMENT_EXPIRED = 2;
+  CANCELLATION_REASON_PAYMENT_FAILED = 3;
+  CANCELLATION_REASON_DELIVERY_REFUSED = 4;
+  CANCELLATION_REASON_LOST_PARCEL = 5;
+  CANCELLATION_REASON_UNDELIVERABLE = 6;
+  CANCELLATION_REASON_STOCK_ISSUE = 7;
+  CANCELLATION_REASON_OTHER = 8;
+}
+
+enum RefundReason {
+  REFUND_REASON_UNSPECIFIED = 0;
+  REFUND_REASON_CANCELLATION = 1;
+  REFUND_REASON_LOST_PARCEL = 2;
+  REFUND_REASON_RETURN = 3;
+  REFUND_REASON_DEFECT = 4;
+  REFUND_REASON_GOODWILL = 5;
+  REFUND_REASON_OTHER = 6;
+}
+
+enum RefundChannel {
+  REFUND_CHANNEL_UNSPECIFIED = 0;
+  REFUND_CHANNEL_ORIGINAL_METHOD = 1;
+  REFUND_CHANNEL_MANUAL_BANK_TRANSFER = 2;
+  REFUND_CHANNEL_MANUAL_CASH = 3;
+  REFUND_CHANNEL_MANUAL_MOBILE_MONEY = 4;
+  REFUND_CHANNEL_CREDIT_NOTE = 5;
+}
+
+enum RefundStatus {
+  REFUND_STATUS_UNSPECIFIED = 0;
+  REFUND_STATUS_PENDING = 1;
+  REFUND_STATUS_SUCCEEDED = 2;
+  REFUND_STATUS_FAILED = 3;
+}
+
+message OrderLine {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  int32 quantity = 4;
+  common.v1.Money list_unit_price = 5;
+  common.v1.Money unit_price = 6;
+  optional common.v1.LineDiscount discount = 7;
+  int32 tax_rate_bp = 8;
+  common.v1.Money line_total = 9;
+  string fulfillment_mode = 10;
+  optional int32 lead_time_days = 11;
+}
+
+// kind : order | payment.
+message StatusChange {
+  string kind = 1;
+  optional string from = 2;
+  string to = 3;
+  google.protobuf.Timestamp at = 4;
+  string actor = 5;
+  optional string note = 6;
+  optional CancellationReason reason = 7;
+}
+
+message FxSnapshot {
+  string id = 1;
+  string base = 2;
+  string quote = 3;
+  string rate = 4;
+  google.protobuf.Timestamp fetched_at = 5;
+}
+
+message InvoiceInfo {
+  string number = 1;
+  google.protobuf.Timestamp issued_at = 2;
+}
+
+message RefundLine {
+  string product_id = 1;
+  int32 quantity = 2;
+  common.v1.Money amount = 3;
+  bool restock = 4;
+}
+
+message Refund {
+  string id = 1;
+  string order_id = 2;
+  optional string payment_id = 3;
+  common.v1.Money amount = 4;
+  RefundReason reason = 5;
+  RefundStatus status = 6;
+  RefundChannel channel = 7;
+  repeated RefundLine lines = 8;
+  bool shipping_refunded = 9;
+  optional string failure_reason = 10;
+  optional string credit_note_number = 11;
+  google.protobuf.Timestamp created_at = 12;
+  optional google.protobuf.Timestamp completed_at = 13;
+  string created_by = 14;
+}
+
+message PaymentMethodRef {
+  string code = 1;
+  string kind = 2;
+}
+
+// Invariant : `status = CANCELLED` avec `payment_status` ∈ {PAID, PARTIALLY_REFUNDED} implique `refund_pending = true` (état d'attente explicite d'un remboursement).
+message Order {
+  string id = 1;
+  string number = 2;
+  OrderStatus status = 3;
+  PaymentStatus payment_status = 4;
+  bool refund_pending = 5;
+  string currency = 6;
+  repeated OrderLine lines = 7;
+  common.v1.Totals totals = 8;
+  optional string promo_code = 9;
+  PaymentMethodRef payment_method = 10;
+  optional google.protobuf.Timestamp payment_expires_at = 11;
+  optional google.protobuf.Timestamp due_at = 12;
+  common.v1.Money total_paid = 13;
+  common.v1.Money total_refunded = 14;
+  repeated Refund refunds = 15;
+  optional CancellationReason cancellation_reason = 16;
+  common.v1.Address billing_address = 17;
+  common.v1.Address shipping_address = 18;
+  optional string customer_reference = 19;
+  optional string note = 20;
+  optional FxSnapshot fx = 21;
+  optional string quote_id = 22;
+  optional string user_id = 23;
+  optional string company_id = 24;
+  string customer_email = 25;
+  google.protobuf.Timestamp placed_at = 26;
+  optional google.protobuf.Timestamp paid_at = 27;
+  optional google.protobuf.Timestamp cancelled_at = 28;
+  optional InvoiceInfo invoice = 29;
+  repeated StatusChange history = 30;
+}
+
+message CreateOrderRequest {
+  string user_id = 1;
+  string snapshot_id = 2;
+  common.v1.Address billing_address = 3;
+  common.v1.Address shipping_address = 4;
+  string payment_method_code = 5;
+  optional string customer_reference = 6;
+  optional string note = 7;
+  bool accept_terms = 8;
+  string idempotency_key = 9;
+}
+
+message CreateOrderResponse {
+  Order order = 1;
+}
+
+message CreateOrderFromQuoteRequest {
+  string quote_id = 1;
+  common.v1.Address billing_address = 2;
+  common.v1.Address shipping_address = 3;
+  string payment_method_code = 4;
+  optional string customer_reference = 5;
+  string idempotency_key = 6;
+}
+
+message CreateOrderFromQuoteResponse {
+  Order order = 1;
+}
+
+message GetOrderRequest {
+  string id = 1;
+  optional string user_id = 2;
+}
+
+message GetOrderResponse {
+  Order order = 1;
+}
+
+message ListOrdersRequest {
+  string user_id = 1;
+  common.v1.PageRequest page = 2;
+  optional OrderStatus status = 3;
+  optional PaymentStatus payment_status = 4;
+}
+
+message ListOrdersResponse {
+  repeated Order items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message CancelOrderRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message CancelOrderResponse {
+  Order order = 1;
+}
+
+message OrderListItem {
+  string id = 1;
+  string number = 2;
+  OrderStatus status = 3;
+  PaymentStatus payment_status = 4;
+  bool refund_pending = 5;
+  string payment_kind = 6;
+  string customer_email = 7;
+  optional string company_name = 8;
+  common.v1.Money total = 9;
+  string country = 10;
+  google.protobuf.Timestamp placed_at = 11;
+}
+
+message ListOrdersAdminRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional OrderStatus status = 3;
+  optional PaymentStatus payment_status = 4;
+  optional bool refund_pending = 5;
+  optional string payment_kind = 6;
+  optional string country = 7;
+  optional string currency = 8;
+  optional google.protobuf.Timestamp from = 9;
+  optional google.protobuf.Timestamp to = 10;
+}
+
+message ListOrdersAdminResponse {
+  repeated OrderListItem items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message TransitionOrderRequest {
+  string id = 1;
+  OrderStatus to = 2;
+  optional CancellationReason reason = 3;
+  optional string note = 4;
+}
+
+message TransitionOrderResponse {
+  Order order = 1;
+}
+
+message RefundOrderRequest {
+  string order_id = 1;
+  oneof mode {
+    common.v1.Money amount = 2;
+    RefundLines lines = 3;
+  }
+  bool include_shipping = 4;
+  RefundReason reason = 5;
+  optional string note = 6;
+  optional RefundChannel channel = 7;
+  string idempotency_key = 8;
+}
+
+message RefundOrderResponse {
+  Refund refund = 1;
+}
+
+message RefundLines {
+  repeated RefundLineInput items = 1;
+}
+
+message RefundLineInput {
+  string product_id = 1;
+  int32 quantity = 2;
+  bool restock = 3;
+}
+
+message ListRefundsRequest {
+  common.v1.PageRequest page = 1;
+  optional string order_id = 2;
+  optional RefundStatus status = 3;
+  optional google.protobuf.Timestamp from = 4;
+  optional google.protobuf.Timestamp to = 5;
+}
+
+message ListRefundsResponse {
+  repeated Refund items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message RetryRefundRequest {
+  string id = 1;
+  string idempotency_key = 2;
+}
+
+message RetryRefundResponse {
+  Refund refund = 1;
+}
+
+message CompleteRefundRequest {
+  string id = 1;
+  common.v1.Money received_amount = 2;
+  google.protobuf.Timestamp received_at = 3;
+  optional string bank_reference = 4;
+  optional string proof_attachment_id = 5;
+  optional string note = 6;
+}
+
+message CompleteRefundResponse {
+  Refund refund = 1;
+}
+
+message CountPendingRefundsRequest {}
+
+message CountPendingRefundsResponse {
+  int64 pending = 1;
+  int64 failed = 2;
+}
+
+message AddOrderNoteRequest {
+  string order_id = 1;
+  string text = 2;
+}
+
+message AddOrderNoteResponse {}
+
+message Invoice {
+  string id = 1;
+  string number = 2;
+  string order_id = 3;
+  google.protobuf.Timestamp issued_at = 4;
+  common.v1.Money total = 5;
+  string pdf_object_key = 6;
+}
+
+message GetInvoiceRequest {
+  string order_id = 1;
+  optional string user_id = 2;
+}
+
+message GetInvoiceResponse {
+  Invoice invoice = 1;
+}
+
+message ListInvoicesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional google.protobuf.Timestamp from = 3;
+  optional google.protobuf.Timestamp to = 4;
+}
+
+message ListInvoicesResponse {
+  repeated Invoice items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message StatusCount {
+  OrderStatus status = 1;
+  int64 count = 2;
+}
+
+message CountByStatusRequest {
+  optional google.protobuf.Timestamp from = 1;
+  optional google.protobuf.Timestamp to = 2;
+  optional string country = 3;
+}
+
+message CountByStatusResponse {
+  repeated StatusCount items = 1;
+}
+
+message SeriesPoint {
+  string label = 1;
+  optional common.v1.Money amount = 2;
+  int64 count = 3;
+}
+
+message GetRevenueSeriesRequest {
+  optional google.protobuf.Timestamp from = 1;
+  optional google.protobuf.Timestamp to = 2;
+  string currency = 3;
+  optional string country = 4;
+  string group_by = 5;
+}
+
+message GetRevenueSeriesResponse {
+  repeated SeriesPoint points = 1;
+}
+
+message GetOrdersSeriesRequest {
+  optional google.protobuf.Timestamp from = 1;
+  optional google.protobuf.Timestamp to = 2;
+  optional string country = 3;
+  string group_by = 4;
+}
+
+message GetOrdersSeriesResponse {
+  repeated SeriesPoint points = 1;
+}
+
+message TopProduct {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  int64 units = 4;
+  common.v1.Money revenue = 5;
+}
+
+message GetTopProductsRequest {
+  optional google.protobuf.Timestamp from = 1;
+  optional google.protobuf.Timestamp to = 2;
+  string currency = 3;
+  int32 limit = 4;
+}
+
+message GetTopProductsResponse {
+  repeated TopProduct items = 1;
+}
+
+// `auto_cancel_expired_prepayments` : prépaiements (mobile money, carte, virement) non payés à l'échéance → PLACED→CANCELLED, paymentStatus→VOIDED, stock libéré, client notifié. JAMAIS pour la livraison ni le différé.
+message OrderSettings {
+  optional int32 orders_days = 1;
+  optional int32 invoices_days = 2;
+  repeated OrderStatus customer_cancellable_statuses = 3;
+  optional string invoice_issuance_moment = 4;
+  bool auto_cancel_expired_prepayments = 5;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  OrderSettings settings = 1;
+}
+
+message PutSettingsRequest {
+  OrderSettings settings = 1;
+}
+
+message PutSettingsResponse {
+  OrderSettings settings = 1;
+}
+
+// Commandes (statut logistique + statut de paiement), factures, remboursements, prix et taux figés.
+service OrderService {
+  // Refus ligne par ligne (google.rpc.Status + details) pour tout produit non `made_to_order` en rupture. Fige prix, taxes et taux de change ; réserve le stock selon la politique du type de paiement ; publie order.placed (outbox).
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  // Appelé par quote (acceptation client ou conversion par le commercial). L'acteur est dans les métadonnées et audité.
+  rpc CreateOrderFromQuote(CreateOrderFromQuoteRequest) returns (CreateOrderFromQuoteResponse);
+  // `user_id` renseigné = contrôle de propriété.
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  // Selon `customer_cancellable_statuses`. Une commande payée déclenche AUTOMATIQUEMENT un remboursement total.
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  rpc ListOrdersAdmin(ListOrdersAdminRequest) returns (ListOrdersAdminResponse);
+  // Transitions : PLACED→PREPARING (condition de libération du type de paiement) | CANCELLED ; PREPARING→SHIPPED | CANCELLED ; SHIPPED→DELIVERED | CANCELLED (motif obligatoire). Rien ne sort de DELIVERED ni de CANCELLED. Hors matrice : INVALID_STATE_TRANSITION. Annuler une commande payée crée AUTOMATIQUEMENT un remboursement total.
+  rpc TransitionOrder(TransitionOrderRequest) returns (TransitionOrderResponse);
+  // Par MONTANT ou par LIGNE (exactement un). Total accepté seulement si la commande est CANCELLED ou DELIVERED ; partiel accepté à tout statut logistique. Somme des remboursements ≤ total encaissé.
+  rpc RefundOrder(RefundOrderRequest) returns (RefundOrderResponse);
+  // File des remboursements ; `status = FAILED` alimente les alertes du backoffice.
+  rpc ListRefunds(ListRefundsRequest) returns (ListRefundsResponse);
+  rpc RetryRefund(RetryRefundRequest) returns (RetryRefundResponse);
+  // Canaux manuels uniquement. Réservé comptabilité + super-admin (vérifié au gateway et ici) ; audité.
+  rpc CompleteRefund(CompleteRefundRequest) returns (CompleteRefundResponse);
+  rpc CountPendingRefunds(CountPendingRefundsRequest) returns (CountPendingRefundsResponse);
+  rpc AddOrderNote(AddOrderNoteRequest) returns (AddOrderNoteResponse);
+  rpc GetInvoice(GetInvoiceRequest) returns (GetInvoiceResponse);
+  rpc ListInvoices(ListInvoicesRequest) returns (ListInvoicesResponse);
+  rpc CountByStatus(CountByStatusRequest) returns (CountByStatusResponse);
+  // group_by : day | week | month | currency | country.
+  rpc GetRevenueSeries(GetRevenueSeriesRequest) returns (GetRevenueSeriesResponse);
+  rpc GetOrdersSeries(GetOrdersSeriesRequest) returns (GetOrdersSeriesResponse);
+  rpc GetTopProducts(GetTopProductsRequest) returns (GetTopProductsResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Publie `settings.changed`.
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+}

@@ -1,0 +1,102 @@
+// Contrat gRPC interne du service content (réglages et collections de contenu du site).
+// STATUS: validated pour les RPC ci-dessous. Les collections sont décrites par le service (types, champs obligatoires) ;
+// le contrat HTTP du gateway reste typé collection par collection.
+syntax = "proto3";
+
+package contentadmin.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/contentadmin/v1;contentadminv1";
+
+// Document : un élément d'une collection (`kind`) : FAQ, page, article, zone de livraison, code promotionnel, avis, message…
+message Document {
+  string id = 1;
+  string kind = 2;
+  google.protobuf.Struct data = 3;
+  int32 version = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message ListDocumentsRequest {
+  string kind = 1;
+  common.v1.PageRequest page = 2;
+  string query = 3;
+  // Égalités sur des champs du document (ex. {"status": "published"}) ; valeurs comparées en texte.
+  map<string, string> where = 4;
+}
+
+message ListDocumentsResponse {
+  repeated Document items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetDocumentRequest {
+  string kind = 1;
+  string id_or_key = 2; // identifiant, ou clé unique de la collection (slug, code, e-mail)
+}
+
+message GetDocumentResponse {
+  Document document = 1;
+}
+
+message CreateDocumentRequest {
+  string kind = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message CreateDocumentResponse {
+  Document document = 1;
+}
+
+message UpdateDocumentRequest {
+  string kind = 1;
+  string id = 2;
+  google.protobuf.Struct data = 3;
+  bool replace = 4; // true : `data` remplace tout le document ; false : seuls les champs fournis sont modifiés
+}
+
+message UpdateDocumentResponse {
+  Document document = 1;
+}
+
+message DeleteDocumentRequest {
+  string kind = 1;
+  string id = 2;
+}
+
+message DeleteDocumentResponse {}
+
+message GetSettingsRequest {
+  string key = 1; // site | commerce
+}
+
+message GetSettingsResponse {
+  google.protobuf.Struct data = 1;
+  int32 version = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+message PutSettingsRequest {
+  string key = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message PutSettingsResponse {
+  google.protobuf.Struct data = 1;
+  int32 version = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+service ContentAdminService {
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+  rpc GetDocument(GetDocumentRequest) returns (GetDocumentResponse);
+  rpc CreateDocument(CreateDocumentRequest) returns (CreateDocumentResponse);
+  rpc UpdateDocument(UpdateDocumentRequest) returns (UpdateDocumentResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+}
