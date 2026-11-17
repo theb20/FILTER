@@ -4,6 +4,8 @@ import { currentStaff } from "@/lib/staff";
 import { Badge, LinkButton, Notice, PageHeader, Table } from "@/components/ui/ui";
 import type { Role } from "@/lib/types";
 
+export const metadata = { title: "Rôles et permissions" };
+
 export default async function RolesPage({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
   const [{ me }, roles] = await Promise.all([currentStaff(), adminGet<Role[]>("/admin/roles", "/roles")]);

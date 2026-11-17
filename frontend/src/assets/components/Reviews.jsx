@@ -1,10 +1,10 @@
 import { Quote, Star } from "lucide-react";
 import Todo from "./Todo.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
-import { REVIEWS, REVIEWS_SUMMARY } from "../config/reviews.js";
-import { SITE } from "../config/site.js";
-
-const SLOTS = 3;
+import { withPlaceholders } from "../config/placeholderReviews.js";
+import { fetchSiteReviews } from "../lib/content.js";
+import { useAsync } from "../lib/catalog.js";
+import { useSite } from "../store/siteStore.js";
 
 function Stars({ value }) {
   return (
@@ -32,7 +32,7 @@ function ReviewCard({ review }) {
             </span>
             <span className="text-sm">
               <strong className="block">{review.author}</strong>
-              <span className="text-gray-600">{[review.role, review.company].filter(Boolean).join(" · ")}</span>
+              <span className="text-gray-600">{review.company ?? ""}</span>
             </span>
           </figcaption>
         </>
@@ -56,9 +56,13 @@ function ReviewCard({ review }) {
 }
 
 export default function Reviews() {
-  const { t } = useI18n();
-  const { average, count } = REVIEWS_SUMMARY;
-  const items = REVIEWS.length ? REVIEWS : Array.from({ length: SLOTS }, () => null);
+  const { t, lang } = useI18n();
+  const SITE = useSite();
+  const data = useAsync(fetchSiteReviews, [lang]).data;
+  const REVIEWS = data?.items ?? [];
+  const average = data?.count ? data.average : null;
+  const count = data?.count || null;
+  const items = withPlaceholders(REVIEWS, lang); // 3 cartes : les avis fictifs cèdent la place aux vrais, un par un
 
   return (
     <section className="mx-2.5 rounded-[4px] bg-white px-4 py-12 shadow-card md:px-10" aria-labelledby="reviews-title">
@@ -98,7 +102,7 @@ export default function Reviews() {
 
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {items.map((review, i) => (
-            <li key={review?.author ?? i}>
+            <li key={review.id ?? i}>
               <ReviewCard review={review} />
             </li>
           ))}

@@ -11,9 +11,9 @@ export default function TopicsRow({ articles }) {
       <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {articles.map((a) => (
           <li key={a.slug} className="relative flex items-center gap-3 rounded-[8px] bg-white p-3 shadow-card transition-shadow hover:shadow-md">
-            <img src={a.image} alt="" loading="lazy" decoding="async" className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-action ring-offset-2" />
+            {a.image ? <img src={a.image} alt="" loading="lazy" decoding="async" className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-action ring-offset-2" /> : <span className="h-14 w-14 shrink-0 rounded-full bg-gray-200" aria-hidden="true" />}
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wide text-teal">{t(`blog.cat.${a.category}`)}</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-teal">{a.categoryName}</p>
               <Link to={postPath(a.slug)} className="line-clamp-2 text-[15px] font-semibold leading-snug after:absolute after:inset-0 hover:underline">{a.title}</Link>
             </div>
           </li>

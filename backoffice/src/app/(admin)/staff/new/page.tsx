@@ -12,7 +12,7 @@ export default async function NewStaffPage() {
   const roles = await adminGet<Role[]>("/admin/roles", "/staff/new");
   return (
     <div className="max-w-xl">
-      <PageHeader title="Inviter un membre" subtitle="La personne reçoit un lien valable 72 h pour choisir son mot de passe, puis enregistrer sa double authentification." />
+      <PageHeader breadcrumb={[{ label: "Personnel", href: "/staff" }, { label: "Nouveau" }]} title="Inviter un membre" subtitle="La personne reçoit un lien valable 72 h pour choisir son mot de passe, puis enregistrer sa double authentification." />
       <Card>
         <ActionForm action={createStaff} submit="Envoyer l'invitation">
           <label className="block text-sm font-medium text-night">Nom<input name="name" required className={inputCls} /></label>

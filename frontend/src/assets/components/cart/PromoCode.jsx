@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { useI18n } from "../../i18n/i18nContext.js";
 
-// Champ code promo. `validate(code)` renvoie { status, promo? } (lib/cartTotals.validatePromo).
+// Champ code promo. `validate(code)` interroge l'API (lib/promo.checkPromo) et renvoie { status, promo? }.
 // `appliedCode` : code actuellement appliqué (depuis le store), ou null.
 export default function PromoCode({ appliedCode, appliedResult, validate, onApply, onClear }) {
   const { t, formatPrice } = useI18n();
@@ -11,10 +11,10 @@ export default function PromoCode({ appliedCode, appliedResult, validate, onAppl
   const [error, setError] = useState(null); // "invalid" | "expired" | "minimum" | "empty"
   const [minimum, setMinimum] = useState(0);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!draft.trim()) { setError("empty"); return; }
-    const res = validate(draft);
+    const res = await validate(draft);
     if (res.status === "valid") {
       onApply(draft);
       setDraft("");

@@ -15,7 +15,7 @@ export default function DeliveryEstimate({ zones, zoneId, window, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-[3px] border border-gray-300 bg-white px-3 py-2"
       >
-        {zones.map((z) => <option key={z.id} value={z.id}>{t(`cart.zone.${z.id}`)}</option>)}
+        {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
       </select>
       <p className="mt-1.5 text-sm text-gray-700" aria-live="polite">
         {t("cart.zone.eta", { from: fmt.format(window.from), to: fmt.format(window.to) })}

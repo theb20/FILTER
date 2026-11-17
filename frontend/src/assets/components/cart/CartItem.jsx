@@ -11,8 +11,8 @@ const ghostBtn = "inline-flex items-center gap-1.5 text-sm text-gray-700 hover:t
 // tous les calculs (remises, totaux) sont déjà faits.
 export default function CartItem({ line, onQuantity, onRemove, onSaveForLater }) {
   const { t, formatPrice } = useI18n();
-  const name = t(`prod.${line.id}`);
-  const compat = line.compat.map((k) => t(k)).join(", ");
+  const name = line.name;
+  const compat = line.compat.join(", ");
 
   return (
     <li className="py-5">
@@ -27,11 +27,11 @@ export default function CartItem({ line, onQuantity, onRemove, onSaveForLater })
 
           <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-gray-700">
             {line.specs.map((s) => (
-              <li key={s.key}><span className="text-gray-500">{t(`cart.spec.${s.key}`)} :</span> {s.value}</li>
+              <li key={s.label}><span className="text-gray-500">{s.label} :</span> {s.value}</li>
             ))}
           </ul>
           {compat && <p className="mt-1 text-sm text-gray-600">{t("cart.compat", { list: compat })}</p>}
-          <div className="mt-1.5"><StockBadge status={line.status} stock={line.stock} shipping={line.shipping} /></div>
+          <div className="mt-1.5"><StockBadge status={line.status} stock={line.stock} leadTimeDays={line.leadTimeDays} /></div>
         </div>
       </div>
 
@@ -60,6 +60,9 @@ export default function CartItem({ line, onQuantity, onRemove, onSaveForLater })
           </div>
         </div>
 
+        {line.onQuote ? (
+          <div className="text-right"><p className="text-[20px] font-bold">{t("price.onQuote")}</p><p className="text-sm text-gray-600">{t("cart.quoteOnly")}</p></div>
+        ) : (
         <div className="text-right">
           <p className="text-sm text-gray-600">
             {t("cart.unitPrice")} :{" "}
@@ -77,6 +80,7 @@ export default function CartItem({ line, onQuantity, onRemove, onSaveForLater })
             )
           )}
         </div>
+        )}
       </div>
     </li>
   );

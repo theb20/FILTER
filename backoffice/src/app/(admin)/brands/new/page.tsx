@@ -11,7 +11,7 @@ export default async function NewBrandPage() {
   if (!can(me?.permissions ?? [], "catalog:write")) redirect("/denied");
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Ajouter une marque" />
+      <PageHeader breadcrumb={[{ label: "Marques", href: "/brands" }, { label: "Nouveau" }]} title="Ajouter une marque" />
       <Card><ActionForm action={createBrand} submit="Créer la marque"><BrandFields /></ActionForm></Card>
     </div>
   );

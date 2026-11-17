@@ -16,7 +16,7 @@ export default async function NewAttributePage({ searchParams }: { searchParams:
   const cat = await adminGet<Category>(`/admin/categories/${categoryId}`, `/attributes/new?categoryId=${categoryId}`);
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Ajouter un attribut" subtitle={`Catégorie : ${t(cat.name)} — les sous-catégories en héritent.`} />
+      <PageHeader breadcrumb={[{ label: "Catégories", href: "/categories" }, { label: "Nouveau" }]} title="Ajouter un attribut" subtitle={`Catégorie : ${t(cat.name)} — les sous-catégories en héritent.`} />
       <Card><ActionForm action={createAttribute} submit="Créer l'attribut"><AttributeFields categoryId={cat.id} /></ActionForm></Card>
     </div>
   );

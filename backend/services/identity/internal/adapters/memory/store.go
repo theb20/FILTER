@@ -310,3 +310,27 @@ func (s *Store) MarkAlerted(_ context.Context, email string, now, until time.Tim
 	s.alerted[email] = until
 	return true, nil
 }
+
+// ── OAuthRepo ───────────────────────────────────────────────────────────────
+
+var oauthMu sync.Mutex
+var oauthLinks = map[*Store]map[string]string{}
+
+func (s *Store) OAuthUser(_ context.Context, provider, subject string) (string, bool, error) {
+	oauthMu.Lock()
+	defer oauthMu.Unlock()
+	id, ok := oauthLinks[s][provider+"|"+subject]
+	return id, ok, nil
+}
+
+func (s *Store) LinkOAuth(_ context.Context, provider, subject, userID string, _ time.Time) error {
+	oauthMu.Lock()
+	defer oauthMu.Unlock()
+	if oauthLinks[s] == nil {
+		oauthLinks[s] = map[string]string{}
+	}
+	if _, ok := oauthLinks[s][provider+"|"+subject]; !ok {
+		oauthLinks[s][provider+"|"+subject] = userID
+	}
+	return nil
+}

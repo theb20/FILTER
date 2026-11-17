@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Building2, Check, Eye, EyeOff, User } from "lucide-react";
 import LanguageSwitcher from "../components/LanguageSwitcher.jsx";
 import AccountForm from "../components/AccountForm.jsx";
-import { useNotify } from "../configurations/notificationContext.js";
 import { useI18n } from "../i18n/i18nContext.js";
-import { SITE } from "../config/site.js";
+import { useSite } from "../store/siteStore.js";
 import Logo from "../components/Logo.jsx";
-import { useAuth } from "../store/authStore.js";
+import { startGoogle, useAuth } from "../store/authStore.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,11 +34,14 @@ function GoogleIcon() {
 
 export default function Sign() {
   const { t } = useI18n();
-  const notify = useNotify();
+  const SITE = useSite();
   const navigate = useNavigate();
   const login = useAuth((a) => a.login);
+  const [params] = useSearchParams();
   const [pending, setPending] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [googlePending, setGooglePending] = useState(false);
+  const [formError, setFormError] = useState(params.get("error") === "oauth_failed" ? t("auth.err.oauth") : "");
+  const [googleError, setGoogleError] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [accountType, setAccountType] = useState("particulier"); // "particulier" | "entreprise"
   const [data, setData] = useState({ email: "", password: "" });
@@ -77,6 +79,16 @@ export default function Sign() {
     setPending(false);
     if (r.ok) return navigate("/profil");
     setFormError(t(r.error, { s: r.retryAfter ?? 60 }));
+  };
+
+  const onGoogle = async () => {
+    setGooglePending(true);
+    setGoogleError("");
+    const r = await startGoogle();
+    if (!r.ok) {
+      setGooglePending(false);
+      setGoogleError(t(r.error));
+    }
   };
 
   const change = (ev) => {
@@ -132,11 +144,13 @@ export default function Sign() {
 
             <button
               type="button"
-              onClick={() => notify(t("demo.notice"), "demo")}
-              className="mt-8 flex w-full items-center justify-center gap-2.5 rounded-[8px] border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              onClick={onGoogle}
+              disabled={googlePending}
+              className="mt-8 flex w-full items-center justify-center gap-2.5 rounded-[8px] border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium transition-colors hover:bg-gray-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
             >
-              <GoogleIcon /> {isLogin ? t("auth.googleIn") : t("auth.googleUp")}
+              <GoogleIcon /> {googlePending ? t("auth.pending") : isLogin ? t("auth.googleIn") : t("auth.googleUp")}
             </button>
+            {googleError && <p role="alert" className="mt-2 text-sm text-red-600">{googleError}</p>}
 
             <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500">
               <span className="h-px flex-1 bg-gray-200" aria-hidden="true" />

@@ -1,19 +1,36 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useI18n } from "../i18n/i18nContext.js";
-import { SITE } from "../config/site.js";
+import { useSite } from "../store/siteStore.js";
 import Todo from "../components/Todo.jsx";
+import { sendForm } from "../lib/forms.js";
+import { useCartStore } from "../store/cartStore.js";
+import { useProductsById } from "../lib/catalog.js";
 
 const field =
   "w-full rounded-[3px] border border-gray-300 bg-white px-4 py-2.5 outline-none focus:ring-2 focus:ring-action";
 
-// Demande de devis (RFQ) : formulaire de démonstration, rien n'est transmis.
+// Demande de devis (RFQ) : envoyée à l'API ; les lignes du panier préremplissent la liste des références.
 export default function Quote() {
   const { t } = useI18n();
+  const SITE = useSite();
   const [contact, setContact] = useState({ company: "", name: "", email: "", phone: "" });
   const [rows, setRows] = useState([{ ref: "", qty: 1 }]);
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const cart = useCartStore((c) => c.items);
+  const { products, ready } = useProductsById(cart.map((i) => i.id));
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Les articles du panier deviennent les lignes de la demande (une seule fois).
+  useEffect(() => {
+    if (prefilled || !ready || cart.length === 0) return;
+    const lines = cart.filter((i) => products[i.id]).map((i) => ({ ref: products[i.id].reference, qty: i.quantity, productId: i.id }));
+    if (lines.length) setRows(lines);
+    setPrefilled(true);
+  }, [ready, cart, products, prefilled]);
 
   useEffect(() => {
     document.title = t("meta.quote");
@@ -21,8 +38,16 @@ export default function Quote() {
 
   const setRow = (i, patch) => setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    setSending(true);
+    setError("");
+    const r = await sendForm("/quote-requests", {
+      name: contact.name, email: contact.email, company: contact.company, phone: contact.phone, message: notes,
+      items: rows.filter((x) => x.ref.trim()).map((x) => ({ reference: x.ref.trim(), quantity: x.qty, ...(x.productId ? { productId: x.productId } : {}) })),
+    });
+    setSending(false);
+    if (!r.ok) return setError(t(`form.err.${r.error}`));
     setSubmitted(true);
   };
 
@@ -34,13 +59,11 @@ export default function Quote() {
 
         {submitted ? (
           <div className="mt-6">
-            <p className="rounded-[3px] bg-info p-3">{t("demo.notice")} {t("quote.notSent")}</p>
+            <p role="status" className="rounded-[3px] bg-info p-3">{t("quote.sent")}</p>
             <button type="button" onClick={() => setSubmitted(false)} className="mt-4 text-link underline">{t("contact.back")}</button>
           </div>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 space-y-6">
-            <p className="rounded-[3px] bg-info p-3 text-sm">{t("demo.notice")}</p>
-
             <fieldset className="grid gap-4 sm:grid-cols-2">
               <legend className="mb-2 text-[24px] font-semibold">{t("quote.contact")}</legend>
               {[
@@ -63,7 +86,7 @@ export default function Quote() {
                   <li key={i} className="flex flex-wrap items-end gap-3">
                     <div className="min-w-[12rem] flex-1">
                       <label htmlFor={`q-ref-${i}`} className="mb-1 block text-sm font-medium">{t("quote.reference")}</label>
-                      <input id={`q-ref-${i}`} required value={row.ref} onChange={(e) => setRow(i, { ref: e.target.value })} className={field} />
+                      <input id={`q-ref-${i}`} required value={row.ref} onChange={(e) => setRow(i, { ref: e.target.value, productId: undefined })} className={field} />
                     </div>
                     <div className="w-24">
                       <label htmlFor={`q-qty-${i}`} className="mb-1 block text-sm font-medium">{t("quote.qty")}</label>
@@ -87,8 +110,9 @@ export default function Quote() {
               <textarea id="q-notes" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} className={`${field} resize-y`} />
             </div>
 
-            <button type="submit" className="inline-flex items-center gap-2 rounded-[3px] bg-action px-6 py-2.5 font-bold text-black hover:bg-action-dark">
-              {t("quote.submit")} <span aria-hidden="true">→</span>
+            {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+            <button type="submit" disabled={sending} className="inline-flex items-center gap-2 rounded-[3px] bg-action px-6 py-2.5 font-bold text-black hover:bg-action-dark disabled:opacity-60">
+              {sending ? t("form.sending") : t("quote.submit")} <span aria-hidden="true">→</span>
             </button>
           </form>
         )}

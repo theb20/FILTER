@@ -124,7 +124,7 @@ export function ProductForm({ product, categoryId, categoryName, defs, brands, s
 
       {sectors.length > 0 && (
         <fieldset className="rounded border border-line p-4">
-          <legend className="px-1 text-sm font-semibold text-night">Secteurs d'activité</legend>
+          <legend className="px-1 text-sm font-semibold text-night">Secteurs d’activité</legend>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             {sectors.map((s) => (
               <label key={s.id} className="flex items-center gap-2 text-sm text-night"><input type="checkbox" name="sectorIds" value={s.id} defaultChecked={product?.sectorIds.includes(s.id)} />{label(s.name)}</label>
@@ -133,13 +133,13 @@ export function ProductForm({ product, categoryId, categoryName, defs, brands, s
         </fieldset>
       )}
 
-      <label className="block text-sm font-medium text-night">Images : une adresse par ligne <span className="font-normal text-slate">(la première est l'image principale)</span>
+      <label className="block text-sm font-medium text-night">Images : une adresse par ligne <span className="font-normal text-slate">(la première est l’image principale)</span>
         <textarea name="media" rows={4} defaultValue={mediaText(product)} placeholder={"https://… ; texte alternatif"} className={`${inputCls} font-mono text-sm`} />
         <span className="mt-1 block text-xs font-normal text-slate">Adresses https:// ; texte alternatif facultatif après « ; ». Le téléversement de fichiers viendra avec le stockage.</span>
       </label>
       <label className="block text-sm font-medium text-night">Références croisées <span className="font-normal text-slate">(facultatif)</span>
         <textarea name="crossReferences" rows={3} defaultValue={refsText(product)} placeholder={"SKF ; 6204-2RS ; equivalent"} className={`${inputCls} font-mono text-sm`} />
-        <span className="mt-1 block text-xs font-normal text-slate">Une ligne : marque ; numéro ; type (oem = d'origine, equivalent, supersedes = remplace).</span>
+        <span className="mt-1 block text-xs font-normal text-slate">Une ligne : marque ; numéro ; type (oem = d’origine, equivalent, supersedes = remplace).</span>
       </label>
     </>
   );

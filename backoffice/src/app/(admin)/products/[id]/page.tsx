@@ -42,11 +42,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
   return (
     <div className="max-w-4xl space-y-5">
-      <PageHeader title={t(product.name)} subtitle={`${product.sku} · ${cat ? t(cat.name) : "—"} · version ${product.version}`} action={<Badge tone={PRODUCT_STATUS_TONE[st]}>{PRODUCT_STATUS_LABEL[st]}</Badge>} />
+      <PageHeader breadcrumb={[{ label: "Produits", href: "/products" }, { label: "Détail" }]} title={t(product.name)} subtitle={`${product.sku} · ${cat ? t(cat.name) : "—"} · version ${product.version}`} action={<Badge tone={PRODUCT_STATUS_TONE[st]}>{PRODUCT_STATUS_LABEL[st]}</Badge>} />
       {ok && NOTICES[ok] && <Notice kind="ok">{NOTICES[ok]}</Notice>}
 
       {canWrite && (
-        <Card>
+        <Card guide="product-lifecycle">
           <h2 className="mb-3 text-lg font-semibold text-night">Cycle de vie</h2>
           <div className="flex flex-wrap items-start gap-3">
             {st === "draft" && <ActionButton action={submitReview.bind(null, id)} label="Soumettre à validation" variant="ghost" />}
@@ -59,7 +59,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         </Card>
       )}
 
-      <Card>
+      <Card guide="product-sheet">
         <h2 className="mb-3 text-lg font-semibold text-night">Fiche</h2>
         {editable ? (
           <ActionForm action={updateProduct.bind(null, id)} submit="Enregistrer">
@@ -70,7 +70,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         )}
       </Card>
 
-      <section>
+      <section data-guide="product-history">
         <h2 className="mb-3 text-lg font-semibold text-night">Historique ({versions.items.length})</h2>
         <ol className="space-y-3">
           {versions.items.map((v) => (
@@ -87,7 +87,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       </section>
 
       {canWrite && (
-        <Card>
+        <Card guide="danger-zone">
           <h2 className="mb-3 text-lg font-semibold text-night">Supprimer</h2>
           <p className="mb-3 text-sm text-slate">Un produit jamais publié est supprimé définitivement. Un produit déjà publié est archivé (il reste référencé).</p>
           <ActionButton action={deleteProduct.bind(null, id)} label={product.publishedAt ? "Archiver le produit" : "Supprimer le produit"} variant="danger" confirm={`${product.publishedAt ? "Archiver" : "Supprimer définitivement"} « ${t(product.name)} » ?`} />

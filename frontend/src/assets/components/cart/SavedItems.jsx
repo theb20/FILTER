@@ -11,13 +11,13 @@ export default function SavedItems({ lines, onMoveToCart, onRemove }) {
       <h2 id="saved-title" className="text-[24px] font-semibold">{t("cart.saved.title")} ({lines.length})</h2>
       <ul className="mt-2 divide-y divide-gray-200">
         {lines.map((l) => {
-          const name = t(`prod.${l.id}`);
+          const name = l.name;
           return (
             <li key={l.id} className="flex flex-wrap items-center gap-4 py-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center bg-gray-50"><LineArt stroke="#9ca3af" className="h-10" /></div>
               <div className="min-w-0 flex-1">
                 <Link to={`/card?id=${l.id}`} className="font-semibold text-link hover:underline">{name}</Link>
-                <p className="text-sm text-gray-600">{t("list.ref")} {l.reference} · {formatPrice(l.price)}</p>
+                <p className="text-sm text-gray-600">{t("list.ref")} {l.reference} · {l.onQuote ? t("price.onQuote") : formatPrice(l.price)}</p>
               </div>
               <div className="flex gap-4 text-sm">
                 <button type="button" onClick={() => onMoveToCart(l.id)} className="font-medium text-link hover:underline">{t("cart.saved.move")}</button>

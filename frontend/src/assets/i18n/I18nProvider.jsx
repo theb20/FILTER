@@ -3,6 +3,7 @@ import { I18nContext } from "./i18nContext.js";
 import en from "./locales/en.js";
 import fr from "./locales/fr.js";
 import es from "./locales/es.js";
+import { setApiLang } from "../lib/api.js";
 import { CURRENCIES, DEFAULT_CURRENCY, formatMoney, isCurrencyCode } from "../config/currency.js";
 
 export const LANGUAGES = [
@@ -40,6 +41,7 @@ export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(initialLang);
   const [currency, setCurrencyState] = useState(initialCurrency);
 
+  setApiLang(lang); // appliqué avant les effets des pages : les requêtes partent dans la langue choisie
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);

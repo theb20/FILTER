@@ -76,7 +76,7 @@ func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Serv
 	}
 	svc := application.Service{
 		Hasher: domain.Hasher{P: domain.DefaultArgon2id()}, Breach: breachChecker, Secrets: box,
-		Keys: keys,
+		Keys: keys, OAuthCfg: oauthConfig(),
 	}
 	cleanup := func() {}
 	switch mode {
@@ -90,7 +90,7 @@ func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Serv
 		log.Warn("stockage EN MÉMOIRE : les comptes disparaissent à l'arrêt (développement uniquement)")
 		st, ev := memory.New(), &events.Memory{}
 		st.Events = ev
-		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events = st, st, st, st, st, ev
+		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events, svc.OAuth = st, st, st, st, st, ev, st
 		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore = st, st.StaffSessions(), st, st, st, st, st
 		svc.Settings = &application.DBSettings{Repo: st, Base: domain.DefaultSettings(), TTL: 30 * time.Second}
 	case "postgres":
@@ -108,7 +108,7 @@ func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Serv
 			return nil, nil, err
 		}
 		cleanup = st.Close
-		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events = st, st, st, st, st, &outbox.Publisher{}
+		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events, svc.OAuth = st, st, st, st, st, &outbox.Publisher{}, st
 		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore = st, st.StaffSessions(), st, st, st, st, st
 		svc.Settings = &application.DBSettings{Repo: st, Base: domain.DefaultSettings(), TTL: 30 * time.Second}
 		if serve {
@@ -348,4 +348,19 @@ type localOnly struct{ l *breach.Local }
 
 func (c localOnly) Compromised(_ context.Context, p string) (bool, error) {
 	return c.l.Contains(p), nil
+}
+
+// oauthConfig lit la connexion Google dans l'ENVIRONNEMENT (jamais dans un fichier du dépôt). Sans GOOGLE_CLIENT_ID et
+// GOOGLE_CLIENT_SECRET, la connexion Google est simplement indisponible (le site l'indique).
+func oauthConfig() application.OAuthConfig {
+	cfg := application.OAuthConfig{}
+	if id, secret := os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"); id != "" && secret != "" {
+		cfg.Google = &application.GoogleConfig{ClientID: id, ClientSecret: secret, CallbackURL: getenv("OAUTH_CALLBACK_URL", "http://localhost:5173/v1/auth/oauth/google/callback")}
+	}
+	for _, u := range strings.Split(getenv("OAUTH_REDIRECT_URIS", "http://localhost:5173/oauth/callback"), ",") {
+		if u = strings.TrimSpace(u); u != "" {
+			cfg.AllowedRedirects = append(cfg.AllowedRedirects, u)
+		}
+	}
+	return cfg
 }

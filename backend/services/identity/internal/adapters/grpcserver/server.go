@@ -125,3 +125,44 @@ func userToProto(u *domain.User) *identityv1.User {
 	}
 	return out
 }
+
+// ── mot de passe oublié ──
+
+func (s *Server) ForgotPassword(ctx context.Context, r *identityv1.ForgotPasswordRequest) (*identityv1.ForgotPasswordResponse, error) {
+	return &identityv1.ForgotPasswordResponse{}, apperr.ToGRPC(s.Svc.ForgotPassword(ctx, r.GetEmail(), r.GetLocale()))
+}
+
+func (s *Server) VerifyPasswordCode(ctx context.Context, r *identityv1.VerifyPasswordCodeRequest) (*identityv1.VerifyPasswordCodeResponse, error) {
+	tok, ttl, err := s.Svc.VerifyPasswordCode(ctx, r.GetEmail(), r.GetCode())
+	if err != nil {
+		return nil, apperr.ToGRPC(err)
+	}
+	return &identityv1.VerifyPasswordCodeResponse{ResetToken: tok, ExpiresInSeconds: int32(ttl.Seconds())}, nil
+}
+
+func (s *Server) ResetPassword(ctx context.Context, r *identityv1.ResetPasswordRequest) (*identityv1.ResetPasswordResponse, error) {
+	return &identityv1.ResetPasswordResponse{}, apperr.ToGRPC(s.Svc.ResetPassword(ctx, r.GetResetToken(), r.GetNewPassword()))
+}
+
+// ── connexion via un fournisseur ──
+
+func (s *Server) StartOAuth(ctx context.Context, r *identityv1.StartOAuthRequest) (*identityv1.StartOAuthResponse, error) {
+	u, state, bind, ttl, err := s.Svc.OAuthStart(ctx, r.GetProvider(), r.GetRedirectUri())
+	if err != nil {
+		return nil, apperr.ToGRPC(err)
+	}
+	return &identityv1.StartOAuthResponse{AuthorizationUrl: u, State: state, Binding: bind, TtlSeconds: int32(ttl.Seconds())}, nil
+}
+
+func (s *Server) CompleteOAuth(ctx context.Context, r *identityv1.CompleteOAuthRequest) (*identityv1.CompleteOAuthResponse, error) {
+	res := s.Svc.OAuthComplete(ctx, r.GetProvider(), r.GetCode(), r.GetState(), r.GetBinding())
+	return &identityv1.CompleteOAuthResponse{ExchangeCode: res.ExchangeCode, RedirectUri: res.RedirectURI, Failed: res.Failed}, nil
+}
+
+func (s *Server) ExchangeOAuthCode(ctx context.Context, r *identityv1.ExchangeOAuthCodeRequest) (*identityv1.ExchangeOAuthCodeResponse, error) {
+	sess, err := s.Svc.ExchangeOAuthCode(ctx, r.GetExchangeCode(), "", "")
+	if err != nil {
+		return nil, apperr.ToGRPC(err)
+	}
+	return &identityv1.ExchangeOAuthCodeResponse{User: userToProto(sess.User), Tokens: tokens(sess), RefreshMaxAgeSeconds: int32(sess.RefreshMaxAge.Seconds())}, nil
+}

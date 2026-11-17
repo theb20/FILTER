@@ -6,24 +6,11 @@ import Todo from "../components/Todo.jsx";
 import SearchBar from "../components/SearchBar.jsx";
 import Reviews from "../components/Reviews.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
-import { CATEGORIES } from "../data/catalog.js";
-import { CLAIMS } from "../config/site.js";
+import { fetchBrands, fetchCategories, fetchSectors, useAsync } from "../lib/catalog.js";
+import { useSite } from "../store/siteStore.js";
 
 const btnPrimary =
   "inline-flex items-center gap-2 rounded-[3px] bg-action px-5 py-2.5 font-bold text-black hover:bg-action-dark transition-colors";
-
-// Les textes viennent de i18n (sector.<key>, sector.<key>.text) ; seule l'image est ici.
-const SECTORS = [
-  { key: "automotive", img: "/img/background/bg_card_1.png" },
-  { key: "defense", img: "/img/background/bg_card_2.png" },
-  { key: "medical", img: "/img/background/bg_card_3.png" },
-  { key: "energy", img: "/img/background/bg_card_4.png" },
-  { key: "marine", img: "/img/background/bg_card_5.png" },
-  { key: "datacenters", img: "/img/background/bg_card_6.png" },
-  { key: "industry", img: "/img/background/bg_card_7.png" },
-  { key: "transport", img: "/img/background/bg_card_8.png" },
-  { key: "rd", img: "/img/background/bg_card_9.png" },
-];
 
 function RoundArrow({ to, label, light = false }) {
   return (
@@ -62,31 +49,14 @@ function PhotoCard({ title, subtitle, to, image }) {
 }
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const CLAIMS = useSite().claims;
+  const CATEGORIES = useAsync(fetchCategories, [lang]).data ?? [];
+  const SECTORS = useAsync(fetchSectors, [lang]).data ?? [];
+  const logoLinks = (useAsync(fetchBrands, [lang]).data ?? []).filter((b) => b.logoUrl).map((b) => ({ to: b.logoUrl, label: b.name }));
   const carousel = useRef(null);
   const heroVideo = useRef(null);
 
-  const logoLinks = [
-    { to: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeI1ruSYczwnA31XIFE4tFH-5AdZIAEqjsK8sTJX9lMg&s=10", label: t("home.partners.logo") },
-    { to: 'https://tukuz.com/wp-content/uploads/2021/06/pall-corporation-logo-vector.png', label: "Pall" },
-    { to: 'https://www.setem.fr/images/uploads/marques/marque_logo_hydac.png', label: "Hydac" },
-    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQTYW1S67VDC4lkY3LrXF8z7JN6PWUDmm1fuKxUDJBEw&s=10', label: t("home.partners.logo") },
-    { to: 'https://rodavigo.net/datos/logos-marcas-png/internormen.png', label: "Internormen" },
-    { to: 'https://www.pagesjaunes.fr/media/newdam/preset-export-large/ae/02/a4/00/00/dc/27/be/ab/30/5d39ae02a40000dc27beab30/5d39ae02a40000dc27beab31.jpg', label: t("home.partners.logo") },
-    { to: 'https://stauff.fr/assets/b572eb58f6ddc0eae73f907b0462e36b36d50d27/default/images/logo-stauff.svg', label: "Stauff" },
-    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVEgPURZwj4eSWMfT690zMPqvAxT4_rsaIHXaP24RXRQU5bNEm1YGYMYY&s=10', label: t("home.partners.logo") },
-
-    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSScymNOClvXTLH3S-hjf1iq4nnfW-hqPg3j5LfkkoKjnNB0OA1gOjglfnG&s=10', label: t("home.partners.logo") },
-    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Pentair_Schroff_Logo.svg/3840px-Pentair_Schroff_Logo.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail', label: "Pentair" },
-    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/3M_wordmark.svg/1280px-3M_wordmark.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail', label: "3M" },
-    { to: 'https://arnax.ru/wp-content/uploads/2019/08/vokes-air-group-e1567548162567.png', label: "Vokes Air" },
-
-
-    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Atlas-Copco-Logo.svg/1280px-Atlas-Copco-Logo.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail', label: "Atlas Copco" },
-    { to: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Merck_Millipore_Logo.svg/1280px-Merck_Millipore_Logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail', label: "Merck Millipore" },
-    { to: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1etVwoz_nxh071EvRUrTChQRNwBx1Ua7cqiOZb26sA9E3i_Zb068ufPMp&s=10', label: t("home.partners.logo") },
-    { to: 'https://www.autobiz.ie/cms/partrequest/resources/company_logos/UFI_Filters_500x422.png', label: "UFI Filters" },
-  ];
 
   useEffect(() => {
     document.title = t("meta.home");
@@ -169,7 +139,7 @@ export default function Home() {
                 <div className="flex aspect-square items-center justify-center rounded-[3px] bg-white">
                   <LineArt stroke="#9ca3af" className="h-4/5" />
                 </div>
-                <span className="mt-2 block font-medium">{t(`cat.${c.slug}`)}</span>
+                <span className="mt-2 block font-medium">{c.name}</span>
               </Link>
             </li>
           ))}
@@ -193,20 +163,19 @@ export default function Home() {
         </div>
 
         <ul ref={carousel} className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
-          {SECTORS.map(({ key, img }) => (
-            <li key={key} className="w-[280px] shrink-0 snap-start overflow-hidden rounded-[4px] bg-white shadow-card">
+          {SECTORS.map(({ id, name, imageUrl }) => (
+            <li key={id} className="w-[280px] shrink-0 snap-start overflow-hidden rounded-[4px] bg-white shadow-card">
               <div className="h-40 bg-gray-100" title={t("home.sectors.photo")}>
-                <img
-                  src={img}
+                {imageUrl && <img
+                  src={imageUrl}
                   alt=""
                   loading="lazy"
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                   className="h-full w-full object-cover"
-                />
+                />}
               </div>
               <div className="p-4">
-                <h3 className="text-[24px] font-semibold leading-tight">{t(`sector.${key}`)}</h3>
-                <p className="mt-1 text-sm text-gray-700">{t(`sector.${key}.text`)}</p>
+                <h3 className="text-[24px] font-semibold leading-tight">{name}</h3>
               </div>
             </li>
           ))}

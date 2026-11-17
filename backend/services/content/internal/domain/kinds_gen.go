@@ -1,0 +1,137 @@
+// Code généré depuis la spécification des collections (tools de contrat) : décrit les champs de chaque collection de contenu.
+// Le service refuse tout champ absent de cette description et tout type incorrect.
+
+package domain
+
+// Kinds : collections de contenu du site.
+var Kinds = map[string]*Kind{
+	"faq": {Key: "faq", Unique: "", Upper: false, Sort: "sortOrder", NoAuditData: false, Fields: []Field{
+		{Name: "question", Type: "loc", Required: true},
+		{Name: "answer", Type: "loc", Required: true},
+		{Name: "sortOrder", Type: "int", Required: false, Min: 0, HasMin: true},
+		{Name: "published", Type: "bool", Required: false},
+	}},
+	"page": {Key: "page", Unique: "slug", Upper: false, Sort: "", NoAuditData: false, Fields: []Field{
+		{Name: "slug", Type: "slug", Required: true},
+		{Name: "kind", Type: "enum", Required: true, Enum: []string{"legal", "editorial"}},
+		{Name: "title", Type: "loc", Required: true},
+		{Name: "body", Type: "loc", Required: true},
+		{Name: "published", Type: "bool", Required: false},
+	}},
+	"author": {Key: "author", Unique: "", Upper: false, Sort: "", NoAuditData: false, Fields: []Field{
+		{Name: "name", Type: "str", Required: true},
+		{Name: "role", Type: "loc", Required: false},
+		{Name: "bio", Type: "loc", Required: false},
+		{Name: "avatarUrl", Type: "url", Required: false},
+	}},
+	"blog_category": {Key: "blog_category", Unique: "slug", Upper: false, Sort: "sortOrder", NoAuditData: false, Fields: []Field{
+		{Name: "slug", Type: "slug", Required: true},
+		{Name: "name", Type: "loc", Required: true},
+		{Name: "sortOrder", Type: "int", Required: false, Min: 0, HasMin: true},
+	}},
+	"blog_tag": {Key: "blog_tag", Unique: "slug", Upper: false, Sort: "", NoAuditData: false, Fields: []Field{
+		{Name: "slug", Type: "slug", Required: true},
+		{Name: "name", Type: "loc", Required: true},
+	}},
+	"article": {Key: "article", Unique: "slug", Upper: false, Sort: "", NoAuditData: false, Fields: []Field{
+		{Name: "slug", Type: "slug", Required: true},
+		{Name: "title", Type: "loc", Required: true},
+		{Name: "excerpt", Type: "loc", Required: false},
+		{Name: "body", Type: "loc", Required: true},
+		{Name: "status", Type: "enum", Required: true, Enum: []string{"draft", "published"}},
+		{Name: "kind", Type: "enum", Required: true, Enum: []string{"advice", "comparison", "news"}},
+		{Name: "categorySlug", Type: "str", Required: false},
+		{Name: "authorId", Type: "uuid", Required: false},
+		{Name: "tags", Type: "strs", Required: false},
+		{Name: "imageUrl", Type: "url", Required: false},
+		{Name: "readMin", Type: "int", Required: false, Min: 1, Max: 240, HasMin: true, HasMax: true},
+		{Name: "guide", Type: "enum", Required: false, Enum: []string{"steps", "checklist"}},
+		{Name: "dossier", Type: "bool", Required: false},
+		{Name: "featured", Type: "bool", Required: false},
+		{Name: "productIds", Type: "uuids", Required: false},
+		{Name: "publishedAt", Type: "ts", Required: false},
+	}},
+	"shipping_zone": {Key: "shipping_zone", Unique: "code", Upper: false, Sort: "sortOrder", NoAuditData: false, Fields: []Field{
+		{Name: "code", Type: "slug", Required: true},
+		{Name: "name", Type: "loc", Required: true},
+		{Name: "fee", Type: "int", Required: true, Min: 0, HasMin: true},
+		{Name: "daysMin", Type: "int", Required: true, Min: 0, Max: 365, HasMin: true, HasMax: true},
+		{Name: "daysMax", Type: "int", Required: true, Min: 0, Max: 365, HasMin: true, HasMax: true},
+		{Name: "freeEligible", Type: "bool", Required: false},
+		{Name: "active", Type: "bool", Required: false},
+		{Name: "sortOrder", Type: "int", Required: false, Min: 0, HasMin: true},
+	}},
+	"promo_code": {Key: "promo_code", Unique: "code", Upper: true, Sort: "", NoAuditData: false, Fields: []Field{
+		{Name: "code", Type: "code", Required: true},
+		{Name: "type", Type: "enum", Required: true, Enum: []string{"percent", "fixed"}},
+		{Name: "value", Type: "int", Required: true, Min: 1, HasMin: true},
+		{Name: "minSubtotal", Type: "int", Required: false, Min: 0, HasMin: true},
+		{Name: "startsAt", Type: "ts", Required: false},
+		{Name: "expiresAt", Type: "ts", Required: false},
+		{Name: "active", Type: "bool", Required: false},
+	}},
+	"review": {Key: "review", Unique: "", Upper: false, Sort: "", NoAuditData: false, Fields: []Field{
+		{Name: "productId", Type: "uuid", Required: false},
+		{Name: "rating", Type: "int", Required: true, Min: 1, Max: 5, HasMin: true, HasMax: true},
+		{Name: "title", Type: "str", Required: true},
+		{Name: "text", Type: "text", Required: true},
+		{Name: "author", Type: "str", Required: true},
+		{Name: "company", Type: "str", Required: false},
+		{Name: "verified", Type: "bool", Required: false},
+		{Name: "status", Type: "enum", Required: true, Enum: []string{"pending", "published", "rejected"}},
+	}},
+	"contact_message": {Key: "contact_message", Unique: "", Upper: false, Sort: "", NoAuditData: true, Fields: []Field{
+		{Name: "name", Type: "str", Required: true},
+		{Name: "email", Type: "email", Required: true},
+		{Name: "company", Type: "str", Required: false},
+		{Name: "phone", Type: "str", Required: false},
+		{Name: "subject", Type: "str", Required: false},
+		{Name: "message", Type: "text", Required: true},
+		{Name: "status", Type: "enum", Required: true, Enum: []string{"new", "read", "handled"}},
+		{Name: "note", Type: "text", Required: false},
+	}},
+	"newsletter_subscriber": {Key: "newsletter_subscriber", Unique: "email", Upper: false, Sort: "", NoAuditData: true, Fields: []Field{
+		{Name: "email", Type: "email", Required: true},
+		{Name: "locale", Type: "str", Required: false},
+		{Name: "status", Type: "enum", Required: true, Enum: []string{"subscribed", "unsubscribed"}},
+	}},
+	"quote_request": {Key: "quote_request", Unique: "", Upper: false, Sort: "", NoAuditData: true, Fields: []Field{
+		{Name: "name", Type: "str", Required: true},
+		{Name: "email", Type: "email", Required: true},
+		{Name: "company", Type: "str", Required: false},
+		{Name: "phone", Type: "str", Required: false},
+		{Name: "message", Type: "text", Required: false},
+		{Name: "items", Type: "items", Required: false},
+		{Name: "status", Type: "enum", Required: true, Enum: []string{"new", "in_progress", "quoted", "closed"}},
+		{Name: "note", Type: "text", Required: false},
+	}},
+}
+
+// SettingsKinds : réglages uniques (un seul document par clé).
+var SettingsKinds = map[string]*Kind{
+	"site": {Key: "site", Fields: []Field{
+		{Name: "name", Type: "str", Required: true},
+		{Name: "publisher", Type: "str", Required: true},
+		{Name: "phone", Type: "str", Required: false},
+		{Name: "email", Type: "email", Required: false},
+		{Name: "address", Type: "str", Required: false},
+		{Name: "linkedinUrl", Type: "url", Required: false},
+		{Name: "facebookUrl", Type: "url", Required: false},
+		{Name: "youtubeUrl", Type: "url", Required: false},
+		{Name: "reviewsUrl", Type: "url", Required: false},
+		{Name: "regionalCountry", Type: "str", Required: false},
+		{Name: "regionalUrl", Type: "url", Required: false},
+		{Name: "crossReferencesClaim", Type: "str", Required: false},
+		{Name: "stockValueClaim", Type: "str", Required: false},
+		{Name: "foundedYear", Type: "str", Required: false},
+		{Name: "freeShippingClaim", Type: "str", Required: false},
+	}},
+	"commerce": {Key: "commerce", Fields: []Field{
+		{Name: "vatRate", Type: "num", Required: false, Min: 0, Max: 100, HasMin: true, HasMax: true},
+		{Name: "freeShippingThreshold", Type: "int", Required: false, Min: 0, HasMin: true},
+		{Name: "quoteMinItems", Type: "int", Required: false, Min: 1, HasMin: true},
+		{Name: "quoteMinAmount", Type: "int", Required: false, Min: 1, HasMin: true},
+		{Name: "lowStockThreshold", Type: "int", Required: false, Min: 0, HasMin: true},
+		{Name: "defaultZone", Type: "str", Required: false},
+	}},
+}

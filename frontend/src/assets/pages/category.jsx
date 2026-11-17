@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { CATEGORIES, PRODUCTS } from "../data/catalog.js";
+import { fetchCategories, fetchProducts, flattenCategories, useAsync } from "../lib/catalog.js";
 import { useI18n } from "../i18n/i18nContext.js";
 import ProductCard from "../components/ProductCard.jsx";
 
@@ -14,7 +14,7 @@ function Check({ checked, onChange, children }) {
 }
 
 export default function Category() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [params] = useSearchParams();
   const rawQ = (params.get("q") || "").trim();
   const q = rawQ.toLowerCase();
@@ -33,14 +33,18 @@ export default function Category() {
     setCats(catParam ? [catParam] : []);
   }, [catParam]);
 
-  const allBrands = [...new Set(PRODUCTS.map((p) => p.brand))];
+  const productsState = useAsync(fetchProducts, [lang]);
+  const catsState = useAsync(async () => flattenCategories(await fetchCategories()), [lang]);
+  const PRODUCTS = productsState.data ?? [];
+  const CATEGORIES = catsState.data ?? [];
+  const allBrands = [...new Set(PRODUCTS.map((p) => p.brand).filter(Boolean))].sort();
   const toggle = (list, setList, v) =>
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   const results = PRODUCTS.filter((p) => {
     // La recherche porte sur le nom traduit, la référence, la marque et les équivalences
-    if (q && ![t(`prod.${p.id}`), p.reference, p.brand, ...p.crossRefs].some((v) => v.toLowerCase().includes(q))) return false;
-    if (cats.length && !cats.includes(p.category)) return false;
+    if (q && ![p.name, p.reference, p.brand].some((v) => v.toLowerCase().includes(q))) return false;
+    if (cats.length && !cats.some((c) => p.categoryPath.includes(c))) return false;
     if (brands.length && !brands.includes(p.brand)) return false;
     if (inStockOnly && !p.inStock) return false;
     return true;
@@ -54,9 +58,11 @@ export default function Category() {
         <fieldset className="mt-4">
           <legend className="font-semibold">{t("list.category")}</legend>
           {CATEGORIES.map((c) => (
-            <Check key={c.slug} checked={cats.includes(c.slug)} onChange={() => toggle(cats, setCats, c.slug)}>
-              {t(`cat.${c.slug}`)}
-            </Check>
+            <div key={c.slug} style={{ paddingLeft: `${c.depth * 16}px` }}>
+              <Check checked={cats.includes(c.slug)} onChange={() => toggle(cats, setCats, c.slug)}>
+                {c.name}
+              </Check>
+            </div>
           ))}
         </fieldset>
 
@@ -87,7 +93,13 @@ export default function Category() {
         </div>
 
         <ul className="mt-2.5 space-y-2.5">
-          {results.length === 0 && (
+          {productsState.status === "loading" && (
+            <li role="status" className="rounded-[4px] bg-white p-8 text-center shadow-card">{t("data.loading")}</li>
+          )}
+          {productsState.status === "error" && (
+            <li role="alert" className="rounded-[4px] bg-white p-8 text-center shadow-card">{t("data.error")}</li>
+          )}
+          {productsState.status === "ready" && results.length === 0 && (
             <li className="rounded-[4px] bg-white p-8 text-center shadow-card">{t("list.none")}</li>
           )}
           {results.map((p) => (

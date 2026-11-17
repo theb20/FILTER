@@ -65,7 +65,7 @@ func newEnv(t *testing.T, breach application.BreachChecker) *env {
 		t.Fatal(err)
 	}
 	e.svc = application.New(application.Service{
-		Users: w.store, Sessions: w.store, Tokens: w.store, Failures: w.store, UoW: w.uow, Staff: w.store, StaffSessions: w.store.StaffSessions(), Challenges: w.store, StaffAdmin: w.store, Audit: w.store, Customers: w.store, Secrets: box, Hasher: e.hasher, Breach: breach, Events: w.publisher,
+		Users: w.store, Sessions: w.store, Tokens: w.store, Failures: w.store, UoW: w.uow, Staff: w.store, StaffSessions: w.store.StaffSessions(), Challenges: w.store, StaffAdmin: w.store, Audit: w.store, Customers: w.store, OAuth: w.store, Secrets: box, Hasher: e.hasher, Breach: breach, Events: w.publisher,
 		Keys: e.keys, Settings: &application.DBSettings{Repo: w.store, Base: domain.DefaultSettings()}, SettingsStore: w.store, Now: e.clock.Now,
 	})
 	return e

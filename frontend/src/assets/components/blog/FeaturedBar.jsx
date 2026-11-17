@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
-import { BLOG_ARTICLES, BLOG_HEADLINE } from "../../data/blog.js";
+import { fetchBlogArticles } from "../../lib/content.js";
+import { useAsync } from "../../lib/catalog.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 import { postPath } from "./format.js";
 
 // Fine bande bleu nuit au-dessus de l'en-tête : « À la une » + titre cliquable.
 export default function FeaturedBar() {
-  const { t } = useI18n();
-  const a = BLOG_ARTICLES.find((x) => x.slug === BLOG_HEADLINE);
+  const { t, lang } = useI18n();
+  const articles = useAsync(() => fetchBlogArticles().catch(() => []), [lang]).data ?? [];
+  const a = articles.find((x) => x.featured); // l'article mis en avant le plus récent
   if (!a) return null;
   return (
     <div className="bg-night text-white">

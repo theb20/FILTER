@@ -42,13 +42,13 @@ const OVERLAY = {
  */
 export default function ArticleCard({ article: a, variant = "vertical", size = "md", guideLabel }) {
   const { t } = useI18n();
-  const category = t(`blog.cat.${a.category}`);
+  const category = a.categoryName;
 
   if (variant === "overlay") {
     const o = OVERLAY[size];
     return (
       <article className={`group relative flex overflow-hidden rounded-[8px] bg-night text-white ${o.box}`}>
-        <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+        {a.image && <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/15" aria-hidden="true" />
         <div className="relative mt-auto w-full p-4 sm:p-5">
           <span className={chip}>{category}</span>
@@ -63,7 +63,7 @@ export default function ArticleCard({ article: a, variant = "vertical", size = "
   if (variant === "list") {
     return (
       <article className="relative flex gap-4 py-4">
-        <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="h-20 w-20 shrink-0 rounded-[6px] object-cover sm:h-24 sm:w-24" />
+        {a.image && <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="h-20 w-20 shrink-0 rounded-[6px] object-cover sm:h-24 sm:w-24" />}
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-teal">{category}</p>
           <Title article={a} className="mt-0.5 text-[17px] font-semibold leading-snug" />
@@ -76,7 +76,7 @@ export default function ArticleCard({ article: a, variant = "vertical", size = "
   if (variant === "compact") {
     return (
       <article className="group relative flex h-full flex-col overflow-hidden rounded-[8px] bg-white shadow-card">
-        <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="h-36 w-full object-cover" />
+        {a.image && <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="h-36 w-full object-cover" />}
         <div className="flex flex-1 flex-col p-4">
           <span className={`${chip} self-start`}>{guideLabel}</span>
           <Title article={a} className="mt-2 text-[17px] font-semibold leading-snug" />
@@ -89,7 +89,7 @@ export default function ArticleCard({ article: a, variant = "vertical", size = "
   // vertical
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-[8px] bg-white shadow-card">
-      <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="h-56 w-full object-cover sm:h-72" />
+      {a.image && <img src={a.image} alt={alt(t, a)} loading="lazy" decoding="async" className="h-56 w-full object-cover sm:h-72" />}
       <div className="flex flex-1 flex-col p-5">
         <span className={`${chip} self-start`}>{category}</span>
         <Title article={a} className="mt-2 text-[24px] font-bold leading-tight" />

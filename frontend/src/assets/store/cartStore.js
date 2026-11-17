@@ -2,9 +2,8 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { DEFAULT_ZONE, INITIAL_CART } from "../data/commerce.js";
 import { clampQty, itemCount } from "../lib/cartMath.js";
-import { getProduct, getStock } from "../lib/cartLines.js";
+import { MAX_QTY } from "../lib/cartLines.js";
 
 /**
  * @typedef {import("../lib/cartLines.js").CartEntry} CartEntry
@@ -18,36 +17,31 @@ import { getProduct, getStock } from "../lib/cartLines.js";
  *   clearPromo: () => void,
  *   setZone: (zone: string) => void,
  *   setNote: (note: string) => void,
- *   addItem: (id: number, quantity?: number) => void,
- *   setQuantity: (id: number, quantity: number) => void,
- *   removeItem: (id: number) => { entry: CartEntry, index: number } | null,
+ *   addItem: (product: { id: string, price: number }, quantity?: number) => void,
+ *   setQuantity: (id: string, quantity: number) => void,
+ *   removeItem: (id: string) => { entry: CartEntry, index: number } | null,
  *   restoreItem: (entry: CartEntry, index: number) => void,
- *   saveForLater: (id: number) => void,
- *   moveToCart: (id: number) => void,
- *   removeSaved: (id: number) => void,
+ *   saveForLater: (id: string) => void,
+ *   moveToCart: (id: string) => void,
+ *   removeSaved: (id: string) => void,
  * }} CartState
  */
 
 // Clé versionnée : si la structure persistée change, incrémenter la version et adapter `migrate`.
-export const CART_STORAGE_KEY = "ff_cart_v2"; // v2 : abandonne les paniers de démonstration persistés par la v1
-export const CART_STORAGE_VERSION = 2;
+export const CART_STORAGE_KEY = "ff_cart_v3"; // v3 : les produits viennent de l'API (identifiants UUID) ; abandonne les paniers à identifiants numériques
+export const CART_STORAGE_VERSION = 3;
 
-/** @param {number} id @param {number} quantity @returns {CartEntry | null} */
-const makeEntry = (id, quantity) => {
-  const product = getProduct(id);
-  return product ? { id, quantity: clampQty(quantity, getStock(id)), priceAtAdd: product.price } : null;
-};
-
-const seed = () => INITIAL_CART.map((i) => makeEntry(i.id, i.quantity)).filter((e) => e !== null);
+/** @param {{ id: string, price: number }} product @param {number} quantity @returns {CartEntry} */
+const makeEntry = (product, quantity) => ({ id: product.id, quantity: clampQty(quantity, MAX_QTY), priceAtAdd: product.price });
 
 export const useCartStore = create(
   persist(
     /** @returns {CartState} */
     (set, get) => ({
-      items: seed(),
+      items: [],
       saved: [],
       promoCode: null,
-      zone: DEFAULT_ZONE ?? "",
+      zone: "",
       note: "",
 
       applyPromo: (code) => set({ promoCode: code.trim().toUpperCase() }),
@@ -55,18 +49,18 @@ export const useCartStore = create(
       setZone: (zone) => set({ zone }),
       setNote: (note) => set({ note: note.slice(0, 200) }),
 
-      addItem: (id, quantity = 1) =>
+      addItem: (product, quantity = 1) =>
         set((s) => {
+          const id = product.id;
           const existing = s.items.find((i) => i.id === id);
           if (existing) {
-            return { items: s.items.map((i) => (i.id === id ? { ...i, quantity: clampQty(i.quantity + quantity, getStock(id)) } : i)) };
+            return { items: s.items.map((i) => (i.id === id ? { ...i, quantity: clampQty(i.quantity + quantity, MAX_QTY) } : i)) };
           }
-          const entry = makeEntry(id, quantity);
-          return entry ? { items: [...s.items, entry] } : s;
+          return { items: [...s.items, makeEntry(product, quantity)] };
         }),
 
       setQuantity: (id, quantity) =>
-        set((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, quantity: clampQty(quantity, getStock(id)) } : i)) })),
+        set((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, quantity: clampQty(quantity, MAX_QTY) } : i)) })),
 
       removeItem: (id) => {
         const index = get().items.findIndex((i) => i.id === id);
@@ -100,7 +94,7 @@ export const useCartStore = create(
           if (!entry) return s;
           const saved = s.saved.filter((i) => i.id !== id);
           const existing = s.items.find((i) => i.id === id);
-          if (existing) return { saved, items: s.items.map((i) => (i.id === id ? { ...i, quantity: clampQty(i.quantity + entry.quantity, getStock(id)) } : i)) };
+          if (existing) return { saved, items: s.items.map((i) => (i.id === id ? { ...i, quantity: clampQty(i.quantity + entry.quantity, MAX_QTY) } : i)) };
           return { saved, items: [...s.items, entry] };
         }),
 

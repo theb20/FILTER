@@ -2,10 +2,12 @@ import Link from "next/link";
 import { adminGet, can } from "@/lib/admin";
 import { currentStaff } from "@/lib/staff";
 import { allCategories, t } from "@/lib/catalog";
-import { Badge, LinkButton, Notice, PageHeader, Table, inputCls } from "@/components/ui/ui";
+import { Badge, FilterBar, LinkButton, Notice, PageHeader, Pagination, SearchInput, Table, selectCls } from "@/components/ui/ui";
 import { PRODUCT_STATUS_LABEL, PRODUCT_STATUS_TONE, xof, type BrandPage, type ProductPage, type ProductStatus } from "@/lib/types";
 
 type SP = { q?: string; page?: string; status?: string; categoryId?: string; brandId?: string; ok?: string };
+
+export const metadata = { title: "Produits" };
 
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -22,13 +24,13 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const brandName = new Map(brands.items.map((b) => [b.id, b.name]));
   const keep = { ...(sp.q ? { q: sp.q } : {}), ...(status ? { status } : {}), ...(sp.categoryId ? { categoryId: sp.categoryId } : {}), ...(sp.brandId ? { brandId: sp.brandId } : {}) };
   const link = (p: number) => `/products?${new URLSearchParams({ ...keep, page: String(p) })}`;
-  const sel = "rounded border border-line bg-white px-3 py-2 text-sm";
+  const sel = selectCls;
   return (
     <div>
       <PageHeader title="Produits" subtitle="Le catalogue. Un produit est publié sur le site seulement une fois sa fiche complète." action={canWrite && <LinkButton href="/products/new">Ajouter un produit</LinkButton>} />
       {sp.ok === "deleted" && <Notice kind="ok">Produit supprimé.</Notice>}
-      <form className="mb-4 flex flex-wrap gap-2">
-        <input name="q" defaultValue={sp.q} placeholder="SKU, nom, référence…" className={`${sel} w-64`} />
+      <FilterBar reset={{ href: "/products", show: Object.keys(keep).length > 0 }}>
+        <SearchInput defaultValue={sp.q} placeholder="SKU, nom, référence…" className="w-full sm:w-64" />
         <select name="status" defaultValue={status ?? ""} className={sel}>
           <option value="">Tous les statuts</option>
           {(Object.keys(PRODUCT_STATUS_LABEL) as ProductStatus[]).map((s) => <option key={s} value={s}>{PRODUCT_STATUS_LABEL[s]}</option>)}
@@ -41,8 +43,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           <option value="">Toutes les marques</option>
           {brands.items.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
-        <button className="rounded border border-line bg-white px-4 py-2 text-sm font-medium text-night hover:bg-page">Filtrer</button>
-      </form>
+      </FilterBar>
       <Table head={["Produit", "SKU", "Catégorie", "Marque", "Prix", "Statut"]} empty={data.items.length === 0 ? (Object.keys(keep).length ? "Aucun produit ne correspond." : "Aucun produit pour l'instant.") : undefined}>
         {data.items.map((p) => (
           <tr key={p.id} className="hover:bg-page">
@@ -55,13 +56,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           </tr>
         ))}
       </Table>
-      {data.page.totalPages > 1 && (
-        <p className="mt-4 flex items-center gap-4 text-sm text-slate">
-          {n > 1 && <Link href={link(n - 1)} className="text-link hover:underline">← Précédent</Link>}
-          <span>Page {data.page.page} / {data.page.totalPages} · {data.page.total} produits</span>
-          {n < data.page.totalPages && <Link href={link(n + 1)} className="text-link hover:underline">Suivant →</Link>}
-        </p>
-      )}
+      <Pagination page={data.page.page} totalPages={data.page.totalPages} total={data.page.total} noun="produits" href={link} />
     </div>
   );
 }

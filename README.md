@@ -31,6 +31,24 @@
 | Backoffice (Next.js) | http://localhost:3100/login |
 | API (gateway) | http://127.0.0.1:8080 (`/healthz`) |
 
+### Où se gère quoi (backoffice → site)
+
+Le site ne contient plus aucune donnée : tout ce qu'il affiche se saisit au backoffice et passe par l'API.
+
+| Sur le site | Au backoffice |
+|---|---|
+| Produits, fiches, prix, médias | Catalogue › Produits (publication contrôlée) |
+| Catégories, marques (logos de l'accueil), secteurs | Catalogue › Catégories / Marques / Secteurs |
+| Coordonnées, réseaux, chiffres d'accueil | Contenu du site › Informations du site |
+| TVA, seuil de livraison offerte, seuils de devis | Boutique › Règles commerciales |
+| Zones et frais de livraison, codes promotionnels | Boutique › Zones de livraison / Codes promotionnels |
+| Questions fréquentes, pages `terms`, `refund`, `privacy` | Contenu du site › Questions fréquentes / Pages légales (l'adresse de la page est son identifiant) |
+| Blog (articles, catégories, étiquettes, auteurs) | Contenu du site › Articles du blog… |
+| Avis clients et témoignages d'accueil (sans produit) | Boutique › Avis clients |
+| Messages de contact, devis, lettre d'information | Messages reçus / Boutique › Demandes de devis |
+
+Publier un article ou une page exige la permission « Publier — contenu » (`content:publish`).
+
 Le site appelle l'API par un relais Vite (`/v1`) : même origine, cookie de session `HttpOnly` + `SameSite=Strict`. Le backoffice l'appelle depuis son serveur. Les données sont dans `~/.filterfinder` (conservées par `./dev.sh down`). Détails : `backend/README.md`.
 
 ---

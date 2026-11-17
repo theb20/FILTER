@@ -15,7 +15,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
 
   return (
     <div className="max-w-3xl space-y-5">
-      <PageHeader title={c.legalName} subtitle={`${c.taxId} · ${c.country}`} action={<Badge tone={COMPANY_TONE[c.status]}>{COMPANY_LABEL[c.status]}</Badge>} />
+      <PageHeader breadcrumb={[{ label: "Entreprises", href: "/companies" }, { label: "Détail" }]} title={c.legalName} subtitle={`${c.taxId} · ${c.country}`} action={<Badge tone={COMPANY_TONE[c.status]}>{COMPANY_LABEL[c.status]}</Badge>} />
       {ok && OK[ok] && <Notice kind="ok">{OK[ok]}</Notice>}
 
       <Card>
@@ -30,12 +30,12 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
 
       {canDecide && (
         <>
-          <Card>
+          <Card guide="company-approve">
             <h2 className="mb-4 text-lg font-semibold text-night">Approuver</h2>
             <p className="mb-3 text-sm text-slate">L&apos;adresse e-mail du titulaire doit être vérifiée. Vérifiez le numéro fiscal avant d&apos;approuver.</p>
             <ActionButton action={approveCompany.bind(null, c.id)} label="Approuver l'entreprise" confirm={`Approuver ${c.legalName} ?`} />
           </Card>
-          <Card>
+          <Card guide="company-reject">
             <h2 className="mb-4 text-lg font-semibold text-night">Rejeter</h2>
             <ActionForm action={rejectCompany.bind(null, c.id)} submit="Rejeter l'entreprise">
               <label className="block text-sm font-medium text-night">Motif (obligatoire)

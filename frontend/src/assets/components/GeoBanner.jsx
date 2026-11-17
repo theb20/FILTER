@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Info, X } from "lucide-react";
 import { useI18n } from "../i18n/i18nContext.js";
-import { SITE } from "../config/site.js";
+import { useSite } from "../store/siteStore.js";
 
 // Affiché seulement si un site régional est configuré (SITE.regionalSite).
 export default function GeoBanner() {
   const { t } = useI18n();
+  const SITE = useSite();
   const [open, setOpen] = useState(true);
   const regional = SITE.regionalSite;
   if (!open || !regional) return null;

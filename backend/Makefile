@@ -4,7 +4,7 @@ SHELL := /bin/bash
 PY    ?= python3
 BASE  ?= origin/main
 OGEN  ?= ogen
-MODULES := pkg services/identity services/gateway
+MODULES := pkg services/identity services/gateway services/catalog services/content
 
 .PHONY: help deps contract-check states-check openapi-check proto-lint proto-breaking generated-go \
         generate generate-proto generate-gateway generate-client fmt-check build test test-integration

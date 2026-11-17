@@ -36,6 +36,8 @@ type Service struct {
 	Audit         AuditRepo
 	SettingsStore SettingsRepo
 	Customers     CustomerAdminRepo
+	OAuth         OAuthRepo
+	OAuthCfg      OAuthConfig
 	Secrets       *domain.SecretBox
 	Hasher        PasswordHasher
 	Breach        BreachChecker

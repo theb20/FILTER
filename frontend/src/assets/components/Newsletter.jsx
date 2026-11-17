@@ -1,15 +1,21 @@
 import { useState } from "react";
 import { useNotify } from "../configurations/notificationContext.js";
 import { useI18n } from "../i18n/i18nContext.js";
+import { sendForm } from "../lib/forms.js";
 
 export default function Newsletter() {
   const notify = useNotify();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const [sending, setSending] = useState(false);
   const [email, setEmail] = useState("");
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    notify(t("demo.notice"), "demo"); // aucune inscription réelle
+    setSending(true);
+    const r = await sendForm("/newsletter/subscribe", { email, locale: lang });
+    setSending(false);
+    if (!r.ok) return notify(t(`form.err.${r.error}`), "error");
+    notify(t("newsletter.thanks"), "success");
     setEmail("");
   };
 
@@ -31,7 +37,7 @@ export default function Newsletter() {
           placeholder={t("newsletter.email")}
           className="min-w-0 flex-1 rounded-l-[3px] bg-white px-4 py-2.5 outline-none focus:ring-2 focus:ring-slate"
         />
-        <button type="submit" className="rounded-r-[3px] bg-slate px-5 font-medium text-white hover:bg-night">
+        <button type="submit" disabled={sending} className="rounded-r-[3px] bg-slate px-5 font-medium text-white hover:bg-night disabled:opacity-60">
           {t("newsletter.subscribe")}
         </button>
       </form>

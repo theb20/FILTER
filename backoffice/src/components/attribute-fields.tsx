@@ -24,7 +24,7 @@ export function AttributeFields({ categoryId, value }: { categoryId: string; val
       </label>
       <label className="flex items-center gap-2 text-sm text-night"><input type="checkbox" name="filterable" defaultChecked={value?.filterable} /> Utilisable comme filtre sur le site <span className="text-slate">(pas pour le texte libre)</span></label>
       <label className="flex items-center gap-2 text-sm text-night"><input type="checkbox" name="required" defaultChecked={value?.required} /> Obligatoire pour publier un produit de cette catégorie</label>
-      <label className="block text-sm font-medium text-night">Ordre d'affichage<input name="sortOrder" type="number" min={0} defaultValue={value?.sortOrder ?? 0} className={inputCls} /></label>
+      <label className="block text-sm font-medium text-night">Ordre d’affichage<input name="sortOrder" type="number" min={0} defaultValue={value?.sortOrder ?? 0} className={inputCls} /></label>
     </>
   );
 }

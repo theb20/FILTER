@@ -6,7 +6,7 @@ export function PermissionPicker({ permissions, selected, readOnly }: { permissi
   for (const p of permissions) groups.set(p.group, [...(groups.get(p.group) ?? []), p]);
   const all = selected.includes("*");
   return (
-    <div className="space-y-4">
+    <div data-guide="permissions" className="space-y-4">
       {all && <p className="rounded bg-action/15 px-3 py-2 text-sm text-night">Ce rôle donne <strong>toutes les permissions</strong> (présentes et futures).</p>}
       {[...groups.entries()].map(([group, items]) => (
         <fieldset key={group} className="rounded border border-line p-3">

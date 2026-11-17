@@ -97,6 +97,9 @@ type OneTimeToken struct {
 // Purposes des jetons à usage unique.
 const (
 	PurposeEmailVerification = "email_verification"
+	PurposePasswordResetCode = "password_reset_code" // code à 6 chiffres envoyé par e-mail
+	PurposePasswordReset     = "password_reset"      // jeton remis après vérification du code
+	PurposeOAuthExchange     = "oauth_exchange"      // code à usage unique (60 s) échangé contre une session
 )
 
 // Settings : valeurs par défaut VALIDÉES, toutes réglables (identity-settings).

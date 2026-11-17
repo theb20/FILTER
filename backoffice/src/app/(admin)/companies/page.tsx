@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { adminGet } from "@/lib/admin";
-import { Badge, PageHeader, Table } from "@/components/ui/ui";
+import { Badge, FilterBar, PageHeader, Pagination, SearchInput, Table } from "@/components/ui/ui";
 import { COMPANY_LABEL, COMPANY_TONE, dateFr, type CompanyPage } from "@/lib/types";
 
 const TABS = [["pending", "En attente"], ["approved", "Approuvées"], ["rejected", "Rejetées"]] as const;
+
+export const metadata = { title: "Entreprises" };
 
 export default async function CompaniesPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string }> }) {
   const sp = await searchParams;
@@ -16,16 +18,15 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <PageHeader title="Entreprises" subtitle="Validation des comptes professionnels" />
-      <nav className="mb-4 flex gap-1 border-b border-line text-sm" aria-label="Statut">
+      <nav data-guide="tabs" className="mb-4 flex gap-1 border-b border-line text-sm" aria-label="Statut">
         {TABS.map(([s, label]) => (
-          <Link key={s} href={href(1, s)} aria-current={s === status ? "page" : undefined} className={`-mb-px border-b-2 px-4 py-2 ${s === status ? "border-night font-medium text-night" : "border-transparent text-slate hover:text-night"}`}>{label}</Link>
+          <Link key={s} href={href(1, s)} aria-current={s === status ? "page" : undefined} className={`-mb-px border-b-2 px-4 py-2.5 ${s === status ? "border-night font-medium text-night" : "border-transparent text-slate hover:text-night"}`}>{label}</Link>
         ))}
       </nav>
-      <form className="mb-4 flex gap-2" role="search">
+      <FilterBar reset={{ href: `/companies?status=${status}`, show: !!q }}>
         <input type="hidden" name="status" value={status} />
-        <input name="q" defaultValue={q} placeholder="Raison sociale ou n° fiscal" className="w-full max-w-sm rounded border border-line bg-white px-3 py-2 text-sm focus:border-link focus:outline-none" />
-        <button className="rounded border border-line bg-white px-4 py-2 text-sm font-medium hover:bg-page">Rechercher</button>
-      </form>
+        <SearchInput defaultValue={q} placeholder="Raison sociale ou n° fiscal" className="w-full sm:w-80" />
+      </FilterBar>
       <Table head={["Raison sociale", "N° fiscal", "Pays", "Statut", "Décision"]} empty={data.items.length === 0 ? "Aucune entreprise." : undefined}>
         {data.items.map((c) => (
           <tr key={c.id} className="hover:bg-page">
@@ -37,13 +38,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
           </tr>
         ))}
       </Table>
-      {data.page.totalPages > 1 && (
-        <nav className="mt-4 flex items-center justify-between text-sm" aria-label="Pagination">
-          {page > 1 ? <Link href={href(page - 1)} className="text-link hover:underline">← Précédent</Link> : <span />}
-          <span className="text-slate">Page {data.page.page} sur {data.page.totalPages}</span>
-          {page < data.page.totalPages ? <Link href={href(page + 1)} className="text-link hover:underline">Suivant →</Link> : <span />}
-        </nav>
-      )}
+      <Pagination page={data.page.page} totalPages={data.page.totalPages} total={data.page.total} noun="entreprises" href={(p) => href(p)} />
     </div>
   );
 }

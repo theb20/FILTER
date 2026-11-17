@@ -19,7 +19,7 @@ export default async function StaffDetailPage({ params, searchParams }: { params
 
   return (
     <div className="max-w-3xl space-y-5">
-      <PageHeader title={u.name} subtitle={u.email} action={<Badge tone={STATUS_TONE[u.status]}>{STATUS_LABEL[u.status]}</Badge>} />
+      <PageHeader breadcrumb={[{ label: "Personnel", href: "/staff" }, { label: "Détail" }]} title={u.name} subtitle={u.email} action={<Badge tone={STATUS_TONE[u.status]}>{STATUS_LABEL[u.status]}</Badge>} />
       {ok && OK[ok] && <Notice kind="ok">{OK[ok]}</Notice>}
 
       <Card>
@@ -30,7 +30,7 @@ export default async function StaffDetailPage({ params, searchParams }: { params
         </dl>
       </Card>
 
-      <Card>
+      <Card guide="staff-roles">
         <h2 className="mb-4 text-lg font-semibold text-night">Informations et rôles</h2>
         {canWrite ? (
           <ActionForm action={updateStaff.bind(null, u.id)} submit="Enregistrer">
@@ -55,7 +55,7 @@ export default async function StaffDetailPage({ params, searchParams }: { params
       </Card>
 
       {canWrite && (
-        <Card>
+        <Card guide="staff-actions">
           <h2 className="mb-4 text-lg font-semibold text-night">Actions</h2>
           <div className="flex flex-wrap items-start gap-3">
             {u.status === "invited" && <ActionButton action={resendInvitation.bind(null, u.id)} label="Renvoyer l'invitation" variant="ghost" />}

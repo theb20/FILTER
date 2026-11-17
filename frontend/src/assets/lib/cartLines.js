@@ -1,48 +1,57 @@
 // @ts-check
-// Jointure entre les articles du store (id + quantité), le catalogue et les données complémentaires du panier.
-// C'est le seul endroit à adapter quand ces données viendront de l'API.
-import { PRODUCTS, PRODUCT_EXTRAS } from "../data/catalog.js";
-import { LOW_STOCK_THRESHOLD } from "../data/commerce.js";
-import { clampQty, hasPriceChanged, nextTier, priceLine, stockStatus } from "./cartMath.js";
+// Jointure entre les articles du panier (id + quantité), les produits lus dans l'API et leurs remises.
+import { clampQty, hasPriceChanged, nextTier, priceLine } from "./cartMath.js";
 
 /**
- * @typedef {{ id: number, quantity: number, priceAtAdd: number }} CartEntry
+ * @typedef {{ id: string, quantity: number, priceAtAdd: number }} CartEntry
+ * @typedef {import("./catalog.js").CatalogProduct & { volumeTiers?: { minQuantity: number, percent: number }[], attributes?: { label: string, unit: string | null, value: string | number | boolean }[], compat?: string[] }} LineProduct
  */
 
-/** @param {number} id */
-export const getProduct = (id) => PRODUCTS.find((p) => p.id === id);
+/** Tant que le stock n'est pas géré par le backend, la quantité n'est bornée que par cette limite technique. */
+export const MAX_QTY = 9999;
 
-/** Stock disponible d'un produit (0 si inconnu). @param {number} id */
-export const getStock = (id) => PRODUCT_EXTRAS[id]?.stock ?? 0;
+/** @param {string} availability @returns {"in" | "low" | "out" | "request" | "made"} */
+export function lineStatus(availability) {
+  if (availability === "in_stock") return "in";
+  if (availability === "low_stock") return "low";
+  if (availability === "out_of_stock") return "out";
+  if (availability === "made_to_order") return "made";
+  return "request";
+}
 
 /**
- * Construit le modèle d'affichage d'une ligne, ou null si le produit n'existe plus.
+ * Modèle d'affichage d'une ligne, ou null si le produit n'est pas (ou plus) publié.
  * @param {CartEntry} entry
+ * @param {LineProduct | undefined} product
  */
-export function buildLine(entry) {
-  const product = getProduct(entry.id);
-  const mock = PRODUCT_EXTRAS[entry.id];
-  if (!product || !mock) return null;
-  const quantity = clampQty(entry.quantity, mock.stock);
+export function buildLine(entry, product) {
+  if (!product) return null;
+  const quantity = clampQty(entry.quantity, MAX_QTY);
+  const tiers = (product.volumeTiers ?? []).map((t) => ({ minQty: t.minQuantity, percent: t.percent }));
   return {
     id: product.id,
+    name: product.name,
     reference: product.reference,
     brand: product.brand,
     quantity,
-    stock: mock.stock,
-    status: stockStatus(mock.stock, LOW_STOCK_THRESHOLD),
-    shipping: mock.shipping,
-    specs: mock.specs,
-    compat: mock.compat,
-    image: mock.image,
-    tiers: mock.discounts,
-    nextTier: nextTier(quantity, mock.discounts),
+    stock: MAX_QTY,
+    status: lineStatus(product.availability),
+    leadTimeDays: product.leadTimeDays,
+    onQuote: product.onQuote,
+    specs: (product.attributes ?? []).slice(0, 4).map((a) => ({ label: a.label, value: `${a.value}${a.unit ? ` ${a.unit}` : ""}` })),
+    compat: product.compat ?? [],
+    image: product.image,
+    tiers,
+    nextTier: nextTier(quantity, tiers),
     price: product.price,
     priceAtAdd: entry.priceAtAdd,
-    priceChanged: hasPriceChanged(entry.priceAtAdd, product.price),
-    ...priceLine(product.price, quantity, mock.discounts),
+    priceChanged: !product.onQuote && hasPriceChanged(entry.priceAtAdd, product.price),
+    ...priceLine(product.price, quantity, tiers),
   };
 }
 
-/** @param {CartEntry[]} entries */
-export const buildLines = (entries) => entries.map(buildLine).filter((l) => l !== null);
+/**
+ * @param {CartEntry[]} entries
+ * @param {Record<string, LineProduct>} products produits déjà chargés, par identifiant
+ */
+export const buildLines = (entries, products) => entries.map((e) => buildLine(e, products[e.id])).filter((l) => l !== null);

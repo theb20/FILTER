@@ -16,8 +16,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </div>
         <p className="text-sm text-white/40">Holding Ledan &amp; Associé · Abidjan</p>
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-action/10" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-white/5" />
       </section>
-      <section className="flex items-center justify-center bg-white p-6">
+      <section className="flex items-center justify-center bg-white p-6 sm:p-10">
         <div className="w-full max-w-sm">{children}</div>
       </section>
     </main>
@@ -25,6 +26,6 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 }
 
 export const inputClass =
-  "mt-1.5 w-full rounded border border-line bg-white px-3 py-2.5 text-night placeholder:text-slate/40 focus:border-link focus:outline-none";
+  "mt-1.5 w-full rounded-lg border border-line bg-white px-3 py-2.5 text-night placeholder:text-slate/40 transition focus:border-link focus:outline-none focus:ring-2 focus:ring-link/20";
 export const buttonClass =
-  "w-full rounded bg-action px-4 py-3 font-medium text-night transition hover:bg-action-dark disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full rounded-lg bg-action px-4 py-3 font-semibold text-night shadow-sm transition hover:bg-action-dark active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60";

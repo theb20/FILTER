@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Paperclip } from "lucide-react";
-import { SITE } from "../config/site.js";
+import { useSite } from "../store/siteStore.js";
 import { useI18n } from "../i18n/i18nContext.js";
 import Todo from "../components/Todo.jsx";
+import { sendForm } from "../lib/forms.js";
 
 const field =
   "w-full rounded-[3px] border border-gray-300 bg-white px-4 py-2.5 outline-none focus:ring-2 focus:ring-action";
@@ -11,9 +11,12 @@ const EMPTY = { name: "", email: "", phone: "", company: "", vat: "", message: "
 
 export default function Contact() {
   const { t } = useI18n();
+  const SITE = useSite();
   const [type, setType] = useState("company");
   const [data, setData] = useState(EMPTY);
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const isCompany = type === "company";
 
   useEffect(() => {
@@ -25,9 +28,14 @@ export default function Contact() {
     setData((d) => ({ ...d, [name]: inputType === "checkbox" ? checked : value }));
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    // Aucun envoi réel : à brancher (API / email). Rien n'est transmis.
+    setSending(true);
+    setError("");
+    const vat = isCompany && data.vat ? `${t("contact.vat")} : ${data.vat}\n\n` : "";
+    const r = await sendForm("/contact", { name: data.name, email: data.email, phone: data.phone, company: isCompany ? data.company : "", message: `${vat}${data.message}` });
+    setSending(false);
+    if (!r.ok) return setError(t(`form.err.${r.error}`));
     setData(EMPTY);
     setSubmitted(true);
   };
@@ -39,15 +47,13 @@ export default function Contact() {
 
         {submitted ? (
           <div className="mt-6">
-            <p className="rounded-[3px] bg-info p-3">{t("demo.notice")} {t("contact.notSent")}</p>
+            <p role="status" className="rounded-[3px] bg-info p-3">{t("contact.sent")}</p>
             <button type="button" onClick={() => setSubmitted(false)} className="mt-4 text-link underline">
               {t("contact.back")}
             </button>
           </div>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <p className="rounded-[3px] bg-info p-3 text-sm">{t("demo.notice")}</p>
-
             <fieldset className="flex gap-6">
               <legend className="sr-only">{t("contact.iam")}</legend>
               {[["company", "contact.company"], ["individual", "contact.individual"]].map(([v, key]) => (
@@ -92,19 +98,14 @@ export default function Contact() {
               <textarea id="message" name="message" rows={5} required value={data.message} onChange={onChange} className={`${field} resize-y`} />
             </div>
 
-            <label className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-gray-300 bg-white px-4 py-2.5 text-gray-600 focus-within:ring-2 focus-within:ring-action">
-              <Paperclip size={18} aria-hidden="true" />
-              <span className="truncate">{data.file ? data.file.name : t("contact.attach")}</span>
-              <input type="file" className="sr-only" onChange={(e) => setData((d) => ({ ...d, file: e.target.files[0] || null }))} />
-            </label>
-
             <label className="flex items-start gap-3 text-sm">
               <input type="checkbox" name="consent" required checked={data.consent} onChange={onChange} className="mt-1 h-4 w-4 accent-teal" />
               <span>{t("contact.consent")}</span>
             </label>
 
-            <button type="submit" className="inline-flex items-center gap-2 rounded-[3px] bg-action px-6 py-2.5 font-bold text-black hover:bg-action-dark">
-              {t("contact.send")} <span aria-hidden="true">→</span>
+            {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+            <button type="submit" disabled={sending} className="inline-flex items-center gap-2 rounded-[3px] bg-action px-6 py-2.5 font-bold text-black hover:bg-action-dark disabled:opacity-60">
+              {sending ? t("form.sending") : t("contact.send")} <span aria-hidden="true">→</span>
             </button>
           </form>
         )}

@@ -14,14 +14,14 @@ export default async function SectorPage({ params, searchParams }: { params: Pro
   const canWrite = can(me?.permissions ?? [], "catalog:write");
   return (
     <div className="max-w-2xl space-y-5">
-      <PageHeader title={t(sector.name)} />
+      <PageHeader breadcrumb={[{ label: "Secteurs", href: "/sectors" }, { label: "Détail" }]} title={t(sector.name)} />
       {ok === "created" && <Notice kind="ok">Secteur créé.</Notice>}
       {ok === "updated" && <Notice kind="ok">Modifications enregistrées.</Notice>}
       <Card>
         {canWrite ? <ActionForm action={updateSector.bind(null, sector.id)} submit="Enregistrer"><SectorFields value={sector} /></ActionForm> : <p className="text-sm text-slate">{t(sector.name)} · {sector.slug}</p>}
       </Card>
       {canWrite && (
-        <Card>
+        <Card guide="danger-zone">
           <h2 className="mb-3 text-lg font-semibold text-night">Supprimer ce secteur</h2>
           <ActionButton action={deleteSector.bind(null, sector.id)} label="Supprimer le secteur" variant="danger" confirm={`Supprimer le secteur « ${t(sector.name)} » ?`} />
         </Card>

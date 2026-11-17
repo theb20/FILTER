@@ -218,6 +218,12 @@ func (s *Server) rateLimit(next http.Handler) http.Handler {
 			rules = append(rules, rule{"login:" + ip, s.cfg.LoginPerMinute, time.Minute})
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/auth/register":
 			rules = append(rules, rule{"register:" + ip, s.cfg.RegisterPerHour, time.Hour})
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/auth/password/forgot":
+			rules = append(rules, rule{"forgot:" + ip, 5, time.Hour}) // 5 demandes de code par heure et par adresse IP
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/auth/password/verify-code":
+			rules = append(rules, rule{"verifycode:" + ip, 20, time.Hour})
+		case r.Method == http.MethodPost && (r.URL.Path == "/v1/contact" || r.URL.Path == "/v1/newsletter/subscribe" || r.URL.Path == "/v1/quote-requests"):
+			rules = append(rules, rule{"forms:" + ip, 10, time.Hour}) // formulaires publics : 10 envois par heure et par adresse
 		}
 		for _, ru := range rules {
 			ok, remaining, retry := s.limiter.Allow(ru.key, ru.limit, ru.window, now)
@@ -234,3 +240,4 @@ func (s *Server) rateLimit(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+

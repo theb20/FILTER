@@ -17,7 +17,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
 
   return (
     <div className="max-w-3xl space-y-5">
-      <PageHeader title={customerName(c)} subtitle={c.email} action={<Badge tone={c.status === "active" ? "ok" : "off"}>{c.status === "active" ? "Actif" : "Suspendu"}</Badge>} />
+      <PageHeader breadcrumb={[{ label: "Clients", href: "/customers" }, { label: "Détail" }]} title={customerName(c)} subtitle={c.email} action={<Badge tone={c.status === "active" ? "ok" : "off"}>{c.status === "active" ? "Actif" : "Suspendu"}</Badge>} />
       {ok && OK[ok] && <Notice kind="ok">{OK[ok]}</Notice>}
 
       <Card>
@@ -45,7 +45,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       )}
 
       {canWrite && (
-        <Card>
+        <Card guide="customer-actions">
           <h2 className="mb-4 text-lg font-semibold text-night">Actions</h2>
           {c.status === "active" ? (
             <ActionButton action={setCustomerStatus.bind(null, c.id, "suspended")} label="Suspendre le compte" variant="danger" confirm={`Suspendre ${customerName(c)} ? Ses sessions seront fermées immédiatement.`} />

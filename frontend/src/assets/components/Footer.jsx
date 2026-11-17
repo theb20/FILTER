@@ -3,7 +3,7 @@ import Logo from "./Logo.jsx";
 import Todo from "./Todo.jsx";
 import PaymentMethods from "./PaymentMethods.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
-import { SITE } from "../config/site.js";
+import { useSite } from "../store/siteStore.js";
 
 const LINKS = [
   ["/blog", "footer.blog"],
@@ -28,6 +28,7 @@ function Section({ title, children }) {
 
 export default function Footer() {
   const { t } = useI18n();
+  const SITE = useSite();
 
   return (
     <footer className="mx-2.5 my-2.5 bg-slate text-white">

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { SITE } from "../config/site.js";
+import { useSite } from "../store/siteStore.js";
+import CmsPage from "../components/CmsPage.jsx";
+import { fetchPage } from "../lib/content.js";
+import { useAsync } from "../lib/catalog.js";
 import { useI18n } from "../i18n/i18nContext.js";
 import {
   Shield,
@@ -91,8 +94,9 @@ const InfoCard = ({ icon, title, description }) => (
   </div>
 );
 
-export default function PrivacyPolicyPage() {
+function LegacyPrivacyPage() {
   const { t, lang } = useI18n();
+  const SITE = useSite();
   const [expandedSection, setExpandedSection] = useState(null);
 
   useEffect(() => {
@@ -651,4 +655,14 @@ export default function PrivacyPolicyPage() {
       
     </div>
   );
+}
+// La politique de confidentialité se gère au backoffice (Pages, adresse « privacy ») ; à défaut, le texte intégré ci-dessus s'affiche.
+export default function PrivacyPolicyPage() {
+  const { t, lang } = useI18n();
+  const page = useAsync(() => fetchPage("privacy").catch(() => null), [lang]);
+  useEffect(() => {
+    if (page.data) document.title = t("meta.page", { title: page.data.title });
+  }, [t, page.data]);
+  if (page.status === "loading") return <div role="status" className="mx-2.5 mt-2.5 rounded-[4px] bg-white p-8 shadow-card">{t("data.loading")}</div>;
+  return page.data ? <CmsPage page={page.data} /> : <LegacyPrivacyPage />;
 }

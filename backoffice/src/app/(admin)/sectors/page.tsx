@@ -2,8 +2,10 @@ import Link from "next/link";
 import { adminGet, can } from "@/lib/admin";
 import { currentStaff } from "@/lib/staff";
 import { t } from "@/lib/catalog";
-import { LinkButton, Notice, PageHeader, Table } from "@/components/ui/ui";
+import { FilterBar, LinkButton, Notice, PageHeader, Pagination, SearchInput, Table } from "@/components/ui/ui";
 import type { SectorPage } from "@/lib/types";
+
+export const metadata = { title: "Secteurs" };
 
 export default async function SectorsPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string; ok?: string }> }) {
   const { q, page, ok } = await searchParams;
@@ -15,7 +17,9 @@ export default async function SectorsPage({ searchParams }: { searchParams: Prom
     <div>
       <PageHeader title="Secteurs d'activité" subtitle="Les secteurs clients (agroalimentaire, industrie…)." action={canWrite && <LinkButton href="/sectors/new">Ajouter un secteur</LinkButton>} />
       {ok === "deleted" && <Notice kind="ok">Secteur supprimé.</Notice>}
-      <form className="mb-4"><input name="q" defaultValue={q} placeholder="Rechercher un secteur…" className="w-full max-w-sm rounded border border-line bg-white px-3 py-2 text-sm" /></form>
+      <FilterBar reset={{ href: "/sectors", show: !!q }}>
+        <SearchInput defaultValue={q} placeholder="Rechercher un secteur…" className="w-full sm:w-80" />
+      </FilterBar>
       <Table head={["Secteur", "Identifiant d'URL", ""]} empty={data.items.length === 0 ? (q ? "Aucun secteur ne correspond." : "Aucun secteur pour l'instant.") : undefined}>
         {data.items.map((s) => (
           <tr key={s.id} className="hover:bg-page">
@@ -25,13 +29,7 @@ export default async function SectorsPage({ searchParams }: { searchParams: Prom
           </tr>
         ))}
       </Table>
-      {data.page.totalPages > 1 && (
-        <p className="mt-4 flex items-center gap-4 text-sm text-slate">
-          {n > 1 && <Link href={link(n - 1)} className="text-link hover:underline">← Précédent</Link>}
-          <span>Page {data.page.page} / {data.page.totalPages}</span>
-          {n < data.page.totalPages && <Link href={link(n + 1)} className="text-link hover:underline">Suivant →</Link>}
-        </p>
-      )}
+      <Pagination page={data.page.page} totalPages={data.page.totalPages} total={data.page.total} noun="secteurs" href={link} />
     </div>
   );
 }

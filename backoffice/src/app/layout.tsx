@@ -5,7 +5,7 @@ import "./globals.css";
 const roboto = Roboto({ variable: "--font-roboto", subsets: ["latin"], weight: ["400", "500", "700"] });
 
 export const metadata: Metadata = {
-  title: "FilterFinder · Backoffice",
+  title: { default: "FilterFinder · Backoffice", template: "%s · Backoffice FilterFinder" },
   description: "Administration FilterFinder",
 };
 

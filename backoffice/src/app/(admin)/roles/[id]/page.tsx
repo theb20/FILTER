@@ -13,7 +13,7 @@ export default async function RoleDetailPage({ params, searchParams }: { params:
   const editable = can(me?.permissions ?? [], "admin:write") && !role.system;
   return (
     <div className="max-w-3xl space-y-5">
-      <PageHeader title={role.name} subtitle={role.description ?? undefined} action={role.system ? <Badge tone="info">Rôle système : non modifiable</Badge> : undefined} />
+      <PageHeader breadcrumb={[{ label: "Rôles", href: "/roles" }, { label: "Détail" }]} title={role.name} subtitle={role.description ?? undefined} action={role.system ? <Badge tone="info">Rôle système : non modifiable</Badge> : undefined} />
       {ok === "created" && <Notice kind="ok">Rôle créé.</Notice>}
       {ok === "updated" && <Notice kind="ok">Modifications enregistrées. Les membres concernés les voient à leur prochain renouvellement de session (15 min au plus).</Notice>}
       <Card>
@@ -28,7 +28,7 @@ export default async function RoleDetailPage({ params, searchParams }: { params:
         )}
       </Card>
       {editable && (
-        <Card>
+        <Card guide="danger-zone">
           <h2 className="mb-3 text-lg font-semibold text-night">Supprimer ce rôle</h2>
           <p className="mb-3 text-sm text-slate">Impossible tant que des membres du personnel portent ce rôle.</p>
           <ActionButton action={deleteRole.bind(null, role.id)} label="Supprimer le rôle" variant="danger" confirm={`Supprimer le rôle « ${role.name} » ?`} />

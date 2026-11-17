@@ -27,6 +27,7 @@ type store interface {
 	application.AuditRepo
 	application.SettingsRepo
 	application.CustomerAdminRepo
+	application.OAuthRepo
 	StaffSessions() application.SessionRepo
 }
 
@@ -95,6 +96,8 @@ func (r outboxReader) OfType(typ string) []events.Event {
 			msg = &eventsv1.EmailVerificationRequested{}
 		case application.EvRegistrationOnExisting:
 			msg = &eventsv1.RegistrationAttemptOnExistingAccount{}
+		case application.EvPasswordResetRequested:
+			msg = &eventsv1.PasswordResetRequested{}
 		case application.EvSuspiciousLogin:
 			msg = &eventsv1.SuspiciousLoginAlertRequested{}
 		case application.EvStaffInvitationRequested:

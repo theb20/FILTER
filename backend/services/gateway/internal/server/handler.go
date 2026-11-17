@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/theb20/FILTER/backend/pkg/apperr"
 	catalogadminv1 "github.com/theb20/FILTER/backend/pkg/gen/catalogadmin/v1"
+	contentadminv1 "github.com/theb20/FILTER/backend/pkg/gen/contentadmin/v1"
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
 	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/services/gateway/internal/api"
@@ -22,6 +23,7 @@ type handler struct {
 	srv *Server
 	id  identityv1.IdentityServiceClient
 	cat catalogadminv1.CatalogAdminServiceClient // nil tant que le service catalog n'est pas configuré (501)
+	cms contentadminv1.ContentAdminServiceClient // nil tant que le service content n'est pas configuré (501)
 	src sourcingv1.SourcingServiceClient         // nil tant que le service sourcing n'est pas configuré (les routes répondent alors 501)
 }
 

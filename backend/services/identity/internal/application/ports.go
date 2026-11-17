@@ -165,3 +165,11 @@ type SettingsRepo interface {
 	LoadIdentitySettings(ctx context.Context) (domain.IdentitySettings, error)
 	SaveIdentitySettings(ctx context.Context, s domain.IdentitySettings, updatedBy string, at time.Time) error
 }
+
+// OAuthRepo : liens entre un compte local et une identité chez un fournisseur (Google).
+type OAuthRepo interface {
+	// OAuthUser renvoie le compte lié à (fournisseur, sujet), ou found=false.
+	OAuthUser(ctx context.Context, provider, subject string) (userID string, found bool, err error)
+	// LinkOAuth lie l'identité au compte ; sans effet si le lien existe déjà pour ce compte.
+	LinkOAuth(ctx context.Context, provider, subject, userID string, at time.Time) error
+}

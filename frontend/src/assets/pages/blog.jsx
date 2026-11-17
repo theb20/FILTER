@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  BLOG_CATEGORIES, BLOG_CITED_PRODUCTS, BLOG_DOSSIERS, BLOG_GUIDES, BLOG_KINDS, BLOG_MOSAIC,
-  BLOG_POPULAR, BLOG_TAGS, BLOG_TOPICS, fetchBlogArticles,
-} from "../data/blog.js";
-import { PRODUCTS } from "../data/catalog.js";
-import { filterArticles, PAGE_SIZE, paginate, parseBlogParams, pickArticles, sortByDateDesc } from "../lib/blogFilters.js";
+import { BLOG_KINDS } from "../data/blog.js";
+import { fetchBlogArticles, fetchBlogCategories, fetchBlogTags } from "../lib/content.js";
+import { useAsync, useProductsById } from "../lib/catalog.js";
+import { filterArticles, PAGE_SIZE, paginate, parseBlogParams, sortByDateDesc } from "../lib/blogFilters.js";
 import { usePageMeta } from "../lib/usePageMeta.js";
 import { useI18n } from "../i18n/i18nContext.js";
 import JsonLd from "../components/JsonLd.jsx";
@@ -23,10 +21,8 @@ import ToolBanner from "../components/blog/ToolBanner.jsx";
 import TopicsRow from "../components/blog/TopicsRow.jsx";
 import { postPath } from "../components/blog/format.js";
 
-const ALLOWED = { categories: BLOG_CATEGORIES, kinds: BLOG_KINDS, tags: BLOG_TAGS.map((t) => t.slug) };
-
 export default function Blog() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [sp] = useSearchParams();
   const [state, setState] = useState({ status: "loading", articles: [] });
 
@@ -40,8 +36,10 @@ export default function Blog() {
 
   usePageMeta(t("blog.meta.title"), t("blog.meta.desc"));
 
-  const base = parseBlogParams(sp, ALLOWED);
-  const tagLabel = BLOG_TAGS.find((x) => x.slug === base.tag)?.label;
+  const categories = useAsync(() => fetchBlogCategories().catch(() => []), [lang]).data ?? [];
+  const tags = useAsync(() => fetchBlogTags().catch(() => []), [lang]).data ?? [];
+  const base = parseBlogParams(sp, { categories: categories.map((c) => c.slug), kinds: BLOG_KINDS, tags: tags.map((x) => x.slug) });
+  const tagLabel = tags.find((x) => x.slug === base.tag)?.name;
   const params = { ...base, tagLabel };
 
   // Après un changement d'étiquette ou de page, ramène la vue sur la liste des articles.
@@ -55,6 +53,14 @@ export default function Blog() {
 
   const { status, articles } = state;
   const sorted = sortByDateDesc(articles);
+  // Sélections de la page, calculées d'après les réglages de chaque article (backoffice) : mis en avant, guides, dossiers.
+  const featured = sorted.filter((a) => a.featured);
+  const mosaic = (featured.length ? featured : sorted).slice(0, 5);
+  const topics = categories.map((c) => sorted.find((a) => a.category === c.slug)).filter(Boolean).slice(0, 4);
+  const guides = sorted.filter((a) => a.guide).slice(0, 4);
+  const dossiers = sorted.filter((a) => a.dossier).slice(0, 3);
+  const citedIds = [...new Set(sorted.flatMap((a) => a.products))].slice(0, 4);
+  const { products: citedById } = useProductsById(citedIds);
   const pageData = paginate(filterArticles(sorted, params), params.page, PAGE_SIZE);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
@@ -86,18 +92,18 @@ export default function Blog() {
             })),
           }} />
 
-          <TopicsRow articles={pickArticles(articles, BLOG_TOPICS)} />
-          <FeaturedMosaic articles={pickArticles(articles, BLOG_MOSAIC)} />
+          <TopicsRow articles={topics} />
+          <FeaturedMosaic articles={mosaic} />
           <ToolBanner />
 
           <div className="mx-2.5 mt-2.5 grid gap-4 rounded-[4px] bg-white p-5 shadow-card lg:grid-cols-[minmax(0,1fr)_320px]">
             <LatestArticles params={params} pageData={pageData} />
-            <Sidebar popular={pickArticles(articles, BLOG_POPULAR)} />
+            <Sidebar popular={sorted.slice(0, 5)} />
           </div>
 
-          <GuidesRow articles={pickArticles(articles, BLOG_GUIDES)} />
-          <DossiersSection articles={pickArticles(articles, BLOG_DOSSIERS)} />
-          <CitedProducts products={BLOG_CITED_PRODUCTS.map((id) => PRODUCTS.find((p) => p.id === id)).filter(Boolean)} />
+          <GuidesRow articles={guides} />
+          <DossiersSection articles={dossiers} />
+          <CitedProducts products={citedIds.map((id) => citedById[id]).filter(Boolean)} />
           <TagCloud params={params} />
         </>
       )}

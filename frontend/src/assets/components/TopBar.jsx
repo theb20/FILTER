@@ -1,11 +1,13 @@
 import { useNotify } from "../configurations/notificationContext.js";
 import { useI18n } from "../i18n/i18nContext.js";
-import { CLAIMS, SITE } from "../config/site.js";
+import { useSite } from "../store/siteStore.js";
 import Todo from "./Todo.jsx";
 
 export default function TopBar() {
   const notify = useNotify();
   const { t } = useI18n();
+  const SITE = useSite();
+  const CLAIMS = SITE.claims;
 
   const sep = <span className="hidden h-4 w-px bg-white/30 sm:block" aria-hidden="true" />;
 

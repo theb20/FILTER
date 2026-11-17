@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { BadgeCheck } from "lucide-react";
 import Stars from "../Stars.jsx";
-import { REVIEWS, REVIEWS_PREVIEW } from "../../data/catalog.js";
+const REVIEWS_PREVIEW = 3; // avis affichés avant « Voir tous les avis »
 import { ratingStats } from "../../lib/productUtils.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 
 // Avis clients RÉELS uniquement : note moyenne, répartition, 3 avis puis « Voir tous les avis ».
-export default function ReviewsPanel() {
+export default function ReviewsPanel({ reviews = [] }) {
+  const REVIEWS = reviews;
   const { t, locale } = useI18n();
   const [all, setAll] = useState(false);
   const stats = ratingStats(REVIEWS);
   const shown = all ? REVIEWS : REVIEWS.slice(0, REVIEWS_PREVIEW);
-  const date = (iso) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(`${iso}T12:00:00`));
+  const date = (iso) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(iso));
 
   return (
     <section id="reviews" aria-labelledby="pd-reviews-title" className="rounded-[8px] bg-white p-5 shadow-card">
@@ -44,7 +45,7 @@ export default function ReviewsPanel() {
             <div className="flex items-center gap-2"><Stars value={r.rating} size={14} /><p className="font-bold">{r.title}</p></div>
             <p className="mt-1 text-sm text-gray-700">{r.text}</p>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-gray-600">
-              <span>{r.author}, {r.company}</span><span aria-hidden="true">·</span><time dateTime={r.date}>{date(r.date)}</time>
+              <span>{[r.author, r.company].filter(Boolean).join(", ")}</span><span aria-hidden="true">·</span><time dateTime={r.date}>{date(r.date)}</time>
               {r.verified && <span className="inline-flex items-center gap-1 text-green-700"><BadgeCheck size={12} aria-hidden="true" />{t("pd.reviews.verified")}</span>}
             </p>
           </li>

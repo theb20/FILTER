@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
 import { FaFacebookF, FaLinkedinIn, FaWhatsapp, FaYoutube } from "react-icons/fa";
-import { SITE } from "../../config/site.js";
+import { useSite } from "../../store/siteStore.js";
 import { useI18n } from "../../i18n/i18nContext.js";
 import { postPath } from "./format.js";
 
-const waLink = (text) => `https://wa.me/${SITE.phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
+const waLink = (phone, text) => (phone ? `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}` : "");
 
-const SOCIALS = [
+const socials = (SITE) => [
   { key: "linkedin", label: "LinkedIn", Icon: FaLinkedinIn, href: SITE.linkedinUrl, color: "bg-[#0A66C2]" },
-  { key: "whatsapp", label: "WhatsApp", Icon: FaWhatsapp, href: waLink(""), color: "bg-[#25D366]" },
+  { key: "whatsapp", label: "WhatsApp", Icon: FaWhatsapp, href: waLink(SITE.phone, ""), color: "bg-[#25D366]" },
   { key: "facebook", label: "Facebook", Icon: FaFacebookF, href: SITE.facebookUrl, color: "bg-[#1877F2]" },
   { key: "youtube", label: "YouTube", Icon: FaYoutube, href: SITE.youtubeUrl, color: "bg-[#FF0000]" },
 ];
@@ -22,6 +22,8 @@ const Heading = ({ id, children }) => (
 // Colonne latérale : « Restez connecté », « Les plus lus », « Besoin d'un conseil ? ».
 export default function Sidebar({ popular }) {
   const { t } = useI18n();
+  const SITE = useSite();
+  const SOCIALS = socials(SITE);
   return (
     <aside className="space-y-4" aria-label={t("blog.sidebar")}>
       <section aria-labelledby="connect-title" className="rounded-[8px] bg-white p-5 shadow-card">
@@ -59,7 +61,7 @@ export default function Sidebar({ popular }) {
       <section aria-labelledby="advice-title" className="rounded-[8px] bg-navy p-5 text-white shadow-card">
         <h2 id="advice-title" className="text-[20px] font-bold">{t("blog.advice.title")}</h2>
         <p className="mt-1 text-white/90">{t("blog.advice.text")}</p>
-        <a href={waLink(t("blog.advice.message"))} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-[4px] bg-action px-5 py-2.5 font-bold text-black transition-colors hover:bg-action-dark">
+        <a href={waLink(SITE.phone, t("blog.advice.message"))} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-[4px] bg-action px-5 py-2.5 font-bold text-black transition-colors hover:bg-action-dark">
           <FaWhatsapp size={18} aria-hidden="true" /> {t("blog.advice.cta")}
         </a>
       </section>

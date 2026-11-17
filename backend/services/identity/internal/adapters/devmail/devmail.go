@@ -60,6 +60,12 @@ func (s *Sink) render(env *eventsv1.Envelope) string {
 			return ""
 		}
 		return fmt.Sprintf("Vérification d'adresse pour %s\n  Lien : %s/verify-email?token=%s", m.Email, s.SiteURL, m.Token)
+	case "identity.password_reset_requested.v1":
+		var m eventsv1.PasswordResetRequested
+		if proto.Unmarshal(env.Payload, &m) != nil {
+			return ""
+		}
+		return fmt.Sprintf("Réinitialisation du mot de passe pour %s\n  Code : %s (valable 15 minutes)", m.Email, m.Code)
 	case "identity.registration_attempt_on_existing_account.v1":
 		var m eventsv1.RegistrationAttemptOnExistingAccount
 		if proto.Unmarshal(env.Payload, &m) != nil {

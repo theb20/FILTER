@@ -20,12 +20,12 @@ export default async function NewProductPage({ searchParams }: { searchParams: P
     const rows = flatten(buildTree(cats));
     return (
       <div className="max-w-xl">
-        <PageHeader title="Ajouter un produit" subtitle="Étape 1 : choisissez la catégorie. Ses attributs déterminent les champs de la fiche." />
+        <PageHeader breadcrumb={[{ label: "Produits", href: "/products" }, { label: "Nouveau" }]} title="Ajouter un produit" subtitle="Étape 1 : choisissez la catégorie. Ses attributs déterminent les champs de la fiche." />
         <Card>
           {rows.length === 0 ? (
-            <p className="text-sm text-slate">Aucune catégorie : créez d'abord une catégorie dans le menu « Catégories ».</p>
+            <p className="text-sm text-slate">Aucune catégorie : créez d’abord une catégorie dans le menu « Catégories ».</p>
           ) : (
-            <form className="space-y-4">
+            <form data-guide="form" className="space-y-4">
               <label className="block text-sm font-medium text-night">Catégorie
                 <select name="categoryId" required defaultValue="" className={inputCls}>
                   <option value="" disabled>— Choisir —</option>
@@ -46,7 +46,7 @@ export default async function NewProductPage({ searchParams }: { searchParams: P
   ]);
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Ajouter un produit" subtitle="Le produit est créé en brouillon ; il sera publié quand sa fiche sera complète." />
+      <PageHeader breadcrumb={[{ label: "Produits", href: "/products" }, { label: "Nouveau" }]} title="Ajouter un produit" subtitle="Le produit est créé en brouillon ; il sera publié quand sa fiche sera complète." />
       <Card>
         <ActionForm action={createProduct} submit="Créer le produit (brouillon)">
           <ProductForm categoryId={cat.id} categoryName={t(cat.name)} defs={defs} brands={brands.items} sectors={sectors.items} />

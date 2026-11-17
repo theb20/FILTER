@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "../i18n/i18nContext.js";
+import { request } from "../lib/api.js";
 
 const field =
   "w-full rounded-[3px] border bg-white px-4 py-2.5 outline-none focus:ring-2 focus:ring-action";
 const btn = "w-full rounded-[3px] bg-action px-5 py-3 font-bold text-black hover:bg-action-dark";
 
-// Parcours de démonstration : aucun email n'est envoyé, aucun mot de passe modifié.
+// Mot de passe oublié : code à 6 chiffres envoyé par e-mail, puis nouveau mot de passe (tous les appareils sont déconnectés).
 export default function Reset() {
   const { t } = useI18n();
   const [step, setStep] = useState("request"); // request | code | password | done
@@ -14,31 +15,51 @@ export default function Reset() {
   const [code, setCode] = useState("");
   const [pw, setPw] = useState({ next: "", confirm: "" });
   const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [token, setToken] = useState("");
+
+  // Erreur de l'API → clé de traduction (aucun détail technique affiché).
+  const apiErr = (r) => (r.status === 429 ? "auth.err.throttle" : r.status === 0 || r.status >= 500 ? "auth.err.unavailable"
+    : r.fields?.some((f) => f.code === "PASSWORD_COMPROMISED") ? "auth.err.compromised" : r.code === "INVALID_CODE" ? "reset.err.code" : "auth.err.rejected");
 
   useEffect(() => {
     document.title = t("meta.reset");
   }, [t]);
 
-  const submitEmail = (e) => {
+  const submitEmail = async (e) => {
     e.preventDefault();
     if (!email.trim()) return setErr("auth.err.email");
     if (!/\S+@\S+\.\S+/.test(email)) return setErr("auth.err.emailInvalid");
     setErr(null);
-    setStep("code");
+    setBusy(true);
+    const r = await request("/auth/password/forgot", { method: "POST", body: { email: email.trim() } });
+    setBusy(false);
+    if (!r.ok) return setErr(apiErr(r));
+    setStep("code"); // réponse identique que le compte existe ou non
   };
 
-  const submitCode = (e) => {
+  const submitCode = async (e) => {
     e.preventDefault();
     if (!/^\d{6}$/.test(code)) return setErr("reset.err.codeLen");
     setErr(null);
+    setBusy(true);
+    const r = await request("/auth/password/verify-code", { method: "POST", body: { email: email.trim(), code } });
+    setBusy(false);
+    if (!r.ok) return setErr(apiErr(r));
+    setToken(r.data.resetToken);
     setStep("password");
   };
 
-  const submitPassword = (e) => {
+  const submitPassword = async (e) => {
     e.preventDefault();
     if (pw.next.length < 8) return setErr("reset.err.short");
     if (pw.next !== pw.confirm) return setErr("reset.err.mismatch");
     setErr(null);
+    setBusy(true);
+    const r = await request("/auth/password/reset", { method: "POST", body: { resetToken: token, newPassword: pw.next } });
+    setBusy(false);
+    if (!r.ok) return setErr(apiErr(r));
+    setToken("");
     setStep("done");
   };
 
@@ -53,7 +74,6 @@ export default function Reset() {
         <h1 id="reset-title" className="text-[40px] font-bold leading-tight">
           {step === "done" ? t("reset.done") : t("reset.title")}
         </h1>
-        <p className="mt-4 rounded-[3px] bg-info p-3 text-sm" role="note">{t("demo.notice")}</p>
 
         {step === "request" && (
           <form onSubmit={submitEmail} noValidate className="mt-5 space-y-4">
@@ -63,7 +83,7 @@ export default function Reset() {
               <input id="reset-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={`${field} border-gray-300`} autoComplete="email" />
             </div>
             <Error />
-            <button type="submit" className={btn}>{t("reset.send")} <span aria-hidden="true">→</span></button>
+            <button type="submit" disabled={busy} className={`${btn} disabled:opacity-60`}>{t("reset.send")} <span aria-hidden="true">→</span></button>
           </form>
         )}
 
@@ -76,7 +96,7 @@ export default function Reset() {
               <input id="reset-code" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className={`${field} border-gray-300 tracking-[0.4em]`} autoComplete="one-time-code" />
             </div>
             <Error />
-            <button type="submit" className={btn}>{t("reset.verify")} <span aria-hidden="true">→</span></button>
+            <button type="submit" disabled={busy} className={`${btn} disabled:opacity-60`}>{t("reset.verify")} <span aria-hidden="true">→</span></button>
           </form>
         )}
 
@@ -92,7 +112,7 @@ export default function Reset() {
               <input id="pw-confirm" type="password" value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))} className={`${field} border-gray-300`} autoComplete="new-password" />
             </div>
             <Error />
-            <button type="submit" className={btn}>{t("reset.save")} <span aria-hidden="true">→</span></button>
+            <button type="submit" disabled={busy} className={`${btn} disabled:opacity-60`}>{t("reset.save")} <span aria-hidden="true">→</span></button>
           </form>
         )}
 

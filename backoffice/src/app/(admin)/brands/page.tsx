@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { adminGet, can } from "@/lib/admin";
 import { currentStaff } from "@/lib/staff";
-import { LinkButton, Notice, PageHeader, Table } from "@/components/ui/ui";
+import { FilterBar, LinkButton, Notice, PageHeader, Pagination, SearchInput, Table } from "@/components/ui/ui";
 import type { BrandPage } from "@/lib/types";
+
+export const metadata = { title: "Marques" };
 
 export default async function BrandsPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string; ok?: string }> }) {
   const { q, page, ok } = await searchParams;
@@ -14,7 +16,9 @@ export default async function BrandsPage({ searchParams }: { searchParams: Promi
     <div>
       <PageHeader title="Marques" subtitle="Les marques des produits vendus." action={canWrite && <LinkButton href="/brands/new">Ajouter une marque</LinkButton>} />
       {ok === "deleted" && <Notice kind="ok">Marque supprimée.</Notice>}
-      <form className="mb-4"><input name="q" defaultValue={q} placeholder="Rechercher une marque…" className="w-full max-w-sm rounded border border-line bg-white px-3 py-2 text-sm" /></form>
+      <FilterBar reset={{ href: "/brands", show: !!q }}>
+        <SearchInput defaultValue={q} placeholder="Rechercher une marque…" className="w-full sm:w-80" />
+      </FilterBar>
       <Table head={["Marque", "Identifiant d'URL", ""]} empty={data.items.length === 0 ? (q ? "Aucune marque ne correspond." : "Aucune marque pour l'instant.") : undefined}>
         {data.items.map((b) => (
           <tr key={b.id} className="hover:bg-page">
@@ -24,13 +28,7 @@ export default async function BrandsPage({ searchParams }: { searchParams: Promi
           </tr>
         ))}
       </Table>
-      {data.page.totalPages > 1 && (
-        <p className="mt-4 flex items-center gap-4 text-sm text-slate">
-          {n > 1 && <Link href={link(n - 1)} className="text-link hover:underline">← Précédent</Link>}
-          <span>Page {data.page.page} / {data.page.totalPages}</span>
-          {n < data.page.totalPages && <Link href={link(n + 1)} className="text-link hover:underline">Suivant →</Link>}
-        </p>
-      )}
+      <Pagination page={data.page.page} totalPages={data.page.totalPages} total={data.page.total} noun="marques" href={link} />
     </div>
   );
 }

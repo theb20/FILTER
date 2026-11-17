@@ -11,7 +11,7 @@ export default async function NewSectorPage() {
   if (!can(me?.permissions ?? [], "catalog:write")) redirect("/denied");
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Ajouter un secteur" />
+      <PageHeader breadcrumb={[{ label: "Secteurs", href: "/sectors" }, { label: "Nouveau" }]} title="Ajouter un secteur" />
       <Card><ActionForm action={createSector} submit="Créer le secteur"><SectorFields /></ActionForm></Card>
     </div>
   );

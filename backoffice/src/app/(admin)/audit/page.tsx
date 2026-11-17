@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { adminGet } from "@/lib/admin";
-import { Badge, PageHeader, Table } from "@/components/ui/ui";
+import { Badge, FilterBar, PageHeader, Table, selectCls } from "@/components/ui/ui";
 import { dateFr, type AuditPage } from "@/lib/types";
 
 const ACTIONS: Record<string, string> = {
@@ -9,6 +9,8 @@ const ACTIONS: Record<string, string> = {
   "settings.update": "Modification des réglages d'identité", "role.create": "Création d'un rôle", "role.update": "Modification d'un rôle", "role.delete": "Suppression d'un rôle",
 };
 
+export const metadata = { title: "Journal d'audit" };
+
 export default async function AuditPage({ searchParams }: { searchParams: Promise<{ action?: string; entity?: string; cursor?: string }> }) {
   const sp = await searchParams;
   const data = await adminGet<AuditPage>("/admin/audit-log", "/audit", { query: { limit: 25, action: sp.action, entity: sp.entity, cursor: sp.cursor } });
@@ -16,17 +18,15 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   return (
     <div>
       <PageHeader title="Journal d'audit" subtitle="Historique en ajout seul : aucune ligne ne peut être modifiée ni supprimée." />
-      <form className="mb-4 flex flex-wrap gap-2" role="search">
-        <select name="entity" defaultValue={sp.entity ?? ""} className="rounded border border-line bg-white px-3 py-2 text-sm">
+      <FilterBar reset={{ href: "/audit", show: !!(sp.action || sp.entity) }}>
+        <select name="entity" defaultValue={sp.entity ?? ""} className={selectCls}>
           <option value="">Toutes les entités</option><option value="staff_user">Personnel</option><option value="role">Rôles</option><option value="identity_settings">Réglages</option>
         </select>
-        <select name="action" defaultValue={sp.action ?? ""} className="rounded border border-line bg-white px-3 py-2 text-sm">
+        <select name="action" defaultValue={sp.action ?? ""} className={selectCls}>
           <option value="">Toutes les actions</option>
           {Object.entries(ACTIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button className="rounded border border-line bg-white px-4 py-2 text-sm font-medium hover:bg-page">Filtrer</button>
-        {(sp.action || sp.entity) && <Link href="/audit" className="self-center text-sm text-link hover:underline">Réinitialiser</Link>}
-      </form>
+      </FilterBar>
       <Table head={["Date", "Action", "Cible", "Auteur", "Détail"]} empty={data.items.length === 0 ? "Aucune entrée." : undefined}>
         {data.items.map((e) => (
           <tr key={e.id} className="align-top">
@@ -46,7 +46,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           </tr>
         ))}
       </Table>
-      {data.nextCursor && <div className="mt-4 text-right"><Link href={`${filter("cursor", data.nextCursor)}`} className="text-sm text-link hover:underline">Entrées plus anciennes →</Link></div>}
+      {data.nextCursor && <div className="mt-4 text-right"><Link href={`${filter("cursor", data.nextCursor)}`} className="inline-flex items-center rounded-lg border border-line bg-white px-3 py-1.5 text-sm font-medium text-night hover:bg-page">Entrées plus anciennes →</Link></div>}
     </div>
   );
 }

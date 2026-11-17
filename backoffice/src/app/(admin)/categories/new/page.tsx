@@ -15,7 +15,7 @@ export default async function NewCategoryPage({ searchParams }: { searchParams: 
   const rows = flatten(buildTree(await allCategories("/categories/new")));
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Ajouter une catégorie" />
+      <PageHeader breadcrumb={[{ label: "Catégories", href: "/categories" }, { label: "Nouveau" }]} title="Ajouter une catégorie" />
       <Card>
         <ActionForm action={createCategory} submit="Créer la catégorie">
           <ParentSelect rows={rows} value={parent} />

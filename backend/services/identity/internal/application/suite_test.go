@@ -54,6 +54,11 @@ func TestSuite(t *testing.T) {
 		{"AdminEntrepriseApprobation", testAdminEntrepriseApprobation},
 		{"AdminEntrepriseRejet", testAdminEntrepriseRejet},
 		{"AdminEntrepriseExigeLaPermissionEnBase", testAdminEntrepriseExigeLaPermissionEnBase},
+		{"MotDePasseOublieParcoursComplet", testMotDePasseOublieParcoursComplet},
+		{"MotDePasseOublieAucuneFuiteEtEssaisRalentis", testMotDePasseOublieAucuneFuiteEtEssaisRalentis},
+		{"OAuthNouveauCompteEtReconnexion", testOAuthNouveauCompteEtReconnexion},
+		{"OAuthLiaisonSeulementSiAdresseVerifiee", testOAuthLiaisonSeulementSiAdresseVerifiee},
+		{"OAuthRefusDesFalsifications", testOAuthRefusDesFalsifications},
 		{"ReglagesParDefautEtValidation", testReglagesParDefautEtValidation},
 		{"ReglagesModifiesAppliquesEtAudites", testReglagesModifiesAppliquesEtAudites},
 	}

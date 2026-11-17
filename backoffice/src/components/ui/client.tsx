@@ -6,11 +6,11 @@ import { btnCls, btnDangerCls, btnGhostCls, Notice } from "./ui";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
-function Submit({ children, variant, busy }: { children: React.ReactNode; variant?: "danger" | "ghost"; busy?: boolean }) {
+function Submit({ children, variant, busy, guide }: { children: React.ReactNode; variant?: "danger" | "ghost"; busy?: boolean; guide?: string }) {
   const { pending: formPending } = useFormStatus();
   const pending = busy ?? formPending;
   const cls = variant === "danger" ? btnDangerCls : variant === "ghost" ? btnGhostCls : btnCls;
-  return <button type="submit" disabled={pending} className={cls}>{pending ? "Patientez…" : children}</button>;
+  return <button type="submit" disabled={pending} data-guide={guide} className={cls}>{pending ? "Patientez…" : children}</button>;
 }
 
 /** Formulaire relié à une action serveur : affiche l'erreur renvoyée et CONSERVE la saisie (React 19 vide sinon les champs après chaque soumission). */
@@ -23,12 +23,13 @@ export function ActionForm({ action, submit, children, className = "space-y-4" }
         const data = new FormData(e.currentTarget);
         startTransition(() => run(data));
       }}
+      data-guide="form"
       className={className}
     >
       {state?.error && <Notice kind="error">{state.error}</Notice>}
       {state?.ok && <Notice kind="ok">{state.ok}</Notice>}
       {children}
-      <Submit busy={isPending}>{submit}</Submit>
+      <Submit busy={isPending} guide="form-submit">{submit}</Submit>
     </form>
   );
 }

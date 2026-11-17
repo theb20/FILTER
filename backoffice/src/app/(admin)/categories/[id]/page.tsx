@@ -52,18 +52,18 @@ export default async function CategoryPage({ params, searchParams }: { params: P
 
   return (
     <div className="max-w-4xl space-y-5">
-      <PageHeader title={t(cat.name)} subtitle={[...ancestors.map((a) => t(a.name)), t(cat.name)].join(" › ")} action={canWrite && <LinkButton href={`/categories/new?parent=${id}`} variant="ghost">Ajouter une sous-catégorie</LinkButton>} />
+      <PageHeader breadcrumb={[{ label: "Catégories", href: "/categories" }, { label: "Détail" }]} title={t(cat.name)} subtitle={[...ancestors.map((a) => t(a.name)), t(cat.name)].join(" › ")} action={canWrite && <LinkButton href={`/categories/new?parent=${id}`} variant="ghost">Ajouter une sous-catégorie</LinkButton>} />
       {ok && NOTICES[ok] && <Notice kind="ok">{NOTICES[ok]}</Notice>}
 
-      <Card>
+      <Card guide="category-info">
         <h2 className="mb-3 text-lg font-semibold text-night">Informations</h2>
         {canWrite ? <ActionForm action={updateCategory.bind(null, id)} submit="Enregistrer"><CategoryFields value={cat} /></ActionForm> : <p className="text-sm text-slate">{cat.slug}</p>}
       </Card>
 
       {canWrite && (
-        <Card>
+        <Card guide="category-move">
           <h2 className="mb-1 text-lg font-semibold text-night">Déplacer</h2>
-          <p className="mb-3 text-sm text-slate">Impossible de la placer sous elle-même ni sous l'une de ses sous-catégories, ni si cela crée un conflit de clés d'attributs.</p>
+          <p className="mb-3 text-sm text-slate">Impossible de la placer sous elle-même ni sous l’une de ses sous-catégories, ni si cela crée un conflit de clés d’attributs.</p>
           <ActionForm action={moveCategory.bind(null, id)} submit="Déplacer">
             <ParentSelect rows={rows} value={cat.parentId} exclude={subtreeIds(cats, id)} label="Nouveau parent" />
             <label className="block text-sm font-medium text-night">Position parmi ses frères <span className="font-normal text-slate">(0 = en premier)</span><input name="position" type="number" min={0} defaultValue={position} className={inputCls} /></label>
@@ -71,7 +71,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
         </Card>
       )}
 
-      <section>
+      <section data-guide="category-children">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-night">Sous-catégories ({children.length})</h2>
         </div>
@@ -80,7 +80,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
         )}
       </section>
 
-      <section>
+      <section data-guide="category-attributes">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-night">Attributs de cette catégorie ({own.length})</h2>
           {canWrite && <LinkButton href={`/attributes/new?categoryId=${id}`}>Ajouter un attribut</LinkButton>}
@@ -89,16 +89,16 @@ export default async function CategoryPage({ params, searchParams }: { params: P
       </section>
 
       {inherited.map(({ from, attrs }) => (
-        <section key={from.id}>
+        <section data-guide="category-inherited" key={from.id}>
           <h2 className="mb-3 text-base font-semibold text-night">Hérités de « <Link href={`/categories/${from.id}`} className="text-link hover:underline">{t(from.name)}</Link> »</h2>
           <AttrTable attrs={attrs} editable={false} />
         </section>
       ))}
 
       {canWrite && (
-        <Card>
+        <Card guide="danger-zone">
           <h2 className="mb-3 text-lg font-semibold text-night">Supprimer cette catégorie</h2>
-          <p className="mb-3 text-sm text-slate">Impossible tant qu'elle a des sous-catégories, des attributs ou des produits.</p>
+          <p className="mb-3 text-sm text-slate">Impossible tant qu’elle a des sous-catégories, des attributs ou des produits.</p>
           <ActionButton action={deleteCategory.bind(null, id)} label="Supprimer la catégorie" variant="danger" confirm={`Supprimer la catégorie « ${t(cat.name)} » ?`} />
         </Card>
       )}

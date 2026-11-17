@@ -19,7 +19,10 @@ const Home = lazy(() => import("./assets/pages/home.jsx"));
 const Profil = lazy(() => import("./assets/pages/profil.jsx"));
 const Quote = lazy(() => import("./assets/pages/quote.jsx"));
 const Privacy = lazy(() => import("./assets/pages/privacy.jsx"));
+const OAuthCallback = lazy(() => import("./assets/pages/oauthCallback.jsx"));
+const VerifyEmail = lazy(() => import("./assets/pages/verifyEmail.jsx"));
 const InfoPage = lazy(() => import("./assets/pages/info.jsx"));
+const Brands = lazy(() => import("./assets/pages/brands.jsx"));
 const Blog = lazy(() => import("./assets/pages/blog.jsx"));
 const BlogPost = lazy(() => import("./assets/pages/blogDetail.jsx"));
 
@@ -61,6 +64,8 @@ function App() {
               <Route index element={<Home />} />
               <Route path="/sign" element={<Sign />} />
               <Route path="/reset" element={<Reset />} />
+              <Route path="/oauth/callback" element={<OAuthCallback />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/basket" element={<Basket />} />
               <Route path="/category" element={<Category />} />
               <Route path="/contact" element={<Contact />} />
@@ -70,9 +75,9 @@ function App() {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/brands" element={<InfoPage titleKey="info.brands" />} />
-              <Route path="/terms" element={<InfoPage titleKey="info.terms" />} />
-              <Route path="/refund" element={<InfoPage titleKey="info.refund" />} />
+              <Route path="/brands" element={<Brands />} />
+              <Route path="/terms" element={<InfoPage titleKey="info.terms" slug="terms" />} />
+              <Route path="/refund" element={<InfoPage titleKey="info.refund" slug="refund" />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

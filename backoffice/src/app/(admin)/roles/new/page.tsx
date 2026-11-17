@@ -13,7 +13,7 @@ export default async function NewRolePage() {
   const permissions = await adminGet<Permission[]>("/admin/permissions", "/roles/new");
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Créer un rôle" subtitle="Vous ne pouvez accorder que des permissions que vous possédez vous-même." />
+      <PageHeader breadcrumb={[{ label: "Rôles", href: "/roles" }, { label: "Nouveau" }]} title="Créer un rôle" subtitle="Vous ne pouvez accorder que des permissions que vous possédez vous-même." />
       <Card>
         <ActionForm action={createRole} submit="Créer le rôle">
           <label className="block text-sm font-medium text-night">Nom<input name="name" required className={inputCls} /></label>

@@ -38,6 +38,8 @@ export async function adminAct<T = unknown>(method: Exclude<Method, "GET">, path
 /** Message affichable pour une réponse en erreur (le gateway renvoie déjà un texte en français). */
 export function errorMessage(r: Extract<ApiResult<unknown>, { ok: false }>): string {
   if (r.status === 429) return `Trop de tentatives. Réessayez dans ${r.retryAfter ?? 60} s.`;
+  // La double validation (auteur ≠ validateur) renvoie 403 avec un message explicite : on l'affiche tel quel.
+  if (r.status === 403 && r.code === "SELF_ACTION_FORBIDDEN") return r.message ?? "Une autre personne doit effectuer cette action.";
   if (r.status === 403) return "Vous n'avez pas la permission d'effectuer cette action.";
   if (r.status === 503 || r.code === "UNREACHABLE") return "Service indisponible. Réessayez dans un instant.";
   const first = r.fields?.[0];

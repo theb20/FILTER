@@ -13,28 +13,22 @@ function Accordion({ title, children, open = false }) {
   );
 }
 
-// Colonne « Détails du produit » : description, caractéristiques, contenu du colis, références croisées.
-export default function ProductDetails({ product, mock, name }) {
+const show = (a) => (typeof a.value === "boolean" ? (a.value ? "✓" : "✗") : `${a.value}${a.unit ? ` ${a.unit}` : ""}`);
+
+// Colonne « Détails du produit » : description, caractéristiques, compatibilités, références croisées, secteurs.
+export default function ProductDetails({ product }) {
   const { t } = useI18n();
-  const compat = mock.compat.map((k) => t(k)).join(", ");
-  const bullets = [
-    ...mock.specs.filter((s) => s.value !== "—").map((s) => `${t(`cart.spec.${s.key}`)} : ${s.value}`),
-    t("cart.compat", { list: compat }),
-  ];
   const specRows = [
     [t("prod.reference"), product.reference],
-    [t("prod.spec.brand"), product.brand],
-    [t("prod.spec.category"), t(`cat.${product.category}`)],
-    ...mock.specs.map((s) => [t(`cart.spec.${s.key}`), s.value]),
+    ...(product.brand ? [[t("prod.spec.brand"), product.brand]] : []),
+    [t("prod.spec.category"), product.categoryName],
+    ...product.attributes.map((a) => [a.label, show(a)]),
   ];
 
   return (
     <section aria-labelledby="pd-details-title" className="rounded-[8px] bg-white p-5 shadow-card">
       <h2 id="pd-details-title" className="text-[20px] font-bold">{t("pd.details")}</h2>
-      <p className="mt-2 text-[15px] text-gray-700">{t("pd.desc.intro", { name, ref: product.reference, brand: product.brand })}</p>
-      <ul className="mt-3 list-disc space-y-1 pl-5 text-[15px]">
-        {bullets.map((b) => <li key={b}>{b}</li>)}
-      </ul>
+      {product.description && <p className="mt-2 whitespace-pre-line text-[15px] text-gray-700">{product.description}</p>}
 
       <div className="mt-4">
         <Accordion title={t("prod.specs")} open>
@@ -49,6 +43,13 @@ export default function ProductDetails({ product, mock, name }) {
             </tbody>
           </table>
         </Accordion>
+        {product.compat.length > 0 && (
+          <Accordion title={t("pd.compat")}>
+            <ul className="flex flex-wrap gap-2">
+              {product.compat.map((c) => <li key={c} className="rounded-[3px] bg-gray-100 px-2 py-1 text-sm">{c}</li>)}
+            </ul>
+          </Accordion>
+        )}
         <Accordion title={t("prod.crossRefs")}>
           {product.crossRefs.length ? (
             <ul className="flex flex-wrap gap-2">
@@ -56,13 +57,13 @@ export default function ProductDetails({ product, mock, name }) {
             </ul>
           ) : <p className="text-sm text-gray-600">{t("prod.noCross")}</p>}
         </Accordion>
-        <Accordion title={t("pd.box")}>
-          <ul className="list-disc space-y-1 pl-5 text-sm">
-            <li>{t("pd.box.1", { name })}</li>
-            <li>{t("pd.box.2")}</li>
-            <li>{t("pd.box.3")}</li>
-          </ul>
-        </Accordion>
+        {product.sectors.length > 0 && (
+          <Accordion title={t("pd.sectors")}>
+            <ul className="flex flex-wrap gap-2">
+              {product.sectors.map((s) => <li key={s.id} className="rounded-[3px] bg-gray-100 px-2 py-1 text-sm">{s.name}</li>)}
+            </ul>
+          </Accordion>
+        )}
       </div>
     </section>
   );

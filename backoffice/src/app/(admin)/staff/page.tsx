@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { adminGet, can } from "@/lib/admin";
 import { currentStaff } from "@/lib/staff";
-import { Badge, LinkButton, PageHeader, Table } from "@/components/ui/ui";
+import { Badge, FilterBar, LinkButton, PageHeader, Pagination, SearchInput, Table } from "@/components/ui/ui";
 import { dateFr, STATUS_LABEL, STATUS_TONE, type Role, type StaffPage } from "@/lib/types";
+
+export const metadata = { title: "Personnel" };
 
 export default async function StaffListPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   const sp = await searchParams;
@@ -20,10 +22,9 @@ export default async function StaffListPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <PageHeader title="Personnel" subtitle={`${data.page.total} membre${data.page.total > 1 ? "s" : ""}`} action={canWrite && <LinkButton href="/staff/new">Inviter un membre</LinkButton>} />
-      <form className="mb-4 flex gap-2" role="search">
-        <input name="q" defaultValue={q} placeholder="Rechercher par nom ou e-mail" className="w-full max-w-sm rounded border border-line bg-white px-3 py-2 text-sm focus:border-link focus:outline-none" />
-        <button className="rounded border border-line bg-white px-4 py-2 text-sm font-medium hover:bg-page">Rechercher</button>
-      </form>
+      <FilterBar reset={{ href: "/staff", show: !!q }}>
+        <SearchInput defaultValue={q} placeholder="Rechercher par nom ou e-mail" className="w-full sm:w-80" />
+      </FilterBar>
       <Table head={["Nom", "Adresse e-mail", "Rôles", "Statut", "2FA", "Dernière connexion"]} empty={data.items.length === 0 ? "Aucun membre ne correspond." : undefined}>
         {data.items.map((u) => (
           <tr key={u.id} className="hover:bg-page">
@@ -36,13 +37,7 @@ export default async function StaffListPage({ searchParams }: { searchParams: Pr
           </tr>
         ))}
       </Table>
-      {data.page.totalPages > 1 && (
-        <nav className="mt-4 flex items-center justify-between text-sm" aria-label="Pagination">
-          {page > 1 ? <Link href={href(page - 1)} className="text-link hover:underline">← Précédent</Link> : <span />}
-          <span className="text-slate">Page {data.page.page} sur {data.page.totalPages}</span>
-          {page < data.page.totalPages ? <Link href={href(page + 1)} className="text-link hover:underline">Suivant →</Link> : <span />}
-        </nav>
-      )}
+      <Pagination page={data.page.page} totalPages={data.page.totalPages} total={data.page.total} noun="membres" href={href} />
     </div>
   );
 }

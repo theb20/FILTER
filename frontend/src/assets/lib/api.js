@@ -3,6 +3,11 @@
 // Le jeton d'accès reste EN MÉMOIRE (jamais dans localStorage) ; le jeton de rafraîchissement vit dans un cookie HttpOnly.
 const BASE = import.meta.env.VITE_API_URL ?? "";
 
+// Langue des contenus servis par l'API (en-tête Accept-Language) : mise à jour par le fournisseur de langue.
+let apiLang = "fr";
+export const setApiLang = (code) => { apiLang = code; };
+export const getApiLang = () => apiLang;
+
 /** @returns {Promise<{ok: boolean, status: number, data: any, code?: string, retryAfter?: number, fields?: Array<{code: string, field?: string}>}>} */
 export async function request(path, { method = "GET", body, token } = {}) {
   let res;
@@ -12,6 +17,7 @@ export async function request(path, { method = "GET", body, token } = {}) {
       credentials: "include",
       headers: {
         Accept: "application/json",
+        "Accept-Language": apiLang,
         "X-Requested-With": "ff-web", // exigé par le gateway sur les routes qui lisent le cookie (défense CSRF)
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

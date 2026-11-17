@@ -4,6 +4,8 @@ import { currentStaff } from "@/lib/staff";
 import { allCategories, buildTree, flatten, t } from "@/lib/catalog";
 import { LinkButton, Notice, PageHeader, Table } from "@/components/ui/ui";
 
+export const metadata = { title: "Catégories" };
+
 export default async function CategoriesPage({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
   const [{ me }, cats] = await Promise.all([currentStaff(), allCategories("/categories")]);

@@ -275,3 +275,19 @@ func (s *Store) MarkAlerted(ctx context.Context, email string, now, until time.T
 		ON CONFLICT (email) DO UPDATE SET until = EXCLUDED.until WHERE login_alerts.until <= $3`, email, until, now)
 	return tag.RowsAffected() == 1, err
 }
+
+// ── OAuthRepo ───────────────────────────────────────────────────────────────
+
+func (s *Store) OAuthUser(ctx context.Context, provider, subject string) (string, bool, error) {
+	var id string
+	err := s.q(ctx).QueryRow(ctx, `SELECT user_id::text FROM oauth_identities WHERE provider = $1 AND subject = $2`, provider, subject).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", false, nil
+	}
+	return id, err == nil, err
+}
+
+func (s *Store) LinkOAuth(ctx context.Context, provider, subject, userID string, at time.Time) error {
+	_, err := s.q(ctx).Exec(ctx, `INSERT INTO oauth_identities (provider, subject, user_id, created_at) VALUES ($1,$2,$3,$4) ON CONFLICT (provider, subject) DO NOTHING`, provider, subject, userID, at)
+	return err
+}

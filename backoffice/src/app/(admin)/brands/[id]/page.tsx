@@ -13,14 +13,14 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
   const canWrite = can(me?.permissions ?? [], "catalog:write");
   return (
     <div className="max-w-2xl space-y-5">
-      <PageHeader title={brand.name} />
+      <PageHeader breadcrumb={[{ label: "Marques", href: "/brands" }, { label: "Détail" }]} title={brand.name} />
       {ok === "created" && <Notice kind="ok">Marque créée.</Notice>}
       {ok === "updated" && <Notice kind="ok">Modifications enregistrées.</Notice>}
       <Card>
         {canWrite ? <ActionForm action={updateBrand.bind(null, brand.id)} submit="Enregistrer"><BrandFields value={brand} /></ActionForm> : <p className="text-sm text-slate">{brand.name} · {brand.slug}</p>}
       </Card>
       {canWrite && (
-        <Card>
+        <Card guide="danger-zone">
           <h2 className="mb-3 text-lg font-semibold text-night">Supprimer cette marque</h2>
           <p className="mb-3 text-sm text-slate">Impossible tant que des produits portent cette marque.</p>
           <ActionButton action={deleteBrand.bind(null, brand.id)} label="Supprimer la marque" variant="danger" confirm={`Supprimer la marque « ${brand.name} » ?`} />
