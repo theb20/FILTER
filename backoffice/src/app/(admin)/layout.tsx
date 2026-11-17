@@ -54,6 +54,26 @@ const GROUPS: { title: string; items: { href: string; label: string; icon: strin
     ],
   },
   {
+    title: "Finance",
+    items: [
+      { href: "/finance", label: "Vue d'ensemble", icon: "finance", perm: "finance:read" },
+      { href: "/finance/entries", label: "Écritures", icon: "ledger", perm: "finance:read" },
+      { href: "/finance/bank", label: "Comptes bancaires", icon: "bank", perm: "treasury:read" },
+      { href: "/finance/forecast", label: "Prévisions de trésorerie", icon: "forecast", perm: "treasury:read" },
+      { href: "/finance/operations", label: "Dépenses et revenus", icon: "wallet", perm: "finance:read" },
+      { href: "/finance/recurring", label: "Opérations récurrentes", icon: "recurring", perm: "finance:read" },
+      { href: "/finance/third-parties", label: "Tiers", icon: "customers", perm: "finance:read" },
+      { href: "/finance/categories", label: "Catégories", icon: "categories", perm: "finance:read" },
+      { href: "/finance/accounts", label: "Plan comptable", icon: "accounts", perm: "finance:read" },
+      { href: "/finance/journals", label: "Journaux", icon: "categories", perm: "finance:read" },
+      { href: "/finance/periods", label: "Exercices et périodes", icon: "calendar", perm: "finance:read" },
+      { href: "/finance/approvals", label: "Approbations", icon: "approvals", perm: "finance:read" },
+      { href: "/finance/reports/trial-balance", label: "Balance", icon: "scale", perm: "finance:read" },
+      { href: "/finance/reports/ledger", label: "Grand livre", icon: "ledger", perm: "finance:read" },
+      { href: "/finance/settings", label: "Réglages", icon: "settings", perm: "finance:read" },
+    ],
+  },
+  {
     title: "Administration",
     items: [
       { href: "/staff", label: "Personnel", icon: "staff", perm: "admin:read" },

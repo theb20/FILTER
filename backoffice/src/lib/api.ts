@@ -1,7 +1,7 @@
 import "server-only";
 
 // Appels au gateway depuis le SERVEUR du backoffice uniquement : aucun jeton ne transite par du JavaScript navigateur.
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+export const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export type FieldError = { code: string; message: string; field?: string };
 export type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; code: string; message?: string; fields?: FieldError[]; retryAfter?: number };

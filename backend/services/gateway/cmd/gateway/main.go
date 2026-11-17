@@ -20,6 +20,7 @@ import (
 
 	catalogadminv1 "github.com/theb20/FILTER/backend/pkg/gen/catalogadmin/v1"
 	contentadminv1 "github.com/theb20/FILTER/backend/pkg/gen/contentadmin/v1"
+	financeadminv1 "github.com/theb20/FILTER/backend/pkg/gen/financeadmin/v1"
 	identityv1 "github.com/theb20/FILTER/backend/pkg/gen/identity/v1"
 	sourcingv1 "github.com/theb20/FILTER/backend/pkg/gen/sourcing/v1"
 	"github.com/theb20/FILTER/backend/pkg/logx"
@@ -120,10 +121,29 @@ func run(log *slog.Logger) error {
 		}})
 	}
 
+	// Service finance (comptabilité) : facultatif. Sans FINANCE_ADDR, ses routes répondent 501.
+	var financeCli financeadminv1.FinanceAdminServiceClient
+	if addr := os.Getenv("FINANCE_ADDR"); addr != "" {
+		fconn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.Config{BaseDelay: 200 * time.Millisecond, Multiplier: 1.6, Jitter: 0.2, MaxDelay: 3 * time.Second}, MinConnectTimeout: 3 * time.Second}))
+		if err != nil {
+			return err
+		}
+		defer fconn.Close()
+		financeCli = financeadminv1.NewFinanceAdminServiceClient(fconn)
+		fh := healthpb.NewHealthClient(fconn)
+		probes = append(probes, server.HealthProbe{Name: "finance", Kind: "service", Check: func(ctx context.Context) error {
+			r, err := fh.Check(ctx, &healthpb.HealthCheckRequest{})
+			if err == nil && r.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+				err = errors.New("ne sert pas")
+			}
+			return err
+		}})
+	}
 
 	keys := server.NewKeyCache(jwksFromIdentity{id}, cfg.ClockLeeway, cfg.JWKSMinRefresh, nil)
 	h, err := server.New(server.Deps{
-		Config: cfg, Log: log, Identity: id, Sourcing: sourcing, Catalog: catalog, Content: content, Probes: probes, Keys: keys, Limiter: server.NewMemoryLimiter(),
+		Config: cfg, Log: log, Identity: id, Sourcing: sourcing, Catalog: catalog, Finance: financeCli, Content: content, Probes: probes, Keys: keys, Limiter: server.NewMemoryLimiter(),
 		Ready: func(ctx context.Context) error {
 			r, err := health.Check(ctx, &healthpb.HealthCheckRequest{})
 			if err != nil {

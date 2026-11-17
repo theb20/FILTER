@@ -36,7 +36,7 @@ func (s *Server) requestInfo(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		trace := traceID(r.Header.Get("traceparent"))
 		w.Header().Set("X-Request-Id", trace)
-		r.Body = http.MaxBytesReader(w, r.Body, s.cfg.MaxBodyBytes) // G10 : corps JSON ≤ 1 Mio
+		r.Body = http.MaxBytesReader(w, r.Body, s.bodyLimit(r)) // G10 : corps JSON ≤ 1 Mio, sauf l'envoi d'une pièce justificative
 		info := reqInfo{TraceID: trace, IP: s.clientIP(r), UA: truncate(r.UserAgent(), 300), Locale: locale(r, s.cfg.DefaultLocale)}
 		next.ServeHTTP(w, r.WithContext(withInfo(r.Context(), info)))
 	})
@@ -241,3 +241,12 @@ func (s *Server) rateLimit(next http.Handler) http.Handler {
 	})
 }
 
+// attachmentBodyLimit : une pièce de 5 Mo en base64 (≈ 6,7 Mo) ; réservé à cette seule route d'envoi, réservée au personnel.
+const attachmentBodyLimit = 8 << 20
+
+func (s *Server) bodyLimit(r *http.Request) int64 {
+	if r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/admin/finance/operations/") && strings.HasSuffix(r.URL.Path, "/attachments") && attachmentBodyLimit > s.cfg.MaxBodyBytes {
+		return attachmentBodyLimit
+	}
+	return s.cfg.MaxBodyBytes
+}

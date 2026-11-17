@@ -6,5 +6,6 @@ use (
 	./services/identity
 	./services/sourcing
 	./services/catalog
+	./services/finance
 	./services/content
 )
