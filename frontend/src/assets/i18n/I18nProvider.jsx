@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { I18nContext } from "./i18nContext.js";
-import en from "./locales/en.js";
-import fr from "./locales/fr.js";
-import es from "./locales/es.js";
+import enBase from "./locales/en.js";
+import frBase from "./locales/fr.js";
+import esBase from "./locales/es.js";
+import guideEn from "../guide/i18n/en.js";
+import guideFr from "../guide/i18n/fr.js";
+import guideEs from "../guide/i18n/es.js";
+
+// Les textes du guide vivent à côté du guide ; ils rejoignent ici les dictionnaires du site.
+const en = { ...enBase, ...guideEn };
+const fr = { ...frBase, ...guideFr };
+const es = { ...esBase, ...guideEs };
 import { setApiLang } from "../lib/api.js";
 import { CURRENCIES, DEFAULT_CURRENCY, formatMoney, isCurrencyCode } from "../config/currency.js";
 

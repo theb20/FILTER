@@ -1,3 +1,4 @@
+import GuideFooterToggle from "../guide/GuideFooterToggle.jsx";
 import { Link } from "react-router-dom";
 import Logo from "./Logo.jsx";
 import Todo from "./Todo.jsx";
@@ -64,9 +65,10 @@ export default function Footer() {
           <PaymentMethods />
         </Section>
       </div>
-      <p className="border-t border-white/20 px-6 py-4 text-center text-sm text-white/80">
-        {t("footer.rights", { year: new Date().getFullYear(), name: SITE.name, publisher: SITE.publisher })}
-      </p>
+      <div className="border-t border-white/20 px-6 py-4 text-center text-sm text-white/80">
+        <p>{t("footer.rights", { year: new Date().getFullYear(), name: SITE.name, publisher: SITE.publisher })}</p>
+        <GuideFooterToggle />
+      </div>
     </footer>
   );
 }

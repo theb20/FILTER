@@ -8,6 +8,7 @@ import Footer from "./Footer.jsx";
 import HelpBubble from "./HelpBubble.jsx";
 import Cookie from "./Cookie.jsx";
 import MotionProvider from "../animation/MotionProvider.jsx";
+import GuideProvider from "../guide/GuideProvider.jsx";
 
 // Bande « À la une » : chargée à la demande, uniquement sur les pages du blog.
 const FeaturedBar = lazy(() => import("./blog/FeaturedBar.jsx"));
@@ -22,6 +23,7 @@ export default function Layout() {
 
   return (
     <MotionProvider>
+    <GuideProvider>
     <div className="min-h-screen bg-page">
       {showHeader && (
         <>
@@ -46,6 +48,7 @@ export default function Layout() {
       <HelpBubble />
       <Cookie />
     </div>
+    </GuideProvider>
     </MotionProvider>
   );
 }

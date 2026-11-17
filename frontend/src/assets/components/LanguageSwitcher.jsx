@@ -25,7 +25,7 @@ export default function LanguageSwitcher({ align = "right", className = "" }) {
   }, [open]);
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={ref} data-guide="language" className={`relative ${className}`}>
       <button
         type="button"
         aria-haspopup="listbox"

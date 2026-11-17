@@ -52,7 +52,7 @@ export default function Category() {
 
   return (
     <div className="mx-2.5 mt-2.5 grid gap-2.5 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <aside className="h-fit rounded-[4px] bg-white p-5 shadow-card" aria-label={t("list.filters")}>
+      <aside data-guide="catalog-filters" className="h-fit rounded-[4px] bg-white p-5 shadow-card" aria-label={t("list.filters")}>
         <h2 className="text-[24px] font-semibold">{t("list.filters")}</h2>
 
         <fieldset className="mt-4">
@@ -92,7 +92,7 @@ export default function Category() {
           </p>
         </div>
 
-        <ul className="mt-2.5 space-y-2.5">
+        <ul data-guide="catalog-list" className="mt-2.5 space-y-2.5">
           {productsState.status === "loading" && (
             <li role="status" className="rounded-[4px] bg-white p-8 text-center shadow-card">{t("data.loading")}</li>
           )}

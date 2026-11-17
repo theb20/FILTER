@@ -31,7 +31,7 @@ export default function BuyBox({ product }) {
   };
 
   return (
-    <div>
+    <div data-guide="product-buy">
       <p className="text-[34px] font-bold leading-none">{product.onQuote ? t("price.onQuote") : formatPrice(product.price)}</p>
       {!product.onQuote && (
         <p className="mt-1 text-sm text-gray-600">{VAT_RATE !== null ? t("pd.priceNote", { rate: Math.round(VAT_RATE * 100) }) : t("pd.priceNoTax")}</p>

@@ -11,6 +11,7 @@ export function moveSpotlight(el: HTMLElement, box: Box, animate: boolean) {
 }
 
 export function moveBubble(el: HTMLElement, pos: { x: number; y: number }, animate: boolean) {
+  pos = { x: pos.x, y: pos.y }; // computePlacement renvoie aussi `side` : GSAP ne doit recevoir que x et y
   if (animate) gsap.to(el, { x: pos.x, y: pos.y, duration: 0.45, ease: "power3.out", overwrite: "auto" });
   else gsap.set(el, pos);
 }

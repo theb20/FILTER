@@ -18,7 +18,7 @@ export default function BlogNav({ params, asH1 = false }) {
           <ArrowLeft size={16} aria-hidden="true" /> {t("blog.back")}
         </Link>
       </div>
-      <nav aria-label={t("blog.nav")} className="mt-1 overflow-x-auto px-2 lg:px-4">
+      <nav aria-label={t("blog.nav")} data-guide="blog-nav" className="mt-1 overflow-x-auto px-2 lg:px-4">
         <ul className="flex min-w-max">
           {tabs.map((c) => {
             const active = (params.cat ?? null) === (c?.slug ?? null);

@@ -27,7 +27,7 @@ export default function PromoCode({ appliedCode, appliedResult, validate, onAppl
 
   const applied = appliedCode && appliedResult;
   return (
-    <div>
+    <div data-guide="cart-promo">
       <form onSubmit={submit} noValidate>
         <label htmlFor={id} className="block text-sm font-medium">{t("cart.promo.label")}</label>
         <div className="mt-1 flex">

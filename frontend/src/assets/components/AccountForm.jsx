@@ -4,6 +4,7 @@ import PasswordInput from "./PasswordInput.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
 import { useNotify } from "../configurations/notificationContext.js";
 import { useAuth } from "../store/authStore.js";
+import WelcomeFlow, { CreatingAccount } from "./WelcomeFlow.jsx";
 
 // [nom, clé i18n, type d'input, obligatoire, autocomplete]
 const FIELDS = {
@@ -52,11 +53,12 @@ const input = "w-full rounded-[6px] border bg-white px-3.5 py-2.5 outline-none f
 
 // Une seule section est rendue à la fois (la page la remonte avec key={type}) :
 // les champs de la section masquée n'existent pas et ne sont jamais validés.
-export default function AccountForm({ type }) {
+export default function AccountForm({ type, onWelcomeDone }) {
   const { t, lang } = useI18n();
   const notify = useNotify();
   const register = useAuth((a) => a.register);
   const [pending, setPending] = useState(false);
+  const [welcome, setWelcome] = useState(false);
   const [formError, setFormError] = useState("");
   const fields = FIELDS[type];
   const [data, setData] = useState({ country: DEFAULT_COUNTRY });
@@ -102,7 +104,10 @@ export default function AccountForm({ type }) {
     setFormError("");
     const r = await register(payload);
     setPending(false);
-    if (r.ok) return notify(t("auth.created"), "success", 8000);
+    if (r.ok) {
+      notify(t("auth.created"), "success", 8000);
+      return setWelcome(true); // confidentialité puis guide
+    }
     setFormError(t(r.error, { s: r.retryAfter ?? 60 }));
   };
 
@@ -113,6 +118,8 @@ export default function AccountForm({ type }) {
 
   return (
     <>
+      {pending && <CreatingAccount />}
+      {welcome && <WelcomeFlow type={type} onDone={() => onWelcomeDone?.(data.email?.trim() ?? "")} />}
       <form onSubmit={onSubmit} noValidate className="mt-5 grid gap-4 sm:grid-cols-2">
         {formError && <p role="alert" className="rounded-[6px] border border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 sm:col-span-2">{formError}</p>}
         {fields.map(([name, label, kind, required, auto]) => {

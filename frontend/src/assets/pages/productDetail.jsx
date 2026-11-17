@@ -58,7 +58,7 @@ export default function ProductDetail() {
         name, sku: product.reference, ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
       }} />
 
-      <nav aria-label={t("prod.breadcrumb")} className="px-1 text-sm text-gray-600">
+      <nav aria-label={t("prod.breadcrumb")} data-guide="product-breadcrumb" className="px-1 text-sm text-gray-600">
         <ol className="flex flex-wrap items-center gap-x-1.5">
           {crumbs.map(([label, to]) => (
             <li key={to} className="flex items-center gap-1.5"><Link to={to} className="text-link hover:underline">{label}</Link><span aria-hidden="true">/</span></li>

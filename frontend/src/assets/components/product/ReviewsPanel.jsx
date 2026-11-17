@@ -15,7 +15,7 @@ export default function ReviewsPanel({ reviews = [] }) {
   const date = (iso) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(iso));
 
   return (
-    <section id="reviews" aria-labelledby="pd-reviews-title" className="rounded-[8px] bg-white p-5 shadow-card">
+    <section id="reviews" data-guide="product-reviews" aria-labelledby="pd-reviews-title" className="rounded-[8px] bg-white p-5 shadow-card">
       <h2 id="pd-reviews-title" className="text-[20px] font-bold">{t("pd.reviews")}</h2>
 
       {REVIEWS.length === 0 ? (

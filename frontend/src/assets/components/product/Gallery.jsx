@@ -11,7 +11,7 @@ export default function Gallery({ name, media = [] }) {
   const photos = media;
   const current = photos[view];
   return (
-    <div>
+    <div data-guide="product-gallery">
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-[8px] bg-gray-50">
         {current ? (
           <img src={current.url} alt={current.alt || name} className="h-full w-full object-contain p-4" />

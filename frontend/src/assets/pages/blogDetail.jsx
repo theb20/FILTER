@@ -76,7 +76,7 @@ export default function BlogDetail() {
       ]} />
 
       <article className="mx-2.5 mt-2.5 rounded-[4px] bg-white p-5 shadow-card sm:p-8">
-        <nav aria-label={t("blog.breadcrumb")} className="text-sm text-gray-600">
+        <nav aria-label={t("blog.breadcrumb")} data-guide="post-breadcrumb" className="text-sm text-gray-600">
           <ol className="flex flex-wrap items-center gap-x-1.5">
             {crumbs.map((c, i) => (
               <li key={c.to} className="flex items-center gap-1.5">
@@ -106,7 +106,7 @@ export default function BlogDetail() {
 
         <div className="mt-6 grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
           <div className="h-fit space-y-4 lg:sticky lg:top-28">
-            <nav aria-label={t("blog.toc")} className="rounded-[8px] bg-gray-50 p-4">
+            <nav aria-label={t("blog.toc")} data-guide="post-toc" className="rounded-[8px] bg-gray-50 p-4">
               <p className="font-bold">{t("blog.toc")}</p>
               <ol className="mt-2 space-y-1.5 text-sm">
                 {article.sections.map((s) => <li key={s.id}><a href={`#${s.id}`} className="text-link hover:underline">{s.heading}</a></li>)}
@@ -142,7 +142,7 @@ export default function BlogDetail() {
       <CitedProducts products={products} titleKey="blog.products" id="post-products-title" />
 
       {related.length > 0 && (
-        <section aria-labelledby="related-title" className="mx-2.5 mt-2.5 mb-2.5">
+        <section data-guide="post-related" aria-labelledby="related-title" className="mx-2.5 mt-2.5 mb-2.5">
           <h2 id="related-title" className="text-[22px] font-bold">{t("blog.related")}</h2>
           <ul className="mt-3 grid gap-2.5 md:grid-cols-3">
             {related.map((a) => <li key={a.slug}><ArticleCard article={a} variant="vertical" /></li>)}

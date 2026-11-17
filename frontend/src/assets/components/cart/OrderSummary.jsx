@@ -13,7 +13,7 @@ export default function OrderSummary({
 }) {
   const { t, formatPrice } = useI18n();
   return (
-    <aside className="h-fit rounded-[4px] bg-white p-6 shadow-card lg:sticky lg:top-28" aria-label={t("cart.summary")}>
+    <aside data-guide="cart-summary" className="h-fit rounded-[4px] bg-white p-6 shadow-card lg:sticky lg:top-28" aria-label={t("cart.summary")}>
       <h2 className="text-[24px] font-semibold">{t("cart.summary")}</h2>
 
       <div className="mt-4 space-y-5">{children}</div>

@@ -26,7 +26,7 @@ export default function ProductDetails({ product }) {
   ];
 
   return (
-    <section aria-labelledby="pd-details-title" className="rounded-[8px] bg-white p-5 shadow-card">
+    <section data-guide="product-details" aria-labelledby="pd-details-title" className="rounded-[8px] bg-white p-5 shadow-card">
       <h2 id="pd-details-title" className="text-[20px] font-bold">{t("pd.details")}</h2>
       {product.description && <p className="mt-2 whitespace-pre-line text-[15px] text-gray-700">{product.description}</p>}
 

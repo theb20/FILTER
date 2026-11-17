@@ -9,6 +9,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
 import { useCartCount } from "../store/cartStore.js";
 import { useAuth } from "../store/authStore.js";
+import GuideButton from "../guide/GuideButton.jsx";
 
 export default function Header() {
   const { t, currency, setCurrency, currencies } = useI18n();
@@ -58,6 +59,7 @@ export default function Header() {
           aria-label={menuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
+          data-guide="menu"
           className="lg:hidden"
         >
           {menuOpen ? <X size={26} /> : <Menu size={26} />}
@@ -65,12 +67,13 @@ export default function Header() {
 
         <div data-h><Logo /></div>
 
-        <SearchBar id="header-search" className="mx-4 hidden flex-1 lg:flex" />
+        <SearchBar id="header-search" guide="search" className="mx-4 hidden flex-1 lg:flex" />
 
-        <nav aria-label={t("nav.account")} data-h className="ml-auto flex items-center gap-4 text-sm lg:gap-5">
+        <nav aria-label={t("nav.account")} data-h className="ml-auto flex items-center gap-3 text-sm sm:gap-4 lg:gap-5">
           {/* Langue : visible sur desktop ET mobile */}
+          <GuideButton />
           <LanguageSwitcher />
-          <label className="hidden lg:block">
+          <label data-guide="currency" className="hidden lg:block">
             <span className="sr-only">{t("currency.label")}</span>
             <select
               value={currency}
@@ -83,10 +86,10 @@ export default function Header() {
           <Link to="/contact" className={`${iconLink} hidden lg:flex`}>
             <Mail size={20} aria-hidden="true" /> {t("nav.contact")}
           </Link>
-          <Link to={user ? "/profil" : "/sign"} className={`${iconLink} hidden lg:flex`}>
+          <Link to={user ? "/profil" : "/sign"} data-guide="account" className={`${iconLink} hidden lg:flex`}>
             <User size={20} aria-hidden="true" /> {user ? (user.firstName || t("nav.account")) : t("nav.signin")}
           </Link>
-          <Link to="/basket" aria-label={t("nav.cartN", { n: count })} className={iconLink}>
+          <Link to="/basket" data-guide="cart" aria-label={t("nav.cartN", { n: count })} className={iconLink}>
             <span ref={cartRef} data-cart-icon className="relative">
               <ShoppingCart size={22} aria-hidden="true" />
               {count > 0 && (
@@ -102,7 +105,7 @@ export default function Header() {
 
       {/* Recherche mobile pleine largeur */}
       <div className="px-4 pb-3 lg:hidden">
-        <SearchBar id="header-search-mobile" />
+        <SearchBar id="header-search-mobile" guide="search" />
       </div>
 
       {menuOpen && (

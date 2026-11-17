@@ -72,7 +72,7 @@ export default function Cart() {
   return (
     <div className="mx-2.5 mt-2.5 space-y-2.5">
       <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="cart-title">
+        <section data-guide="cart-lines" className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="cart-title">
           <h1 id="cart-title" className="text-[40px] font-bold leading-tight">{t("cart.title")}</h1>
 
           {!hydrated || !ready ? (

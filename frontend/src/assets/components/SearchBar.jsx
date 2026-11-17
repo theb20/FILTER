@@ -25,6 +25,7 @@ export default function SearchBar({
   param = "q",
   defaultValue = "",
   onSearch,
+  guide,
 }) {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ export default function SearchBar({
   };
 
   return (
-    <form role="search" onSubmit={submit} className={`flex ${className}`}>
+    <form role="search" data-guide={guide} onSubmit={submit} className={`flex ${className}`}>
       <label htmlFor={id} className="sr-only">
         {label ?? text}
       </label>

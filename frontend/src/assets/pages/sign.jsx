@@ -279,7 +279,7 @@ export default function Sign() {
                   </div>
                 </fieldset>
                 <div className="mt-5">
-                  <AccountForm key={accountType} type={accountType} />
+                  <AccountForm key={accountType} type={accountType} onWelcomeDone={(email) => { setIsLogin(true); setData((d) => ({ ...d, email })); }} />
                 </div>
               </div>
             )}

@@ -17,7 +17,7 @@ export default function Brands() {
       {status === "loading" && <p role="status" className="mt-4">{t("data.loading")}</p>}
       {status === "error" && <p role="alert" className="mt-4">{t("data.error")}</p>}
       {status === "ready" && brands.length === 0 && <p className="mt-4 text-gray-700">{t("list.none")}</p>}
-      <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <ul data-guide="brands-list" className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {brands.map((b) => (
           <li key={b.id}>
             <Link to={`/category?brand=${encodeURIComponent(b.slug)}`} className="flex h-28 flex-col items-center justify-center gap-2 rounded-[4px] border border-gray-200 p-3 text-center hover:border-black">

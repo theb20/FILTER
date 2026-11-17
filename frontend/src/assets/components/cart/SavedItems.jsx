@@ -7,7 +7,7 @@ export default function SavedItems({ lines, onMoveToCart, onRemove }) {
   const { t, formatPrice } = useI18n();
   if (!lines.length) return null;
   return (
-    <section className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="saved-title">
+    <section data-guide="cart-saved" className="rounded-[4px] bg-white p-6 shadow-card" aria-labelledby="saved-title">
       <h2 id="saved-title" className="text-[24px] font-semibold">{t("cart.saved.title")} ({lines.length})</h2>
       <ul className="mt-2 divide-y divide-gray-200">
         {lines.map((l) => {

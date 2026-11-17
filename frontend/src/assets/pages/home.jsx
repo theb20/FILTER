@@ -76,7 +76,7 @@ export default function Home() {
   return (
     <div className="space-y-2.5 pb-0 pt-2.5">
       {/* 1. Hero */}
-      <section className="relative mx-2.5 overflow-hidden rounded-[4px] bg-navy text-white" aria-labelledby="hero-title">
+      <section data-guide="home-hero" className="relative mx-2.5 overflow-hidden rounded-[4px] bg-navy text-white" aria-labelledby="hero-title">
         <video
           ref={heroVideo}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
@@ -100,7 +100,7 @@ export default function Home() {
             {CLAIMS.crossReferences || <Todo>{t("todo.number")}</Todo>} {t("home.hero.crossRefs")}{" "}
             {CLAIMS.stockValue || <Todo>{t("todo.stockValue")}</Todo>} {t("home.hero.ofStock")}
           </p>
-          <SearchBar id="hero-search" className="mt-6 max-w-xl" />
+          <SearchBar id="hero-search" guide="hero-search" className="mt-6 max-w-xl" />
         </div>
       </section>
 
@@ -132,7 +132,7 @@ export default function Home() {
           ))}
         </ul>
 
-        {CATEGORIES.length > 0 && <ul className="mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
+        {CATEGORIES.length > 0 && <ul data-guide="home-categories" className="mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
           {CATEGORIES.map((c) => (
             <li key={c.slug}>
               <Link to={`/category?cat=${c.slug}`} className="block text-center hover:text-link">
@@ -147,7 +147,7 @@ export default function Home() {
       </section>
 
       {/* 4. Secteurs */}
-      <section className="mx-2.5 grid gap-8 overflow-hidden py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-labelledby="sectors-title">
+      <section data-guide="home-sectors" className="mx-2.5 grid gap-8 overflow-hidden py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-labelledby="sectors-title">
         <div className="px-4 lg:px-10">
           <p className="font-medium text-link">{t("home.sectors.eyebrow")}</p>
           <h2 id="sectors-title" className="mt-1 text-[37px] font-bold leading-tight">{t("home.sectors.title")}</h2>

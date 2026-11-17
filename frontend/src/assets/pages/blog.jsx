@@ -96,7 +96,7 @@ export default function Blog() {
           <FeaturedMosaic articles={mosaic} />
           <ToolBanner />
 
-          <div className="mx-2.5 mt-2.5 grid gap-4 rounded-[4px] bg-white p-5 shadow-card lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div data-guide="blog-latest" className="mx-2.5 mt-2.5 grid gap-4 rounded-[4px] bg-white p-5 shadow-card lg:grid-cols-[minmax(0,1fr)_320px]">
             <LatestArticles params={params} pageData={pageData} />
             <Sidebar popular={sorted.slice(0, 5)} />
           </div>

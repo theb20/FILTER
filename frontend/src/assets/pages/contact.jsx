@@ -53,7 +53,7 @@ export default function Contact() {
             </button>
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <form data-guide="contact-form" onSubmit={onSubmit} className="mt-6 space-y-4">
             <fieldset className="flex gap-6">
               <legend className="sr-only">{t("contact.iam")}</legend>
               {[["company", "contact.company"], ["individual", "contact.individual"]].map(([v, key]) => (
@@ -111,7 +111,7 @@ export default function Contact() {
         )}
       </section>
 
-      <aside className="h-fit rounded-[4px] bg-white p-6 shadow-card" aria-label={t("contact.detailsAria")}>
+      <aside data-guide="contact-details" className="h-fit rounded-[4px] bg-white p-6 shadow-card" aria-label={t("contact.detailsAria")}>
         <h2 className="text-[24px] font-semibold">{t("contact.details")}</h2>
         <dl className="mt-4 space-y-3">
           <div><dt className="text-sm text-gray-600">{t("contact.email")}</dt><dd>{SITE.email || <Todo>{t("todo.email")}</Todo>}</dd></div>

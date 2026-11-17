@@ -7,7 +7,7 @@ export default function ShippingProgress({ eligible, free, remaining, progress }
   if (!eligible) return <p className="text-sm text-gray-600">{t("cart.free.notIntl")}</p>;
   const pct = Math.round(progress * 100);
   return (
-    <div>
+    <div data-guide="cart-shipping">
       <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
         <Truck size={16} className={free ? "text-green-700" : "text-gray-600"} aria-hidden="true" />
         {free ? <span className="text-green-700">{t("cart.free.reached")}</span> : t("cart.free.remaining", { amount: formatPrice(remaining) })}

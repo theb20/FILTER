@@ -6,7 +6,7 @@ export default function RelatedProducts({ products }) {
   const { t } = useI18n();
   if (!products.length) return null;
   return (
-    <section aria-labelledby="pd-related-title">
+    <section data-guide="product-related" aria-labelledby="pd-related-title">
       <h2 id="pd-related-title" className="text-[22px] font-bold">{t("pd.related")}</h2>
       <ul className="mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-2" tabIndex={0} aria-label={t("pd.related")}>
         {products.map((p) => (
