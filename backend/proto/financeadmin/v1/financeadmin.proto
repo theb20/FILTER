@@ -1,0 +1,1048 @@
+// Contrat gRPC interne du service `finance` (comptabilité, opérations, trésorerie). STATUS: validated (docs/PROPOSITION-FINANCE.md).
+// Montants : entiers en unités mineures de la devise (XOF : le franc). Jamais de flottant. Dates calendaires : « AAAA-MM-JJ ».
+syntax = "proto3";
+
+package financeadmin.v1;
+
+import "common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/theb20/FILTER/backend/pkg/gen/financeadmin/v1;financeadminv1";
+
+// ── réglages ──
+
+message Settings {
+  string base_currency = 1;
+  // Montant (unités mineures) à partir duquel une AUTRE personne doit valider une écriture ; 0 = toujours.
+  int64 four_eyes_min_amount = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  Settings settings = 1;
+}
+
+message PutSettingsRequest {
+  Settings settings = 1;
+}
+
+message PutSettingsResponse {
+  Settings settings = 1;
+}
+
+// ── plan comptable ──
+
+message Account {
+  string id = 1;
+  string code = 2;
+  string label = 3;
+  string kind = 4; // asset | liability | equity | income | expense | other
+  bool active = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message ListAccountsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string kind = 3;
+  optional bool active = 4;
+}
+
+message ListAccountsResponse {
+  repeated Account items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetAccountRequest {
+  string id = 1;
+}
+
+message GetAccountResponse {
+  Account account = 1;
+}
+
+message CreateAccountRequest {
+  Account account = 1;
+}
+
+message CreateAccountResponse {
+  Account account = 1;
+}
+
+message UpdateAccountRequest {
+  Account account = 1;
+}
+
+message UpdateAccountResponse {
+  Account account = 1;
+}
+
+message ImportError {
+  int32 line = 1;
+  string message = 2;
+}
+
+// Import CSV « code;libellé;nature ». Un code déjà existant est ignoré (jamais écrasé).
+message ImportAccountsRequest {
+  string csv = 1;
+  bool simulate = 2;
+}
+
+message ImportAccountsResponse {
+  bool simulated = 1;
+  int32 total = 2;
+  int32 created = 3;
+  int32 skipped = 4;
+  repeated ImportError errors = 5;
+}
+
+// ── journaux ──
+
+message Journal {
+  string id = 1;
+  string code = 2;
+  string label = 3;
+  string kind = 4; // sales | purchases | bank | cash | general
+  bool active = 5;
+}
+
+message ListJournalsRequest {
+  optional bool active = 1;
+}
+
+message ListJournalsResponse {
+  repeated Journal items = 1;
+}
+
+message CreateJournalRequest {
+  Journal journal = 1;
+}
+
+message CreateJournalResponse {
+  Journal journal = 1;
+}
+
+message UpdateJournalRequest {
+  Journal journal = 1;
+}
+
+message UpdateJournalResponse {
+  Journal journal = 1;
+}
+
+// ── exercices et périodes ──
+
+message FiscalPeriod {
+  string id = 1;
+  string fiscal_year_id = 2;
+  int32 number = 3;
+  string start_date = 4;
+  string end_date = 5;
+  string status = 6; // open | closed
+  optional google.protobuf.Timestamp closed_at = 7;
+  optional string closed_by = 8;
+}
+
+message FiscalYear {
+  string id = 1;
+  string label = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string status = 5; // open | partially_closed | closed (calculé)
+  repeated FiscalPeriod periods = 6;
+}
+
+message ListFiscalYearsRequest {}
+
+message ListFiscalYearsResponse {
+  repeated FiscalYear items = 1;
+}
+
+message GetFiscalYearRequest {
+  string id = 1;
+}
+
+message GetFiscalYearResponse {
+  FiscalYear fiscal_year = 1;
+}
+
+// Les périodes sont les mois calendaires compris entre les deux dates.
+message CreateFiscalYearRequest {
+  FiscalYear fiscal_year = 1;
+}
+
+message CreateFiscalYearResponse {
+  FiscalYear fiscal_year = 1;
+}
+
+// Refusée tant que des écritures en brouillon sont datées dans la période.
+message CloseFiscalPeriodRequest {
+  string id = 1;
+}
+
+message CloseFiscalPeriodResponse {
+  FiscalPeriod period = 1;
+}
+
+// ── approbations (double validation) ──
+
+message Approval {
+  string id = 1;
+  string type = 2; // reopen_period
+  string subject_id = 3;
+  string subject_label = 4;
+  string reason = 5;
+  string status = 6; // pending | approved | rejected
+  string requested_by = 7;
+  google.protobuf.Timestamp requested_at = 8;
+  optional string decided_by = 9;
+  optional google.protobuf.Timestamp decided_at = 10;
+  optional string decision_note = 11;
+}
+
+message RequestPeriodReopenRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message RequestPeriodReopenResponse {
+  Approval approval = 1;
+}
+
+message ListApprovalsRequest {
+  common.v1.PageRequest page = 1;
+  optional string status = 2;
+}
+
+message ListApprovalsResponse {
+  repeated Approval items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+// Approbateur ≠ demandeur, y compris pour le super-administrateur.
+message ApproveApprovalRequest {
+  string id = 1;
+  optional string note = 2;
+}
+
+message ApproveApprovalResponse {
+  Approval approval = 1;
+}
+
+message RejectApprovalRequest {
+  string id = 1;
+  optional string note = 2;
+}
+
+message RejectApprovalResponse {
+  Approval approval = 1;
+}
+
+// ── écritures ──
+
+message EntryLine {
+  string id = 1;
+  string account_id = 2;
+  string account_code = 3;
+  string account_label = 4;
+  int64 debit = 5;
+  int64 credit = 6;
+  optional string memo = 7;
+}
+
+message EntrySource {
+  string type = 1;
+  string id = 2;
+  string kind = 3;
+}
+
+message Entry {
+  string id = 1;
+  string journal_id = 2;
+  string journal_code = 3;
+  string fiscal_period_id = 4;
+  string accounting_date = 5;
+  string status = 6; // draft | posted
+  optional int64 entry_number = 7;
+  optional string number = 8; // affichage : JOURNAL-AAAA-000001
+  string label = 9;
+  optional string reference = 10;
+  string currency = 11;
+  string origin = 12; // manual | operation | reversal
+  optional EntrySource source = 13;
+  optional string reverses_entry_id = 14;
+  optional string reversed_by_entry_id = 15;
+  optional string reversal_reason = 16;
+  repeated EntryLine lines = 17;
+  int64 total_debit = 18;
+  int64 total_credit = 19;
+  string created_by = 20;
+  google.protobuf.Timestamp created_at = 21;
+  optional string posted_by = 22;
+  optional google.protobuf.Timestamp posted_at = 23;
+}
+
+message ListEntriesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string status = 3;
+  optional string journal_id = 4;
+  optional string account_id = 5;
+  optional string from = 6;
+  optional string to = 7;
+}
+
+message ListEntriesResponse {
+  repeated Entry items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetEntryRequest {
+  string id = 1;
+}
+
+message GetEntryResponse {
+  Entry entry = 1;
+}
+
+// `entry.id`, `status`, numéros et `source` sont ignorés : une saisie manuelle est toujours un brouillon.
+message CreateEntryRequest {
+  Entry entry = 1;
+}
+
+message CreateEntryResponse {
+  Entry entry = 1;
+}
+
+message UpdateEntryRequest {
+  Entry entry = 1;
+}
+
+message UpdateEntryResponse {
+  Entry entry = 1;
+}
+
+// Brouillons seulement.
+message DeleteEntryRequest {
+  string id = 1;
+}
+
+message DeleteEntryResponse {}
+
+// Validation : équilibre, période ouverte, comptes actifs, numéro attribué ; validateur ≠ auteur selon le seuil.
+message PostEntryRequest {
+  string id = 1;
+}
+
+message PostEntryResponse {
+  Entry entry = 1;
+}
+
+// Crée un BROUILLON de contre-passation (lignes inversées) à valider à son tour.
+message ReverseEntryRequest {
+  string id = 1;
+  string reason = 2;
+  optional string accounting_date = 3;
+}
+
+message ReverseEntryResponse {
+  Entry entry = 1;
+}
+
+// ── états ──
+
+message LedgerLine {
+  string entry_id = 1;
+  string entry_number = 2;
+  string accounting_date = 3;
+  string journal_code = 4;
+  string label = 5;
+  optional string reference = 6;
+  optional string memo = 7;
+  int64 debit = 8;
+  int64 credit = 9;
+  int64 balance = 10; // cumul débit − crédit
+}
+
+message GetGeneralLedgerRequest {
+  common.v1.PageRequest page = 1;
+  string account_id = 2;
+  optional string from = 3;
+  optional string to = 4;
+}
+
+message GetGeneralLedgerResponse {
+  Account account = 1;
+  int64 opening_balance = 2;
+  int64 closing_balance = 3;
+  repeated LedgerLine items = 4;
+  common.v1.PageResponse page = 5;
+  string currency = 6;
+}
+
+message TrialBalanceRow {
+  string account_id = 1;
+  string code = 2;
+  string label = 3;
+  string kind = 4;
+  int64 opening_balance = 5; // débit − crédit avant la période
+  int64 debit = 6;
+  int64 credit = 7;
+  int64 closing_balance = 8;
+}
+
+message GetTrialBalanceRequest {
+  string from = 1;
+  string to = 2;
+}
+
+message GetTrialBalanceResponse {
+  string from = 1;
+  string to = 2;
+  string currency = 3;
+  repeated TrialBalanceRow rows = 4;
+  int64 total_debit = 5;
+  int64 total_credit = 6;
+  bool balanced = 7;
+}
+
+message ExportGeneralLedgerRequest {
+  string account_id = 1;
+  optional string from = 2;
+  optional string to = 3;
+}
+
+message ExportGeneralLedgerResponse {
+  bytes csv = 1;
+}
+
+message ExportTrialBalanceRequest {
+  string from = 1;
+  string to = 2;
+}
+
+message ExportTrialBalanceResponse {
+  bytes csv = 1;
+}
+
+// ── F2 : tiers, catégories, revenus et dépenses ──
+
+message ThirdParty {
+  string id = 1;
+  string kind = 2; // customer | supplier
+  optional string external_ref = 3; // référence vers l'identité du client : la finance n'en copie aucune donnée personnelle
+  string display_name = 4;
+  bool active = 5;
+}
+
+message ListThirdPartiesRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string kind = 3;
+}
+
+message ListThirdPartiesResponse {
+  repeated ThirdParty items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message CreateThirdPartyRequest {
+  ThirdParty third_party = 1;
+}
+
+message CreateThirdPartyResponse {
+  ThirdParty third_party = 1;
+}
+
+message UpdateThirdPartyRequest {
+  ThirdParty third_party = 1;
+}
+
+message UpdateThirdPartyResponse {
+  ThirdParty third_party = 1;
+}
+
+// Catégorie = correspondance configurable catégorie → compte du plan comptable (jamais préremplie).
+message OperationCategory {
+  string id = 1;
+  string kind = 2; // expense | income
+  string label = 3;
+  string account_id = 4;
+  string account_code = 5;
+  string account_label = 6;
+  optional string nature = 7; // fixed | variable (dépenses)
+  bool active = 8;
+}
+
+message ListOperationCategoriesRequest {
+  optional string kind = 1;
+  optional bool active = 2;
+}
+
+message ListOperationCategoriesResponse {
+  repeated OperationCategory items = 1;
+}
+
+message CreateOperationCategoryRequest {
+  OperationCategory category = 1;
+}
+
+message CreateOperationCategoryResponse {
+  OperationCategory category = 1;
+}
+
+message UpdateOperationCategoryRequest {
+  OperationCategory category = 1;
+}
+
+message UpdateOperationCategoryResponse {
+  OperationCategory category = 1;
+}
+
+message OperationPayment {
+  string id = 1;
+  string payment_date = 2;
+  int64 amount = 3;
+  string account_id = 4;
+  string account_code = 5;
+  string entry_id = 6;
+  string entry_status = 7;
+  optional string entry_number = 8;
+}
+
+message Operation {
+  string id = 1;
+  string kind = 2; // expense | income
+  string operation_date = 3;
+  optional string due_date = 4;
+  optional string third_party_id = 5;
+  optional string third_party_name = 6;
+  string category_id = 7;
+  string category_label = 8;
+  string label = 9;
+  optional string reference = 10;
+  int64 amount_net = 11;
+  int64 tax_amount = 12;
+  optional string tax_account_id = 13;
+  int64 amount_gross = 14;
+  string counterparty_account_id = 15;
+  string counterparty_account_code = 16;
+  string settlement_mode = 17; // immediate | on_account
+  optional string nature = 18;
+  string currency = 19;
+  string status = 20; // draft | entry_draft | recorded | reversed
+  optional string entry_id = 21;
+  optional string entry_number = 22;
+  int64 settled_amount = 23;
+  int64 remaining = 24;
+  bool duplicate_confirmed = 25;
+  optional string recurring_template_id = 26;
+  int32 attachment_count = 27;
+  repeated OperationPayment payments = 28;
+  string created_by = 29;
+  google.protobuf.Timestamp created_at = 30;
+}
+
+message ListOperationsRequest {
+  common.v1.PageRequest page = 1;
+  string query = 2;
+  optional string kind = 3;
+  optional string status = 4;
+  optional string category_id = 5;
+  optional string third_party_id = 6;
+  optional string from = 7;
+  optional string to = 8;
+}
+
+message ListOperationsResponse {
+  repeated Operation items = 1;
+  common.v1.PageResponse page = 2;
+  int64 total_net = 3;
+  int64 total_tax = 4;
+  int64 total_gross = 5;
+  string currency = 6;
+}
+
+message GetOperationRequest {
+  string id = 1;
+}
+
+message GetOperationResponse {
+  Operation operation = 1;
+}
+
+message CreateOperationRequest {
+  Operation operation = 1;
+  bool duplicate_confirmed = 2;
+}
+
+message CreateOperationResponse {
+  Operation operation = 1;
+}
+
+message UpdateOperationRequest {
+  Operation operation = 1;
+  bool duplicate_confirmed = 2;
+}
+
+message UpdateOperationResponse {
+  Operation operation = 1;
+}
+
+// Seule une opération sans écriture se supprime.
+message DeleteOperationRequest {
+  string id = 1;
+}
+
+message DeleteOperationResponse {}
+
+// Génère l'écriture (BROUILLON, origine « operation ») ; une même opération n'en produit qu'une.
+message GenerateOperationEntryRequest {
+  string id = 1;
+  string journal_id = 2;
+}
+
+message GenerateOperationEntryResponse {
+  Operation operation = 1;
+}
+
+// Supprime l'écriture si elle est encore en brouillon (sinon : contre-passation dans les écritures).
+message CancelOperationEntryRequest {
+  string id = 1;
+}
+
+message CancelOperationEntryResponse {
+  Operation operation = 1;
+}
+
+// Règlement d'une opération « en compte » : génère une écriture en brouillon (créance ou dette → banque ou caisse).
+message RecordOperationPaymentRequest {
+  string id = 1;
+  string payment_date = 2;
+  int64 amount = 3;
+  string account_id = 4;
+  string journal_id = 5;
+}
+
+message RecordOperationPaymentResponse {
+  Operation operation = 1;
+}
+
+message RecurringTemplate {
+  string id = 1;
+  string kind = 2;
+  string category_id = 3;
+  string category_label = 4;
+  optional string third_party_id = 5;
+  string label = 6;
+  int64 amount_net = 7;
+  int64 tax_amount = 8;
+  optional string tax_account_id = 9;
+  string counterparty_account_id = 10;
+  string journal_id = 11;
+  string settlement_mode = 12;
+  optional string nature = 13;
+  int32 day_of_month = 14;
+  string start_date = 15;
+  optional string end_date = 16;
+  bool active = 17;
+  optional string last_generated_month = 18;
+}
+
+message ListRecurringTemplatesRequest {}
+
+message ListRecurringTemplatesResponse {
+  repeated RecurringTemplate items = 1;
+}
+
+message CreateRecurringTemplateRequest {
+  RecurringTemplate template = 1;
+}
+
+message CreateRecurringTemplateResponse {
+  RecurringTemplate template = 1;
+}
+
+message UpdateRecurringTemplateRequest {
+  RecurringTemplate template = 1;
+}
+
+message UpdateRecurringTemplateResponse {
+  RecurringTemplate template = 1;
+}
+
+// Crée les opérations (brouillons, sans écriture) des mois échus jusqu'à la date donnée ; idempotent par (modèle, mois).
+message GenerateRecurringRequest {
+  string up_to = 1;
+}
+
+message GenerateRecurringResponse {
+  int32 created = 1;
+  int32 skipped = 2;
+}
+
+message Attachment {
+  string id = 1;
+  string operation_id = 2;
+  string filename = 3;
+  string content_type = 4;
+  int64 size = 5;
+  string sha256 = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message ListAttachmentsRequest {
+  string operation_id = 1;
+}
+
+message ListAttachmentsResponse {
+  repeated Attachment items = 1;
+}
+
+message UploadAttachmentRequest {
+  string operation_id = 1;
+  string filename = 2;
+  string content_type = 3;
+  bytes data = 4;
+}
+
+message UploadAttachmentResponse {
+  Attachment attachment = 1;
+}
+
+message GetAttachmentRequest {
+  string id = 1;
+}
+
+message GetAttachmentResponse {
+  Attachment attachment = 1;
+  bytes data = 2;
+}
+
+// Refusée dès que l'écriture de l'opération est validée (les pièces justificatives sont alors conservées).
+message DeleteAttachmentRequest {
+  string id = 1;
+}
+
+message DeleteAttachmentResponse {}
+
+// ── F3 : trésorerie ──
+
+message BankAccount {
+  string id = 1;
+  string name = 2;
+  string bank_name = 3;
+  string currency = 4;
+  string account_id = 5; // compte du plan comptable lié
+  string account_code = 6;
+  string account_label = 7;
+  bool has_number = 8;
+  optional string number_last4 = 9; // le numéro complet n'est JAMAIS renvoyé
+  int64 opening_balance = 10;
+  string opening_date = 11;
+  bool active = 12;
+  int64 ledger_balance = 13;    // grand livre : Σ débit − Σ crédit des écritures validées du compte lié
+  int64 statement_balance = 14; // relevés : solde d'ouverture + Σ lignes importées
+  optional string last_statement_date = 15;
+}
+
+message ListBankAccountsRequest {
+  optional bool active = 1;
+}
+
+message ListBankAccountsResponse {
+  repeated BankAccount items = 1;
+}
+
+message GetBankAccountRequest {
+  string id = 1;
+}
+
+message GetBankAccountResponse {
+  BankAccount bank_account = 1;
+}
+
+// `number` (facultatif) est chiffré au repos ; absent à la modification = inchangé.
+message CreateBankAccountRequest {
+  BankAccount bank_account = 1;
+  optional string number = 2;
+}
+
+message CreateBankAccountResponse {
+  BankAccount bank_account = 1;
+}
+
+message UpdateBankAccountRequest {
+  BankAccount bank_account = 1;
+  optional string number = 2;
+}
+
+message UpdateBankAccountResponse {
+  BankAccount bank_account = 1;
+}
+
+message BankStatement {
+  string id = 1;
+  string bank_account_id = 2;
+  string filename = 3;
+  string period_start = 4;
+  string period_end = 5;
+  int32 line_count = 6;
+  int32 inserted_count = 7;
+  int32 skipped_count = 8;
+  optional int64 closing_balance = 9;
+  string imported_by = 10;
+  google.protobuf.Timestamp imported_at = 11;
+}
+
+message ListBankStatementsRequest {
+  string bank_account_id = 1;
+}
+
+message ListBankStatementsResponse {
+  repeated BankStatement items = 1;
+}
+
+// CSV à colonnes fixes « date ; libellé ; référence ; montant » (montant signé : négatif = sortie).
+message ImportBankStatementRequest {
+  string bank_account_id = 1;
+  string filename = 2;
+  string csv = 3;
+  optional int64 closing_balance = 4;
+  bool simulate = 5;
+}
+
+message ImportBankStatementResponse {
+  bool simulated = 1;
+  int32 total = 2;
+  int32 inserted = 3;
+  int32 skipped = 4; // déjà importées
+  repeated ImportError errors = 5;
+  optional string period_start = 6;
+  optional string period_end = 7;
+  int64 sum_amount = 8;
+  optional BankStatement statement = 9;
+}
+
+message ReconMatch {
+  string id = 1;
+  string entry_line_id = 2;
+  string entry_id = 3;
+  string entry_number = 4;
+  int64 amount = 5;
+  google.protobuf.Timestamp matched_at = 6;
+  string matched_by = 7;
+}
+
+message BankLine {
+  string id = 1;
+  string statement_id = 2;
+  string bank_account_id = 3;
+  string line_date = 4;
+  string label = 5;
+  optional string reference = 6;
+  int64 amount = 7; // signé : positif = entrée d'argent
+  int64 matched = 8;
+  int64 remaining = 9; // montant non rapproché (valeur absolue)
+  string status = 10;  // unmatched | partial | matched
+  repeated ReconMatch matches = 11;
+}
+
+message ListBankLinesRequest {
+  common.v1.PageRequest page = 1;
+  string bank_account_id = 2;
+  string query = 3;
+  optional string status = 4;
+  optional string from = 5;
+  optional string to = 6;
+}
+
+message ListBankLinesResponse {
+  repeated BankLine items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message LedgerCandidate {
+  string entry_line_id = 1;
+  string entry_id = 2;
+  string entry_number = 3;
+  string accounting_date = 4;
+  string label = 5;
+  optional string reference = 6;
+  int64 amount = 7;    // même signe que le relevé : débit du compte banque = entrée
+  int64 remaining = 8; // valeur absolue non rapprochée
+  int32 score = 9;
+  bool exact_amount = 10;
+}
+
+message ListLedgerLinesRequest {
+  common.v1.PageRequest page = 1;
+  string bank_account_id = 2;
+  string status = 3; // unmatched | all
+  optional string query = 4;
+}
+
+message ListLedgerLinesResponse {
+  repeated LedgerCandidate items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+// Suggestions (jamais appliquées automatiquement) : même sens, montant égal ou proche, date proche, libellé proche.
+message ListCandidatesRequest {
+  string bank_line_id = 1;
+}
+
+message ListCandidatesResponse {
+  repeated LedgerCandidate items = 1;
+}
+
+message CreateReconciliationRequest {
+  string bank_line_id = 1;
+  string entry_line_id = 2;
+  int64 amount = 3; // 0 = le plus grand montant possible
+}
+
+message CreateReconciliationResponse {
+  BankLine line = 1;
+}
+
+// Retire un rapprochement : l'écart réapparaît (aucun écart n'est jamais absorbé).
+message DeleteReconciliationRequest {
+  string id = 1;
+}
+
+message DeleteReconciliationResponse {
+  BankLine line = 1;
+}
+
+message ReconciliationSummary {
+  string bank_account_id = 1;
+  string currency = 2;
+  int64 ledger_balance = 3;
+  int64 statement_balance = 4;
+  int64 difference = 5; // grand livre − relevé
+  int64 unmatched_statement = 6;
+  int64 unmatched_ledger = 7;
+  int32 unmatched_statement_count = 8;
+  int32 unmatched_ledger_count = 9;
+  int64 unexplained = 10; // difference − (non rapproché grand livre − non rapproché relevé) : doit être 0
+  optional string last_statement_date = 11;
+  int64 opening_gap = 12; // grand livre avant la date d'ouverture − solde d'ouverture du relevé : doit être 0
+}
+
+message GetReconciliationSummaryRequest {
+  string bank_account_id = 1;
+}
+
+message GetReconciliationSummaryResponse {
+  ReconciliationSummary summary = 1;
+}
+
+message ForecastBucket {
+  string start_date = 1;
+  string end_date = 2;
+  int64 inflows = 3;
+  int64 outflows = 4;
+  int64 projected_balance = 5;
+}
+
+message GetCashForecastRequest {
+  int32 horizon_days = 1;
+}
+
+message GetCashForecastResponse {
+  string currency = 1;
+  string as_of = 2;
+  int32 horizon_days = 3;
+  int64 opening_balance = 4;
+  repeated ForecastBucket buckets = 5;
+  int64 overdue_inflows = 6;
+  int64 overdue_outflows = 7;
+  int64 undated_inflows = 8;
+  int64 undated_outflows = 9;
+  int32 excluded_drafts = 10;
+  int64 excluded_drafts_amount = 11;
+  int32 bank_accounts = 12;
+  repeated string assumptions = 13;
+}
+
+service FinanceAdminService {
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
+
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
+  rpc ImportAccounts(ImportAccountsRequest) returns (ImportAccountsResponse);
+
+  rpc ListJournals(ListJournalsRequest) returns (ListJournalsResponse);
+  rpc CreateJournal(CreateJournalRequest) returns (CreateJournalResponse);
+  rpc UpdateJournal(UpdateJournalRequest) returns (UpdateJournalResponse);
+
+  rpc ListFiscalYears(ListFiscalYearsRequest) returns (ListFiscalYearsResponse);
+  rpc GetFiscalYear(GetFiscalYearRequest) returns (GetFiscalYearResponse);
+  rpc CreateFiscalYear(CreateFiscalYearRequest) returns (CreateFiscalYearResponse);
+  rpc CloseFiscalPeriod(CloseFiscalPeriodRequest) returns (CloseFiscalPeriodResponse);
+  rpc RequestPeriodReopen(RequestPeriodReopenRequest) returns (RequestPeriodReopenResponse);
+
+  rpc ListApprovals(ListApprovalsRequest) returns (ListApprovalsResponse);
+  rpc ApproveApproval(ApproveApprovalRequest) returns (ApproveApprovalResponse);
+  rpc RejectApproval(RejectApprovalRequest) returns (RejectApprovalResponse);
+
+  rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse);
+  rpc GetEntry(GetEntryRequest) returns (GetEntryResponse);
+  rpc CreateEntry(CreateEntryRequest) returns (CreateEntryResponse);
+  rpc UpdateEntry(UpdateEntryRequest) returns (UpdateEntryResponse);
+  rpc DeleteEntry(DeleteEntryRequest) returns (DeleteEntryResponse);
+  rpc PostEntry(PostEntryRequest) returns (PostEntryResponse);
+  rpc ReverseEntry(ReverseEntryRequest) returns (ReverseEntryResponse);
+
+  rpc GetGeneralLedger(GetGeneralLedgerRequest) returns (GetGeneralLedgerResponse);
+  rpc GetTrialBalance(GetTrialBalanceRequest) returns (GetTrialBalanceResponse);
+  rpc ExportGeneralLedger(ExportGeneralLedgerRequest) returns (ExportGeneralLedgerResponse);
+  rpc ExportTrialBalance(ExportTrialBalanceRequest) returns (ExportTrialBalanceResponse);
+
+  rpc ListThirdParties(ListThirdPartiesRequest) returns (ListThirdPartiesResponse);
+  rpc CreateThirdParty(CreateThirdPartyRequest) returns (CreateThirdPartyResponse);
+  rpc UpdateThirdParty(UpdateThirdPartyRequest) returns (UpdateThirdPartyResponse);
+
+  rpc ListOperationCategories(ListOperationCategoriesRequest) returns (ListOperationCategoriesResponse);
+  rpc CreateOperationCategory(CreateOperationCategoryRequest) returns (CreateOperationCategoryResponse);
+  rpc UpdateOperationCategory(UpdateOperationCategoryRequest) returns (UpdateOperationCategoryResponse);
+
+  rpc ListOperations(ListOperationsRequest) returns (ListOperationsResponse);
+  rpc GetOperation(GetOperationRequest) returns (GetOperationResponse);
+  rpc CreateOperation(CreateOperationRequest) returns (CreateOperationResponse);
+  rpc UpdateOperation(UpdateOperationRequest) returns (UpdateOperationResponse);
+  rpc DeleteOperation(DeleteOperationRequest) returns (DeleteOperationResponse);
+  rpc GenerateOperationEntry(GenerateOperationEntryRequest) returns (GenerateOperationEntryResponse);
+  rpc CancelOperationEntry(CancelOperationEntryRequest) returns (CancelOperationEntryResponse);
+  rpc RecordOperationPayment(RecordOperationPaymentRequest) returns (RecordOperationPaymentResponse);
+
+  rpc ListRecurringTemplates(ListRecurringTemplatesRequest) returns (ListRecurringTemplatesResponse);
+  rpc CreateRecurringTemplate(CreateRecurringTemplateRequest) returns (CreateRecurringTemplateResponse);
+  rpc UpdateRecurringTemplate(UpdateRecurringTemplateRequest) returns (UpdateRecurringTemplateResponse);
+  rpc GenerateRecurring(GenerateRecurringRequest) returns (GenerateRecurringResponse);
+
+  rpc ListAttachments(ListAttachmentsRequest) returns (ListAttachmentsResponse);
+  rpc UploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse);
+  rpc GetAttachment(GetAttachmentRequest) returns (GetAttachmentResponse);
+  rpc DeleteAttachment(DeleteAttachmentRequest) returns (DeleteAttachmentResponse);
+
+  rpc ListBankAccounts(ListBankAccountsRequest) returns (ListBankAccountsResponse);
+  rpc GetBankAccount(GetBankAccountRequest) returns (GetBankAccountResponse);
+  rpc CreateBankAccount(CreateBankAccountRequest) returns (CreateBankAccountResponse);
+  rpc UpdateBankAccount(UpdateBankAccountRequest) returns (UpdateBankAccountResponse);
+  rpc ListBankStatements(ListBankStatementsRequest) returns (ListBankStatementsResponse);
+  rpc ImportBankStatement(ImportBankStatementRequest) returns (ImportBankStatementResponse);
+  rpc ListBankLines(ListBankLinesRequest) returns (ListBankLinesResponse);
+  rpc ListLedgerLines(ListLedgerLinesRequest) returns (ListLedgerLinesResponse);
+  rpc ListCandidates(ListCandidatesRequest) returns (ListCandidatesResponse);
+  rpc CreateReconciliation(CreateReconciliationRequest) returns (CreateReconciliationResponse);
+  rpc DeleteReconciliation(DeleteReconciliationRequest) returns (DeleteReconciliationResponse);
+  rpc GetReconciliationSummary(GetReconciliationSummaryRequest) returns (GetReconciliationSummaryResponse);
+  rpc GetCashForecast(GetCashForecastRequest) returns (GetCashForecastResponse);
+}

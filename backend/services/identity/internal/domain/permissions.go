@@ -27,6 +27,12 @@ var Permissions = []Permission{
 	{Code: "engine:export", Group: "Moteur de recherche", Description: "Exporter — moteur de recherche"},
 	{Code: "engine:read", Group: "Moteur de recherche", Description: "Consulter — moteur de recherche"},
 	{Code: "engine:write", Group: "Moteur de recherche", Description: "Créer et modifier — moteur de recherche"},
+	{Code: "finance:admin", Group: "Finance", Description: "Administrer — finance"},
+	{Code: "finance:approve", Group: "Finance", Description: "Valider — finance"},
+	{Code: "finance:close", Group: "Finance", Description: "Clôturer — finance"},
+	{Code: "finance:export", Group: "Finance", Description: "Exporter — finance"},
+	{Code: "finance:read", Group: "Finance", Description: "Consulter — finance"},
+	{Code: "finance:write", Group: "Finance", Description: "Créer et modifier — finance"},
 	{Code: "inventory:read", Group: "Stock", Description: "Consulter — stock"},
 	{Code: "inventory:write", Group: "Stock", Description: "Créer et modifier — stock"},
 	{Code: "invoices:read", Group: "Factures", Description: "Consulter — factures"},
@@ -49,6 +55,9 @@ var Permissions = []Permission{
 	{Code: "shipping:write", Group: "Livraison", Description: "Créer et modifier — livraison"},
 	{Code: "support:read", Group: "Support", Description: "Consulter — support"},
 	{Code: "support:write", Group: "Support", Description: "Créer et modifier — support"},
+	{Code: "treasury:read", Group: "Trésorerie", Description: "Consulter — trésorerie"},
+	{Code: "treasury:reconcile", Group: "Trésorerie", Description: "Rapprocher — trésorerie"},
+	{Code: "treasury:write", Group: "Trésorerie", Description: "Créer et modifier — trésorerie"},
 }
 
 // IsPermission indique si le code appartient au catalogue (ou est le joker réservé au rôle système).

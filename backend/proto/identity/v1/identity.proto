@@ -160,6 +160,7 @@ message CompleteOAuthRequest {
 message CompleteOAuthResponse {
   string exchange_code = 1;
   string redirect_uri = 2;
+  bool failed = 3; // true : la connexion a échoué ; le navigateur est renvoyé vers `redirect_uri` avec `?error=oauth_failed`
 }
 
 message ExchangeOAuthCodeRequest {
