@@ -1,5 +1,6 @@
 import { inputCls, selectCls } from "@/components/ui/ui";
 import { LocalizedFields } from "./localized-fields";
+import { ImagePicker } from "@/components/ui/image-upload";
 import type { FieldDef } from "@/lib/content-kinds";
 import type { RefOptions } from "@/lib/content";
 
@@ -35,6 +36,7 @@ export function ContentField({ f, value, refs }: { f: FieldDef; value?: unknown;
       </label>
     );
   }
+  if (f.img) return <div>{f.help && null}<ImagePicker name={f.name} value={(value as string) ?? ""} label={f.label} />{hint}</div>;
   if (t === "text") return <label className="block text-sm font-medium text-night">{title}<textarea name={f.name} required={f.req} defaultValue={(value as string) ?? ""} rows={6} maxLength={20000} className={inputCls} />{hint}</label>;
   if (t === "strs" || t === "uuids") return <label className="block text-sm font-medium text-night">{title}<input name={f.name} defaultValue={Array.isArray(value) ? value.join(", ") : ""} className={inputCls} />{hint}</label>;
   if (t === "int" || t === "num") return <label className="block text-sm font-medium text-night">{title}<input type="number" name={f.name} required={f.req} min={f.min} max={f.max} step={t === "num" ? "any" : 1} defaultValue={(value as number | undefined) ?? ""} className={inputCls} />{hint}</label>;

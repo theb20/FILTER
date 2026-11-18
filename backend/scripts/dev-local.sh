@@ -10,6 +10,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Secrets et réglages locaux : backend/.env (ignoré par git). Une variable déjà exportée dans le terminal reste prioritaire.
+. "$ROOT/scripts/load-env.sh"; ff_load_env "$ROOT"
 D="${FF_DEV_DIR:-$HOME/.filterfinder}"
 PG_PORT="${FF_PG_PORT:-5433}"; NATS_PORT="${FF_NATS_PORT:-4223}"
 GW_ADDR="${FF_GATEWAY_ADDR:-127.0.0.1:8080}"; ID_ADDR="${FF_IDENTITY_ADDR:-127.0.0.1:9001}"; SRC_ADDR="${FF_SOURCING_ADDR:-127.0.0.1:9002}"; CAT_ADDR="${FF_CATALOG_ADDR:-127.0.0.1:9003}"; FIN_ADDR="${FF_FINANCE_ADDR:-127.0.0.1:9005}"; CON_ADDR="${FF_CONTENT_ADDR:-127.0.0.1:9004}"
@@ -25,9 +27,26 @@ url_cat() { echo "postgres://filterfinder@127.0.0.1:${PG_PORT}/${DB_CAT}?sslmode
 url_fin() { echo "postgres://filterfinder@127.0.0.1:${PG_PORT}/${DB_FIN}?sslmode=disable"; }
 url_con() { echo "postgres://filterfinder@127.0.0.1:${PG_PORT}/${DB_CON}?sslmode=disable"; }
 
+# Géolocalisation APPROXIMATIVE des connexions (profil client) : base LOCALE DB-IP « IP to City Lite » (CC BY 4.0,
+# gratuite, sans compte), téléchargée une fois puis rafraîchie tous les 35 jours. Partagée entre environnements (60 Mo).
+# Sans elle, tout fonctionne : les connexions s'affichent simplement sans ville.
+GEOIP_DIR="${FF_GEOIP_DIR:-$HOME/.filterfinder/geoip}"; GEOIP_FILE="$GEOIP_DIR/dbip-city-lite.mmdb"
+geoip_fetch() {
+  mkdir -p "$GEOIP_DIR"
+  [ -f "$GEOIP_FILE" ] && [ -z "$(find "$GEOIP_FILE" -mtime +35 2>/dev/null)" ] && return 0
+  for m in "$(date +%Y-%m)" "$(date -v-1m +%Y-%m 2>/dev/null || date -d '-1 month' +%Y-%m)"; do
+    if curl -fsSL --max-time 300 "https://download.db-ip.com/free/dbip-city-lite-$m.mmdb.gz" -o "$GEOIP_FILE.gz.part" && gunzip -c "$GEOIP_FILE.gz.part" > "$GEOIP_FILE.part"; then
+      mv "$GEOIP_FILE.part" "$GEOIP_FILE"; rm -f "$GEOIP_FILE.gz.part"; echo "base de géolocalisation DB-IP ($m) : $GEOIP_FILE"; return 0
+    fi
+  done
+  rm -f "$GEOIP_FILE.gz.part" "$GEOIP_FILE.part"; echo "base de géolocalisation indisponible : les connexions s'afficheront sans ville"
+}
+
 common_env() {
   export ENV=dev STORE=postgres DATABASE_URL="$(url)" NATS_URL="nats://127.0.0.1:${NATS_PORT}"
   export STAFF_TOTP_KEY_FILE="$D/secrets/staff_totp.key" BREACH_CHECK="${BREACH_CHECK:-pwned}" DEV_MAIL_FILE="$D/log/mail.log"
+  [ -f "$GEOIP_FILE" ] && export GEOIP_CITY_FILE="$GEOIP_FILE"
+  return 0
 }
 
 up() {
@@ -46,6 +65,7 @@ up() {
     || "$PGBIN/createdb" -h 127.0.0.1 -p "$PG_PORT" -U filterfinder "$DB_FIN"
   "$PGBIN/psql" -h 127.0.0.1 -p "$PG_PORT" -U filterfinder -d postgres -Atc "select 1 from pg_database where datname='$DB_CON'" | grep -q 1 \
     || "$PGBIN/createdb" -h 127.0.0.1 -p "$PG_PORT" -U filterfinder "$DB_CON"
+  geoip_fetch
   [ -f "$D/secrets/finance_bank.key" ] || { (umask 077; openssl rand -base64 32 > "$D/secrets/finance_bank.key"); echo "clé de chiffrement des numéros de compte bancaire créée : $D/secrets/finance_bank.key (SAUVEGARDEZ-LA : sans elle, les numéros enregistrés sont perdus)"; }
   [ -f "$D/secrets/staff_totp.key" ] || { (umask 077; openssl rand -base64 32 > "$D/secrets/staff_totp.key"); echo "clé de chiffrement 2FA créée : $D/secrets/staff_totp.key (SAUVEGARDEZ-LA : sans elle, les 2FA enregistrés sont perdus)"; }
   if ! nc -z 127.0.0.1 "$NATS_PORT" 2>/dev/null; then
@@ -59,11 +79,15 @@ up() {
   (cd "$ROOT/services/content" && go build -o "$D/bin/content" ./cmd/content)
   common_env
   stop_app
+  # E-mails réels (Resend). Comme pour Brave, la clé vient de backend/.env (ou d'une variable déjà exportée,
+  # qui reste prioritaire) ; elle n'est jamais écrite dans un journal ni passée en argument.
+  # Sans elle, seule la boîte d'envoi de développement ($D/log/mail.log) est alimentée.
+  if [ -z "${RESEND_API_KEY:-}" ]; then echo "ℹ RESEND_API_KEY absente : aucun e-mail réel ne part, voir $D/log/mail.log. Renseignez-la dans backend/.env (modèle : backend/.env.example)"; fi
   IDENTITY_GRPC_ADDR="$ID_ADDR" nohup "$D/bin/identity" >"$D/log/identity.log" 2>&1 </dev/null & echo $! > "$D/run/identity.pid"
   for _ in $(seq 1 30); do nc -z "${ID_ADDR%:*}" "${ID_ADDR##*:}" 2>/dev/null && break; sleep 0.5; done
   # Service sourcing. La clé Brave est lue dans l'ENVIRONNEMENT du shell qui lance ce script (export BRAVE_SEARCH_API_KEY=…) :
   # elle n'est écrite dans AUCUN fichier ni journal et n'est jamais transmise en argument.
-  if [ -z "${BRAVE_SEARCH_API_KEY:-}" ]; then echo "ℹ BRAVE_SEARCH_API_KEY absente : les appels à Brave échoueront (« secret_missing ») jusqu'à son export, puis ./dev.sh up"; fi
+  if [ -z "${BRAVE_SEARCH_API_KEY:-}" ]; then echo "ℹ BRAVE_SEARCH_API_KEY absente : les appels à Brave échoueront (« secret_missing »). Renseignez-la dans backend/.env (modèle : backend/.env.example), puis ./dev.sh up"; fi
   DATABASE_URL="$(url_src)" SOURCING_GRPC_ADDR="$SRC_ADDR" nohup "$D/bin/sourcing" >"$D/log/sourcing.log" 2>&1 </dev/null & echo $! > "$D/run/sourcing.pid"
   for _ in $(seq 1 30); do nc -z "${SRC_ADDR%:*}" "${SRC_ADDR##*:}" 2>/dev/null && break; sleep 0.5; done
   DATABASE_URL="$(url_cat)" CATALOG_GRPC_ADDR="$CAT_ADDR" nohup "$D/bin/catalog" >"$D/log/catalog.log" 2>&1 </dev/null & echo $! > "$D/run/catalog.pid"
@@ -72,7 +96,7 @@ up() {
   for _ in $(seq 1 30); do nc -z "${FIN_ADDR%:*}" "${FIN_ADDR##*:}" 2>/dev/null && break; sleep 0.5; done
   DATABASE_URL="$(url_con)" CONTENT_GRPC_ADDR="$CON_ADDR" nohup "$D/bin/content" >"$D/log/content.log" 2>&1 </dev/null & echo $! > "$D/run/content.pid"
   for _ in $(seq 1 30); do nc -z "${CON_ADDR%:*}" "${CON_ADDR##*:}" 2>/dev/null && break; sleep 0.5; done
-  ENV=dev SOURCING_ADDR="$SRC_ADDR" CATALOG_ADDR="$CAT_ADDR" FINANCE_ADDR="$FIN_ADDR" CONTENT_ADDR="$CON_ADDR" GATEWAY_ADDR="$GW_ADDR" IDENTITY_ADDR="$ID_ADDR" ALLOWED_ORIGINS="$ORIGINS" COOKIE_SECURE=false nohup "$D/bin/gateway" >"$D/log/gateway.log" 2>&1 </dev/null & echo $! > "$D/run/gateway.pid"
+  ENV=dev UPLOAD_DIR="$D/uploads" SOURCING_ADDR="$SRC_ADDR" CATALOG_ADDR="$CAT_ADDR" FINANCE_ADDR="$FIN_ADDR" CONTENT_ADDR="$CON_ADDR" GATEWAY_ADDR="$GW_ADDR" IDENTITY_ADDR="$ID_ADDR" ALLOWED_ORIGINS="$ORIGINS" COOKIE_SECURE=false nohup "$D/bin/gateway" >"$D/log/gateway.log" 2>&1 </dev/null & echo $! > "$D/run/gateway.pid"
   sleep 1; status
 }
 

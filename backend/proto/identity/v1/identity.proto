@@ -31,6 +31,13 @@ enum StaffStatus {
   STAFF_STATUS_DEACTIVATED = 3;
 }
 
+// Qui possède les préférences : un compte du personnel ou un compte client (deux mondes séparés).
+enum PrincipalKind {
+  PRINCIPAL_KIND_UNSPECIFIED = 0;
+  PRINCIPAL_KIND_STAFF = 1;
+  PRINCIPAL_KIND_CUSTOMER = 2;
+}
+
 enum DataRequestKind {
   DATA_REQUEST_KIND_UNSPECIFIED = 0;
   DATA_REQUEST_KIND_EXPORT = 1;
@@ -71,6 +78,9 @@ message User {
   bool pro_conditions_active = 11;
   string status = 12;
   google.protobuf.Timestamp created_at = 13;
+  // Photo de profil et image de couverture : date de dernière modification (absente = aucune image).
+  optional google.protobuf.Timestamp avatar_updated_at = 14;
+  optional google.protobuf.Timestamp cover_updated_at = 15;
 }
 
 message TokenPair {
@@ -271,6 +281,37 @@ message PutCompanyRequest {
 
 message PutCompanyResponse {
   Company company = 1;
+}
+
+// Guide visuel : visites guidées de l'interface.
+message GuidePreferences {
+  bool enabled = 1;
+  string animations = 2; // "auto" | "off"
+  repeated string seen = 3; // identifiants des visites déjà faites (≤ 200)
+}
+
+message Preferences {
+  GuidePreferences guide = 1;
+}
+
+message GetPreferencesRequest {
+  PrincipalKind kind = 1;
+  string principal_id = 2;
+}
+
+message GetPreferencesResponse {
+  Preferences preferences = 1;
+}
+
+// Remplace l'ensemble des préférences (dernière écriture gagnante).
+message PutPreferencesRequest {
+  PrincipalKind kind = 1;
+  string principal_id = 2;
+  Preferences preferences = 3;
+}
+
+message PutPreferencesResponse {
+  Preferences preferences = 1;
 }
 
 message ConsentPurposes {
@@ -805,6 +846,24 @@ service IdentityService {
   rpc ListDataRequests(ListDataRequestsRequest) returns (ListDataRequestsResponse);
   rpc ProcessDataRequest(ProcessDataRequestRequest) returns (ProcessDataRequestResponse);
   // Clés publiques pour la vérification locale des JWT par le gateway (audience : customer | staff).
+  // Préférences d'interface du compte connecté (personnel ou client), synchronisées entre appareils.
+  rpc GetPreferences(GetPreferencesRequest) returns (GetPreferencesResponse);
+  // Appareils connectés : sessions ACTIVES du compte (famille de jetons non révoquée et non expirée), avec l'appareil et
+  // la ville APPROXIMATIVE déduite de l'adresse IP (base locale ; aucune IP n'est envoyée à un tiers).
+  rpc ListMySessions(ListMySessionsRequest) returns (ListMySessionsResponse);
+  // Déconnecte UN appareil du compte (session d'un autre compte : NOT_FOUND).
+  rpc RevokeMySession(RevokeMySessionRequest) returns (RevokeMySessionResponse);
+  // Déconnecte tous les appareils sauf celui de `current_session_id`.
+  rpc RevokeMyOtherSessions(RevokeMyOtherSessionsRequest) returns (RevokeMyOtherSessionsResponse);
+  // Historique des connexions réussies (90 jours, purge automatique), du plus récent au plus ancien.
+  rpc ListMyLoginEvents(ListMyLoginEventsRequest) returns (ListMyLoginEventsResponse);
+  // Lien « ce n'était pas moi » de l'e-mail d'alerte : jeton à usage unique ; révoque TOUTES les sessions du compte.
+  rpc SecureAccountFromAlert(SecureAccountFromAlertRequest) returns (SecureAccountFromAlertResponse);
+  // Photo de profil (`avatar`) ou couverture (`cover`) : PNG, JPEG ou WebP vérifiés par leur contenu, 600 Kio au plus.
+  rpc PutMyImage(PutMyImageRequest) returns (PutMyImageResponse);
+  rpc GetMyImage(GetMyImageRequest) returns (GetMyImageResponse);
+  rpc DeleteMyImage(DeleteMyImageRequest) returns (DeleteMyImageResponse);
+  rpc PutPreferences(PutPreferencesRequest) returns (PutPreferencesResponse);
   rpc GetJwks(GetJwksRequest) returns (GetJwksResponse);
   // status : authenticated | two_factor_required | two_factor_enrollment_required.
   rpc StaffLogin(StaffLoginRequest) returns (StaffLoginResponse);
@@ -863,3 +922,112 @@ service IdentityService {
   // Publie `settings.changed`.
   rpc PutSettings(PutSettingsRequest) returns (PutSettingsResponse);
 }
+
+// ── Sécurité du compte : appareils, historique, alertes ──────────────────────────────────────────────
+
+// Position APPROXIMATIVE déduite de l'adresse IP (ville de l'opérateur, souvent) ; absente si inconnue.
+message GeoLocation {
+  string city = 1;
+  string region = 2;
+  string country_code = 3; // ISO 3166-1 alpha-2
+  string country = 4;
+  double latitude = 5;
+  double longitude = 6;
+}
+
+// Appareil déduit de l'en-tête User-Agent (approximatif).
+message DeviceInfo {
+  string browser = 1;
+  string os = 2;
+  string kind = 3; // desktop | mobile | tablet | unknown
+}
+
+message MySession {
+  string id = 1;
+  bool current = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp last_seen_at = 4;
+  string ip = 5;
+  DeviceInfo device = 6;
+  optional GeoLocation location = 7;
+}
+
+message ListMySessionsRequest {
+  string user_id = 1;
+  string current_session_id = 2;
+}
+
+message ListMySessionsResponse {
+  repeated MySession sessions = 1;
+}
+
+message RevokeMySessionRequest {
+  string user_id = 1;
+  string session_id = 2;
+}
+
+message RevokeMySessionResponse {}
+
+message RevokeMyOtherSessionsRequest {
+  string user_id = 1;
+  string current_session_id = 2;
+}
+
+message RevokeMyOtherSessionsResponse {
+  int32 revoked = 1;
+}
+
+message LoginEvent {
+  string id = 1;
+  google.protobuf.Timestamp at = 2;
+  string ip = 3;
+  DeviceInfo device = 4;
+  optional GeoLocation location = 5;
+  string method = 6; // password | google
+  bool new_device = 7;
+}
+
+message ListMyLoginEventsRequest {
+  string user_id = 1;
+  common.v1.PageRequest page = 2;
+}
+
+message ListMyLoginEventsResponse {
+  repeated LoginEvent events = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message SecureAccountFromAlertRequest {
+  string token = 1;
+}
+
+message SecureAccountFromAlertResponse {}
+
+message PutMyImageRequest {
+  string user_id = 1;
+  string kind = 2; // avatar | cover
+  bytes data = 3;
+}
+
+message PutMyImageResponse {
+  google.protobuf.Timestamp updated_at = 1;
+  string content_type = 2;
+}
+
+message GetMyImageRequest {
+  string user_id = 1;
+  string kind = 2;
+}
+
+message GetMyImageResponse {
+  bytes data = 1;
+  string content_type = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+message DeleteMyImageRequest {
+  string user_id = 1;
+  string kind = 2;
+}
+
+message DeleteMyImageResponse {}

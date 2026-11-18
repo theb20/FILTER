@@ -31,6 +31,26 @@
 | Backoffice (Next.js) | http://localhost:3100/login |
 | API (gateway) | http://127.0.0.1:8080 (`/healthz`) |
 
+### Clés et réglages locaux : le fichier `backend/.env`
+
+Les secrets du poste de développement se mettent dans **un seul fichier**, `backend/.env` :
+
+```
+cp backend/.env.example backend/.env && chmod 600 backend/.env    # une seule fois
+# puis remplissez les lignes utiles et relancez, depuis la racine :
+./dev.sh up
+```
+
+`./dev.sh` le charge avant de démarrer les services ; tout est décrit dans `backend/.env.example`. Le déploiement en conteneurs a son propre fichier, `backend/deploy/.env`. À savoir :
+
+- **`backend/.env` est ignoré par git** et ne doit jamais être committé, envoyé ni recopié ailleurs ; seul `backend/.env.example`, sans valeur, est suivi.
+- Le fichier **n'est pas exécuté** : une valeur contenant `$(…)` reste du texte.
+- Une variable **déjà exportée dans votre terminal l'emporte** sur le fichier (pratique pour un essai ponctuel).
+- Une ligne `CLE=` (vide) ou commentée laisse la **valeur par défaut**.
+- Les clés n'entrent **jamais en base de données** : le backoffice n'enregistre que le *nom* de la variable qui porte la clé (par exemple `BRAVE_SEARCH_API_KEY` pour la recherche web).
+- Ne mettez **aucun secret** dans `frontend/.env` : tout ce qui commence par `VITE_` part dans le navigateur.
+
+
 ### Où se gère quoi (backoffice → site)
 
 Le site ne contient plus aucune donnée : tout ce qu'il affiche se saisit au backoffice et passe par l'API.
@@ -42,6 +62,7 @@ Le site ne contient plus aucune donnée : tout ce qu'il affiche se saisit au bac
 | Coordonnées, réseaux, chiffres d'accueil | Contenu du site › Informations du site |
 | TVA, seuil de livraison offerte, seuils de devis | Boutique › Règles commerciales |
 | Zones et frais de livraison, codes promotionnels | Boutique › Zones de livraison / Codes promotionnels |
+| « Notre histoire » (accueil : 3 premiers paragraphes et image ; page complète `/about`) | Contenu du site › Pages, adresse `about` |
 | Questions fréquentes, pages `terms`, `refund`, `privacy` | Contenu du site › Questions fréquentes / Pages légales (l'adresse de la page est son identifiant) |
 | Blog (articles, catégories, étiquettes, auteurs) | Contenu du site › Articles du blog… |
 | Avis clients et témoignages d'accueil (sans produit) | Boutique › Avis clients |

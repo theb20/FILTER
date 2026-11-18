@@ -403,8 +403,11 @@ func (s *Service) ExchangeOAuthCode(ctx context.Context, code, ip, ua string) (*
 		if err != nil || u.Status != domain.StatusActive {
 			return deny
 		}
-		sess, err = s.issueSession(ctx, s.Settings.Get(ctx), u, "", ip, ua, s.Now())
-		return err
+		now := s.Now()
+		if sess, err = s.issueSession(ctx, s.Settings.Get(ctx), u, "", ip, ua, now); err != nil {
+			return err
+		}
+		return s.recordLogin(ctx, u, ip, ua, domain.LoginMethodGoogle, now)
 	})
 	return sess, err
 }

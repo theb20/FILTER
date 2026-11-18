@@ -27,7 +27,9 @@ func (m *MemoryLimiter) Allow(key string, limit int, window time.Duration, now t
 	m.calls++
 	if m.calls%4096 == 0 { // balayage périodique : borne la mémoire
 		for k, v := range m.hits {
-			if len(v) == 0 || now.Sub(v[len(v)-1]) > 2*time.Hour {
+			// 25 h : une clé doit survivre à la plus longue fenêtre utilisée (plafonds JOURNALIERS de la recherche web),
+			// sinon un compteur du jour repartirait à zéro après quelques heures d'inactivité.
+			if len(v) == 0 || now.Sub(v[len(v)-1]) > 25*time.Hour {
 				delete(m.hits, k)
 			}
 		}

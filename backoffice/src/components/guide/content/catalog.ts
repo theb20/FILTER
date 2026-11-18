@@ -26,7 +26,7 @@ export const productNewTour: GuideTour = {
 
 export const productDetailTour: GuideTour = {
   id: "product-detail", title: "Fiche produit", summary: "Cycle de vie, modification, historique.", path: "/products", permission: "catalog:read",
-  match: (p) => /^\/products\/(?!new$)[^/]+$/.test(p),
+  match: (p) => /^\/products\/(?!(?:new|bulk)$)[^/]+$/.test(p),
   steps: [
     header("Le nom du produit et son statut actuel.", "La fiche"),
     { id: "life", scene: "product-lifecycle", target: "product-lifecycle", placement: "bottom", title: "Le cycle de vie", text: "Brouillon → À valider → Publié → Archivé. Soumettre à validation passe la fiche en relecture ; publier la rend visible sur le site ; archiver la retire sans la perdre." },
@@ -61,7 +61,7 @@ export const categoryNewTour: GuideTour = {
 
 export const categoryDetailTour: GuideTour = {
   id: "category-detail", title: "Fiche catégorie", summary: "Informations, déplacement, attributs hérités.", path: "/categories", permission: "catalog:read",
-  match: (p) => /^\/categories\/(?!new$)[^/]+$/.test(p),
+  match: (p) => /^\/categories\/(?!(?:new|bulk)$)[^/]+$/.test(p),
   steps: [
     header("Le chemin complet de la catégorie dans l'arbre.", "Où suis-je ?"),
     { id: "info", target: "category-info", placement: "bottom", title: "Informations", text: "Nom, description et identifiant d'URL, dans chaque langue." },
@@ -112,3 +112,25 @@ const formOf = (id: string, title: string, base: string, what: string): GuideTou
 });
 export const brandFormTour = formOf("brand-form", "Fiche marque", "/brands", "une marque");
 export const sectorFormTour = formOf("sector-form", "Fiche secteur", "/sectors", "un secteur");
+
+export const categoriesBulkTour: GuideTour = {
+  id: "categories-bulk", title: "Catégories en masse", summary: "Créer et modifier plusieurs catégories dans un tableur.", path: "/categories/bulk", permission: "catalog:write",
+  match: (p) => p === "/categories/bulk",
+  steps: [
+    { id: "grid", target: "bulk-grid", placement: "top", title: "Un tableur, comme Excel", text: "Cliquez une cellule et tapez, collez des lignes copiées depuis Excel (Ctrl/⌘+V), tirez la poignée pour recopier. Jaune : modifiée · bleu : nouvelle." },
+    { id: "toolbar", target: "bulk-toolbar", placement: "bottom", title: "Enregistrer, importer, exporter", text: "« Enregistrer » envoie toutes les lignes modifiées d'un coup ; la colonne « État » dit ce qui a réussi ou pas. Importez un classeur .xlsx (la première ligne porte les titres) ou exportez la grille." },
+    { id: "delete", target: "bulk-grid", placement: "top", title: "Supprimer", text: "Cochez « Supprimer » sur une ligne existante : elle est supprimée à l'enregistrement, après confirmation." },
+    help,
+  ],
+};
+
+export const productsBulkTour: GuideTour = {
+  id: "products-bulk", title: "Produits en masse", summary: "Créer et modifier plusieurs produits dans un tableur.", path: "/products/bulk", permission: "catalog:write",
+  match: (p) => p === "/products/bulk",
+  steps: [
+    { id: "grid", target: "bulk-grid", placement: "top", title: "Un tableur, comme Excel", text: "Cliquez une cellule et tapez, collez des lignes copiées depuis Excel (Ctrl/⌘+V), tirez la poignée pour recopier. Jaune : modifiée · bleu : nouvelle." },
+    { id: "toolbar", target: "bulk-toolbar", placement: "bottom", title: "Enregistrer, importer, exporter", text: "« Enregistrer » envoie toutes les lignes modifiées d'un coup ; la colonne « État » dit ce qui a réussi ou pas. Importez un classeur .xlsx (la première ligne porte les titres) ou exportez la grille." },
+    { id: "delete", target: "bulk-grid", placement: "top", title: "Supprimer", text: "Cochez « Supprimer » sur une ligne existante : elle est supprimée à l'enregistrement, après confirmation." },
+    help,
+  ],
+};

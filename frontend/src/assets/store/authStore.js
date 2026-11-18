@@ -44,6 +44,28 @@ export const useAuth = create((set, get) => ({
     return { ok: true };
   },
 
+  /** Remplace le compte affiché (après une modification du profil ou d'une image). */
+  setUser(user) {
+    set({ user });
+  },
+
+  /**
+   * Appel authentifié : en cas de 401 (jeton d'accès expiré, durée de vie courte), renouvelle UNE fois la session via
+   * le cookie de rafraîchissement puis rejoue la requête. Si le renouvellement échoue, la session est terminée.
+   * @param {string} path @param {{method?: string, body?: any}} [opts]
+   */
+  async call(path, opts = {}) {
+    const r = await request(path, { ...opts, token: get().accessToken });
+    if (r.status !== 401) return r;
+    const ref = await request("/auth/refresh", { method: "POST" });
+    if (!ref.ok) {
+      set({ status: "anonymous", user: null, accessToken: null });
+      return r;
+    }
+    set({ accessToken: ref.data.accessToken });
+    return request(path, { ...opts, token: ref.data.accessToken });
+  },
+
   async logout() {
     await request("/auth/logout", { method: "POST" });
     set({ status: "anonymous", user: null, accessToken: null });

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion } from "../animation/gsapSetup.js";
 
-import { Link } from "react-router-dom";
-import { ShoppingCart, User, Mail, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, User, Mail, Menu, X, LogOut } from "lucide-react";
 import Logo from "./Logo.jsx";
 import SearchBar from "./SearchBar.jsx";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
@@ -10,10 +10,14 @@ import { useI18n } from "../i18n/i18nContext.js";
 import { useCartCount } from "../store/cartStore.js";
 import { useAuth } from "../store/authStore.js";
 import GuideButton from "../guide/GuideButton.jsx";
+import AccountMenu from "./AccountMenu.jsx";
 
 export default function Header() {
   const { t, currency, setCurrency, currencies } = useI18n();
   const user = useAuth((a) => a.user);
+  const authStatus = useAuth((a) => a.status); // "unknown" tant que la session n'est pas restaurée
+  const logout = useAuth((a) => a.logout);
+  const navigate = useNavigate();
   const count = useCartCount();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -86,9 +90,16 @@ export default function Header() {
           <Link to="/contact" className={`${iconLink} hidden lg:flex`}>
             <Mail size={20} aria-hidden="true" /> {t("nav.contact")}
           </Link>
-          <Link to={user ? "/profil" : "/sign"} data-guide="account" className={`${iconLink} hidden lg:flex`}>
-            <User size={20} aria-hidden="true" /> {user ? (user.firstName || t("nav.account")) : t("nav.signin")}
-          </Link>
+          {authStatus === "unknown" ? (
+            // Session en cours de restauration : réserve la place sans afficher « Connexion » à tort.
+            <span aria-hidden="true" className="hidden h-8 w-[120px] animate-pulse rounded-full bg-white/10 lg:block" />
+          ) : user ? (
+            <AccountMenu user={user} />
+          ) : (
+            <Link to="/sign" data-guide="account" className={`${iconLink} hidden lg:flex`}>
+              <User size={20} aria-hidden="true" /> {t("nav.signin")}
+            </Link>
+          )}
           <Link to="/basket" data-guide="cart" aria-label={t("nav.cartN", { n: count })} className={iconLink}>
             <span ref={cartRef} data-cart-icon className="relative">
               <ShoppingCart size={22} aria-hidden="true" />
@@ -110,13 +121,19 @@ export default function Header() {
 
       {menuOpen && (
         <nav ref={menuRef} aria-label={t("nav.menu")} className="border-t border-white/10 bg-navy px-4 py-3 lg:hidden">
+          {user && (
+            <div className="mb-3 border-b border-white/10 pb-3">
+              <p className="text-[11px] uppercase tracking-wide text-white/60">{t("account.menu.signedAs")}</p>
+              <p className="truncate font-semibold">{[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}</p>
+            </div>
+          )}
           <ul className="space-y-3 text-base">
             {[
               ["/category", "nav.products"],
               ["/brands", "nav.brands"],
               ["/blog", "nav.blog"],
               ["/contact", "nav.contact"],
-              [user ? "/profil" : "/sign", user ? "nav.account" : "nav.signin"],
+              [user ? "/profil" : "/sign", user ? "nav.myAccount" : "nav.signin"],
             ].map(([to, key]) => (
               <li key={to}>
                 <Link to={to} onClick={() => setMenuOpen(false)} className="block py-1 hover:text-action">
@@ -124,6 +141,17 @@ export default function Header() {
                 </Link>
               </li>
             ))}
+            {user && (
+              <li>
+                <button
+                  type="button"
+                  onClick={async () => { setMenuOpen(false); await logout(); navigate("/"); }}
+                  className="flex items-center gap-2 py-1 text-red-300 hover:text-red-200"
+                >
+                  <LogOut size={16} aria-hidden="true" /> {t("nav.signout")}
+                </button>
+              </li>
+            )}
           </ul>
         </nav>
       )}

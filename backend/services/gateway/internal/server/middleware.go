@@ -20,6 +20,7 @@ var csrfPaths = map[string]bool{"/v1/auth/refresh": true, "/v1/auth/logout": tru
 
 func (s *Server) chain(next http.Handler) http.Handler {
 	h := next
+	h = s.idempotency(h)
 	h = s.csrf(h)
 	h = s.rateLimit(h)
 	h = s.logging(h)
@@ -37,9 +38,18 @@ func (s *Server) requestInfo(next http.Handler) http.Handler {
 		trace := traceID(r.Header.Get("traceparent"))
 		w.Header().Set("X-Request-Id", trace)
 		r.Body = http.MaxBytesReader(w, r.Body, s.bodyLimit(r)) // G10 : corps JSON ≤ 1 Mio, sauf l'envoi d'une pièce justificative
-		info := reqInfo{TraceID: trace, IP: s.clientIP(r), UA: truncate(r.UserAgent(), 300), Locale: locale(r, s.cfg.DefaultLocale)}
+		info := reqInfo{TraceID: trace, IP: s.clientIP(r), UA: truncate(r.UserAgent(), 300), Locale: locale(r, s.cfg.DefaultLocale), Bearer: bearerOf(r)}
 		next.ServeHTTP(w, r.WithContext(withInfo(r.Context(), info)))
 	})
+}
+
+// bearerOf : jeton de l'en-tête Authorization, sans le vérifier. Il n'est JAMAIS journalisé.
+func bearerOf(r *http.Request) string {
+	v := r.Header.Get("Authorization")
+	if len(v) > 7 && strings.EqualFold(v[:7], "bearer ") {
+		return strings.TrimSpace(v[7:])
+	}
+	return ""
 }
 
 // traceID reprend l'identifiant du `traceparent` W3C valide, sinon en génère un.
@@ -244,9 +254,15 @@ func (s *Server) rateLimit(next http.Handler) http.Handler {
 // attachmentBodyLimit : une pièce de 5 Mo en base64 (≈ 6,7 Mo) ; réservé à cette seule route d'envoi, réservée au personnel.
 const attachmentBodyLimit = 8 << 20
 
+// imageBodyLimit : une image de 5 Mo en base64 (≈ 6,7 Mo) ; envoi réservé au personnel.
+const imageBodyLimit = 8 << 20
+
 func (s *Server) bodyLimit(r *http.Request) int64 {
 	if r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/admin/finance/operations/") && strings.HasSuffix(r.URL.Path, "/attachments") && attachmentBodyLimit > s.cfg.MaxBodyBytes {
 		return attachmentBodyLimit
+	}
+	if r.Method == http.MethodPost && r.URL.Path == "/v1/admin/uploads" {
+		return imageBodyLimit
 	}
 	return s.cfg.MaxBodyBytes
 }

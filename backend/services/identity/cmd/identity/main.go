@@ -33,9 +33,11 @@ import (
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/auditsink"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/breach"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/devmail"
+	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/geoip"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/grpcserver"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/memory"
 	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/postgres"
+	"github.com/theb20/FILTER/backend/services/identity/internal/adapters/resendmail"
 	"github.com/theb20/FILTER/backend/services/identity/internal/application"
 	"github.com/theb20/FILTER/backend/services/identity/internal/domain"
 	"golang.org/x/term"
@@ -91,7 +93,8 @@ func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Serv
 		st, ev := memory.New(), &events.Memory{}
 		st.Events = ev
 		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events, svc.OAuth = st, st, st, st, st, ev, st
-		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore = st, st.StaffSessions(), st, st, st, st, st
+		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore, svc.Preferences, svc.Consents = st, st.StaffSessions(), st, st, st, st, st, st, st
+		svc.Security = st
 		svc.Settings = &application.DBSettings{Repo: st, Base: domain.DefaultSettings(), TTL: 30 * time.Second}
 	case "postgres":
 		url := os.Getenv("DATABASE_URL")
@@ -109,7 +112,8 @@ func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Serv
 		}
 		cleanup = st.Close
 		svc.Users, svc.Sessions, svc.Tokens, svc.Failures, svc.UoW, svc.Events, svc.OAuth = st, st, st, st, st, &outbox.Publisher{}, st
-		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore = st, st.StaffSessions(), st, st, st, st, st
+		svc.Staff, svc.StaffSessions, svc.Challenges, svc.StaffAdmin, svc.Audit, svc.Customers, svc.SettingsStore, svc.Preferences, svc.Consents = st, st.StaffSessions(), st, st, st, st, st, st, st
+		svc.Security = st
 		svc.Settings = &application.DBSettings{Repo: st, Base: domain.DefaultSettings(), TTL: 30 * time.Second}
 		if serve {
 			natsURL := os.Getenv("NATS_URL")
@@ -155,10 +159,42 @@ func build(ctx context.Context, log *slog.Logger, serve bool) (*application.Serv
 				cleanup = func() { stopMail(); prev() }
 				log.Warn("boîte d'envoi de développement active", "file", path)
 			}
+			// Envoi RÉEL des e-mails transactionnels (Resend). La clé est lue dans l'ENVIRONNEMENT : elle n'est écrite
+			// dans aucun fichier, aucun journal, aucun argument. Sans RESEND_API_KEY, aucun e-mail ne part.
+			if key := os.Getenv("RESEND_API_KEY"); key != "" {
+				sink := resendmail.New(resendmail.Sink{
+					APIKey:        key,
+					From:          getenv("MAIL_FROM", "FilterFinder <onboarding@resend.dev>"),
+					ReplyTo:       os.Getenv("MAIL_REPLY_TO"),
+					BrandName:     getenv("BRAND_NAME", "FilterFinder"),
+					SiteURL:       getenv("SITE_URL", "http://localhost:5173"),
+					BackofficeURL: getenv("BACKOFFICE_URL", "http://localhost:3100"),
+				})
+				stopResend, err := sink.Run(ctx, bus, log)
+				if err != nil {
+					cleanup()
+					return nil, nil, fmt.Errorf("resendmail : %w", err)
+				}
+				prev := cleanup
+				cleanup = func() { stopResend(); prev() }
+				log.Info("envoi des e-mails par Resend actif")
+			} else if env == "prod" {
+				log.Warn("RESEND_API_KEY absente : AUCUN e-mail transactionnel ne sera envoyé (vérification d'adresse, réinitialisation, invitations)")
+			}
 			log.Info("PostgreSQL et NATS prêts (outbox active)")
 		}
 	default:
 		return nil, nil, fmt.Errorf("STORE=%q inconnu (postgres, memory)", mode)
+	}
+	// Géolocalisation APPROXIMATIVE des connexions : base locale DB-IP (facultative ; sans elle, aucune position).
+	if path := os.Getenv("GEOIP_CITY_FILE"); path != "" {
+		if loc, err := geoip.Open(path); err != nil {
+			log.Warn("base de géolocalisation illisible : positions des connexions désactivées", "err", err)
+		} else {
+			svc.Geo = loc
+			prev := cleanup
+			cleanup = func() { prev(); _ = loc.Close() }
+		}
 	}
 	return application.New(svc), cleanup, nil
 }

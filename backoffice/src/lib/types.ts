@@ -22,7 +22,7 @@ export const customerName = (c: Pick<Customer, "firstName" | "lastName" | "email
 // ── catalogue (taxonomie) ──
 export type Localized = Record<string, string>;
 export type PageInfo = { page: number; pageSize: number; total: number; totalPages: number };
-export type Category = { id: string; slug: string; parentId: string | null; sortOrder: number; name: Localized; description: Localized | null; depth: number; productCount: number };
+export type Category = { id: string; slug: string; parentId: string | null; sortOrder: number; name: Localized; description: Localized | null; imageUrl?: string | null; depth: number; productCount: number };
 export type CategoryPage = { items: Category[]; page: PageInfo };
 export type AttributeOption = { value: string; label: Localized };
 export type AttributeType = "text" | "number" | "boolean" | "enum";
@@ -129,3 +129,23 @@ export type StatementImportResult = { simulated: boolean; total: number; inserte
 
 export const LINE_STATUS_LABEL = { unmatched: "Non rapprochée", partial: "Partiellement", matched: "Rapprochée" } as const;
 export const LINE_STATUS_TONE = { unmatched: "warn", partial: "info", matched: "ok" } as const;
+
+// ── moteur de recherche : sources externes ──
+export type SourceKind = "web_search_api" | "manufacturer_api" | "distributor_feed";
+export type Source = {
+  id: string; kind: SourceKind; name: string; baseUrl: string; enabled: boolean; suspended: boolean; priority: number;
+  timeoutMs: number; maxRetries: number; secretRef: string; costPerCallMicros: number; currency: string;
+  allowsRawStorage: boolean; termsCheckedAt: string | null; maxCacheTtlSeconds: number | null; createdAt: string;
+};
+export type SourcePage = { items: Source[]; page: PageInfo };
+export type SourceQuota = {
+  sourceId: string; currency: string; monthlyBudgetMicros: number; dailyCapMicros: number; alertThresholdPct: number; fallbackSourceId: string | null;
+  monthSpentMicros: number; monthReservedMicros: number; daySpentMicros: number; dayReservedMicros: number; alert: boolean;
+};
+export type SourceHealth = {
+  sourceId: string; status: "healthy" | "degraded" | "down" | "suspended" | "disabled"; circuitOpen: boolean; p50Ms: number; p95Ms: number;
+  errorRate: number; calls24h: number; lastSuccessAt: string | null; lastErrorAt: string | null; lastErrorKind: string | null; lastSyncAt: string | null;
+};
+export type SourceTestResult = { ok: boolean; durationMs: number; resultCount: number; costMicros: number; currency: string; errorKind: string | null; sample: string[] };
+export type SourceCostLine = { sourceId: string; sourceName: string; currency: string; calls: number; cachedCalls: number; failedCalls: number; costMicros: number; costPerSearchMicros: number };
+export type SourceCostReport = { from: string; to: string; lines: SourceCostLine[]; note: string };

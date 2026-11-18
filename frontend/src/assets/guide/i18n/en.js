@@ -88,8 +88,8 @@ export default {
   "guide.quote.contact.text": "Company, name, work e-mail and phone: the answer is sent to this address.",
   "guide.quote.items.title": "Your references",
   "guide.quote.items.text": "One line per reference with its quantity. Use “Add an item” for more. The more precise the reference, the faster the quote.",
-  "guide.quote.aside.title": "Prefer to talk?",
-  "guide.quote.aside.text": "Our contact details are here if you would rather call or write.",
+  "guide.quote.aside.title": "Live preview",
+  "guide.quote.aside.text": "The quote document builds itself as you type, so you can check it before sending.",
 
   "guide.contact.title": "Contact",
   "guide.contact.summary": "Write to our team.",

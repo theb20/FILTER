@@ -11,6 +11,9 @@ import (
 func toCompany(c *identityv1.Company) api.Company {
 	id, _ := uuid.Parse(c.GetId())
 	out := api.Company{ID: id, LegalName: c.GetLegalName(), TaxId: c.GetTaxId(), Country: api.CountryCode(c.GetCountry()), TaxIdVerified: c.GetTaxIdVerified()}
+	if c.GetJobTitle() != "" {
+		out.JobTitle = api.NewOptString(c.GetJobTitle())
+	}
 	switch c.GetStatus() {
 	case identityv1.CompanyStatus_COMPANY_STATUS_APPROVED:
 		out.Status = api.CompanyStatusApproved

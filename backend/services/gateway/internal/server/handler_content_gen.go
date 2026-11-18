@@ -56,6 +56,147 @@ func (h *handler) AdminFaqDelete(ctx context.Context, p api.AdminFaqDeleteParams
 	return &api.AdminFaqDeleteNoContent{}, nil
 }
 
+func (h *handler) AdminQuoteResponsesList(ctx context.Context, p api.AdminQuoteResponsesListParams) (api.AdminQuoteResponsesListRes, error) {
+	docs, pg, err := h.contentList(ctx, "quote_response", p.Q.Or(""), nil, p.Page, p.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	out := &api.CmsQuoteResponsePage{Items: make([]api.CmsQuoteResponse, 0, len(docs)), Page: toPageInfo(pg)}
+	for _, d := range docs {
+		v, err := decodeDoc[api.CmsQuoteResponse](d)
+		if err != nil {
+			return nil, err
+		}
+		out.Items = append(out.Items, *v)
+	}
+	return out, nil
+}
+
+func (h *handler) AdminQuoteResponsesCreate(ctx context.Context, req *api.CmsQuoteResponseInput) (api.AdminQuoteResponsesCreateRes, error) {
+	d, err := h.contentCreate(ctx, "quote_response", req, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsQuoteResponse](d)
+}
+
+func (h *handler) AdminQuoteResponsesGet(ctx context.Context, p api.AdminQuoteResponsesGetParams) (api.AdminQuoteResponsesGetRes, error) {
+	d, err := h.contentGet(ctx, "quote_response", p.ID.String())
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsQuoteResponse](d)
+}
+
+func (h *handler) AdminQuoteResponsesUpdate(ctx context.Context, req *api.CmsQuoteResponseInput, p api.AdminQuoteResponsesUpdateParams) (api.AdminQuoteResponsesUpdateRes, error) {
+	d, err := h.contentUpdate(ctx, "quote_response", p.ID.String(), req, true, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsQuoteResponse](d)
+}
+
+func (h *handler) AdminQuoteResponsesDelete(ctx context.Context, p api.AdminQuoteResponsesDeleteParams) (api.AdminQuoteResponsesDeleteRes, error) {
+	if err := h.contentDelete(ctx, "quote_response", p.ID.String()); err != nil {
+		return nil, err
+	}
+	return &api.AdminQuoteResponsesDeleteNoContent{}, nil
+}
+
+func (h *handler) AdminHomePartnerList(ctx context.Context, p api.AdminHomePartnerListParams) (api.AdminHomePartnerListRes, error) {
+	docs, pg, err := h.contentList(ctx, "home_partner", p.Q.Or(""), nil, p.Page, p.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	out := &api.CmsHomePartnerPage{Items: make([]api.CmsHomePartner, 0, len(docs)), Page: toPageInfo(pg)}
+	for _, d := range docs {
+		v, err := decodeDoc[api.CmsHomePartner](d)
+		if err != nil {
+			return nil, err
+		}
+		out.Items = append(out.Items, *v)
+	}
+	return out, nil
+}
+
+func (h *handler) AdminHomePartnerCreate(ctx context.Context, req *api.CmsHomePartnerInput) (api.AdminHomePartnerCreateRes, error) {
+	d, err := h.contentCreate(ctx, "home_partner", req, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsHomePartner](d)
+}
+
+func (h *handler) AdminHomePartnerGet(ctx context.Context, p api.AdminHomePartnerGetParams) (api.AdminHomePartnerGetRes, error) {
+	d, err := h.contentGet(ctx, "home_partner", p.ID.String())
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsHomePartner](d)
+}
+
+func (h *handler) AdminHomePartnerUpdate(ctx context.Context, req *api.CmsHomePartnerInput, p api.AdminHomePartnerUpdateParams) (api.AdminHomePartnerUpdateRes, error) {
+	d, err := h.contentUpdate(ctx, "home_partner", p.ID.String(), req, true, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsHomePartner](d)
+}
+
+func (h *handler) AdminHomePartnerDelete(ctx context.Context, p api.AdminHomePartnerDeleteParams) (api.AdminHomePartnerDeleteRes, error) {
+	if err := h.contentDelete(ctx, "home_partner", p.ID.String()); err != nil {
+		return nil, err
+	}
+	return &api.AdminHomePartnerDeleteNoContent{}, nil
+}
+
+func (h *handler) AdminHeroCardList(ctx context.Context, p api.AdminHeroCardListParams) (api.AdminHeroCardListRes, error) {
+	docs, pg, err := h.contentList(ctx, "hero_card", p.Q.Or(""), nil, p.Page, p.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	out := &api.CmsHeroCardPage{Items: make([]api.CmsHeroCard, 0, len(docs)), Page: toPageInfo(pg)}
+	for _, d := range docs {
+		v, err := decodeDoc[api.CmsHeroCard](d)
+		if err != nil {
+			return nil, err
+		}
+		out.Items = append(out.Items, *v)
+	}
+	return out, nil
+}
+
+func (h *handler) AdminHeroCardCreate(ctx context.Context, req *api.CmsHeroCardInput) (api.AdminHeroCardCreateRes, error) {
+	d, err := h.contentCreate(ctx, "hero_card", req, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsHeroCard](d)
+}
+
+func (h *handler) AdminHeroCardGet(ctx context.Context, p api.AdminHeroCardGetParams) (api.AdminHeroCardGetRes, error) {
+	d, err := h.contentGet(ctx, "hero_card", p.ID.String())
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsHeroCard](d)
+}
+
+func (h *handler) AdminHeroCardUpdate(ctx context.Context, req *api.CmsHeroCardInput, p api.AdminHeroCardUpdateParams) (api.AdminHeroCardUpdateRes, error) {
+	d, err := h.contentUpdate(ctx, "hero_card", p.ID.String(), req, true, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeDoc[api.CmsHeroCard](d)
+}
+
+func (h *handler) AdminHeroCardDelete(ctx context.Context, p api.AdminHeroCardDeleteParams) (api.AdminHeroCardDeleteRes, error) {
+	if err := h.contentDelete(ctx, "hero_card", p.ID.String()); err != nil {
+		return nil, err
+	}
+	return &api.AdminHeroCardDeleteNoContent{}, nil
+}
+
 func (h *handler) AdminPagesList(ctx context.Context, p api.AdminPagesListParams) (api.AdminPagesListRes, error) {
 	docs, pg, err := h.contentList(ctx, "page", p.Q.Or(""), nil, p.Page, p.PageSize)
 	if err != nil {
@@ -603,4 +744,16 @@ func (h *handler) AdminCommerceSettingsPut(ctx context.Context, req *api.CmsComm
 
 func (h *handler) GetCommerceSettings(ctx context.Context) (api.GetCommerceSettingsRes, error) {
 	return settingsGetAs[api.CmsCommerceSettings](h, ctx, "commerce")
+}
+
+func (h *handler) AdminHomeSettingsGet(ctx context.Context) (api.AdminHomeSettingsGetRes, error) {
+	return settingsGetAs[api.CmsHomeSettings](h, ctx, "home")
+}
+
+func (h *handler) AdminHomeSettingsPut(ctx context.Context, req *api.CmsHomeSettings) (api.AdminHomeSettingsPutRes, error) {
+	return settingsPutAs[api.CmsHomeSettings](h, ctx, "home", req)
+}
+
+func (h *handler) GetHomeSettings(ctx context.Context) (api.GetHomeSettingsRes, error) {
+	return settingsGetAs[api.CmsHomeSettings](h, ctx, "home")
 }

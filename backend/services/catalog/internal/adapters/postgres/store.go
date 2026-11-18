@@ -131,13 +131,13 @@ const catSelect = `WITH RECURSIVE tree AS (
     SELECT id, 0 AS depth FROM categories WHERE parent_id IS NULL
     UNION ALL
     SELECT c.id, t.depth + 1 FROM categories c JOIN tree t ON c.parent_id = t.id
-) SELECT c.id::text, c.slug, c.parent_id::text, c.sort_order, c.name, c.description, t.depth, (SELECT count(*) FROM products p WHERE p.category_id = c.id), c.created_at, c.updated_at
+) SELECT c.id::text, c.slug, c.parent_id::text, c.sort_order, c.name, c.description, c.image_url, t.depth, (SELECT count(*) FROM products p WHERE p.category_id = c.id), c.created_at, c.updated_at
   FROM categories c JOIN tree t ON t.id = c.id`
 
 func scanCategory(r pgx.Row) (*domain.Category, error) {
 	var c domain.Category
 	var name, desc []byte
-	if err := r.Scan(&c.ID, &c.Slug, &c.ParentID, &c.SortOrder, &name, &desc, &c.Depth, &c.ProductCount, &c.CreatedAt, &c.UpdatedAt); err != nil {
+	if err := r.Scan(&c.ID, &c.Slug, &c.ParentID, &c.SortOrder, &name, &desc, &c.ImageURL, &c.Depth, &c.ProductCount, &c.CreatedAt, &c.UpdatedAt); err != nil {
 		return nil, notFound(err)
 	}
 	var err error
@@ -149,13 +149,13 @@ func scanCategory(r pgx.Row) (*domain.Category, error) {
 }
 
 func (s *Store) CreateCategory(ctx context.Context, c *domain.Category) error {
-	_, err := s.q(ctx).Exec(ctx, `INSERT INTO categories (id, slug, parent_id, sort_order, name, description) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb)`,
-		c.ID, c.Slug, c.ParentID, c.SortOrder, toJSON(c.Name), toJSON(c.Description))
+	_, err := s.q(ctx).Exec(ctx, `INSERT INTO categories (id, slug, parent_id, sort_order, name, description, image_url) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7)`,
+		c.ID, c.Slug, c.ParentID, c.SortOrder, toJSON(c.Name), toJSON(c.Description), c.ImageURL)
 	return mapErr(err, application.ErrParentNotFound)
 }
 
 func (s *Store) UpdateCategory(ctx context.Context, c *domain.Category) error {
-	tag, err := s.q(ctx).Exec(ctx, `UPDATE categories SET slug=$2, name=$3::jsonb, description=$4::jsonb, updated_at=now() WHERE id=$1`, c.ID, c.Slug, toJSON(c.Name), toJSON(c.Description))
+	tag, err := s.q(ctx).Exec(ctx, `UPDATE categories SET slug=$2, name=$3::jsonb, description=$4::jsonb, image_url=$5, updated_at=now() WHERE id=$1`, c.ID, c.Slug, toJSON(c.Name), toJSON(c.Description), c.ImageURL)
 	if err = mapErr(err, err); err == nil && tag.RowsAffected() == 0 {
 		return application.ErrNotFound
 	}

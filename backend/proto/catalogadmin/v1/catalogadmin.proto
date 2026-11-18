@@ -28,6 +28,7 @@ message Category {
   int64 product_count = 8;
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
+  optional string image_url = 11;
 }
 
 message ListCategoriesRequest {

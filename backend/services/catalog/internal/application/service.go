@@ -436,7 +436,7 @@ func loc(l domain.Localized) map[string]any {
 }
 
 func categorySnap(c *domain.Category) map[string]any {
-	return map[string]any{"slug": c.Slug, "parentId": strOrNil(c.ParentID), "sortOrder": c.SortOrder, "name": loc(c.Name), "description": loc(c.Description)}
+	return map[string]any{"slug": c.Slug, "parentId": strOrNil(c.ParentID), "sortOrder": c.SortOrder, "name": loc(c.Name), "description": loc(c.Description), "imageUrl": strOrNil(c.ImageURL)}
 }
 
 func attrSnap(x *domain.AttributeDef) map[string]any {

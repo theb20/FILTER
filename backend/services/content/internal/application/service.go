@@ -113,6 +113,8 @@ func rules(kind string, d map[string]any) error {
 		if d["type"] == "percent" && d["value"].(float64) > 100 {
 			return invalid("value", "un pourcentage ne peut pas dépasser 100")
 		}
+	case "quote_response":
+		return quoteRules(d)
 	case "shipping_zone":
 		if d["daysMin"].(float64) > d["daysMax"].(float64) {
 			return invalid("daysMax", "le délai maximal doit être supérieur ou égal au délai minimal")
@@ -231,6 +233,9 @@ func (s *Service) Get(ctx context.Context, kind, idOrKey string) (*Document, err
 	var d *Document
 	if _, perr := uuid.Parse(idOrKey); perr == nil {
 		d, err = s.Store.ByID(ctx, kind, idOrKey)
+		if errors.Is(err, ErrNotFound) && k.Unique != "" { // la clé unique peut elle-même être un identifiant (ex. brouillon : compte)
+			d, err = s.Store.ByKey(ctx, kind, idOrKey)
+		}
 	} else if k.Unique != "" {
 		key := idOrKey
 		if k.Upper {

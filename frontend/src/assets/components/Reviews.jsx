@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Quote, Star } from "lucide-react";
 import Todo from "./Todo.jsx";
 import { useI18n } from "../i18n/i18nContext.js";
@@ -60,9 +61,11 @@ export default function Reviews() {
   const SITE = useSite();
   const data = useAsync(fetchSiteReviews, [lang]).data;
   const REVIEWS = data?.items ?? [];
-  const average = data?.count ? data.average : null;
-  const count = data?.count || null;
   const items = withPlaceholders(REVIEWS, lang); // 3 cartes : les avis fictifs cèdent la place aux vrais, un par un
+  // Note et nombre : ceux des avis publiés dès qu'il y en a assez ; sinon ceux des cartes affichées (le tableau n'est jamais vide).
+  const enough = (data?.count ?? 0) >= items.length;
+  const count = enough ? data.count : items.length;
+  const average = enough ? data.average : Math.round((items.reduce((sum, r) => sum + r.rating, 0) / items.length) * 10) / 10;
 
   return (
     <section className="mx-2.5 rounded-[4px] bg-white px-4 py-12 shadow-card md:px-10" aria-labelledby="reviews-title">
@@ -74,7 +77,7 @@ export default function Reviews() {
 
           <div className="mt-6 flex items-center gap-4">
             {average ? (
-              <span className="text-[48px] font-bold leading-none">{average}</span>
+              <span className="text-[48px] font-bold leading-none">{average.toLocaleString(lang, { minimumFractionDigits: 1 })}</span>
             ) : (
               <span className="text-sm"><Todo>{t("todo.ratingValue")}</Todo></span>
             )}
@@ -96,7 +99,9 @@ export default function Reviews() {
               {t("home.reviews.button")} <span aria-hidden="true">→</span>
             </a>
           ) : (
-            <p className="mt-6"><Todo>{t("todo.reviewsLink")}</Todo></p>
+            <Link to="/contact" className="mt-6 inline-flex items-center gap-2 rounded-[3px] bg-action px-5 py-2.5 font-bold text-black transition-colors hover:bg-action-dark">
+              {t("home.reviews.give")} <span aria-hidden="true">→</span>
+            </Link>
           )}
         </div>
 

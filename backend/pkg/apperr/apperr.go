@@ -24,6 +24,7 @@ const (
 	CodeForbidden           = "FORBIDDEN"
 	CodeNotFound            = "NOT_FOUND"
 	CodeConflict            = "CONFLICT"
+	CodeIdempotencyReused   = "IDEMPOTENCY_KEY_REUSED"
 	CodeRateLimited         = "RATE_LIMITED"
 	CodeInvalidCredentials  = "INVALID_CREDENTIALS"
 	CodeInvalidCode         = "INVALID_CODE"

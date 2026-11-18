@@ -223,7 +223,25 @@ func toMe(u *identityv1.User) api.Me {
 	} else {
 		me.LastName.SetToNull()
 	}
-	me.Phone.SetToNull()
-	me.Company.SetToNull()
+	if u.PhoneE164 != nil {
+		me.Phone = api.NewNilPhoneE164(api.PhoneE164(u.GetPhoneE164()))
+	} else {
+		me.Phone.SetToNull()
+	}
+	if u.Company != nil {
+		me.Company = api.NewNilCompany(toCompany(u.GetCompany()))
+	} else {
+		me.Company.SetToNull()
+	}
+	if u.AvatarUpdatedAt != nil {
+		me.AvatarUpdatedAt = api.NewOptNilDateTime(u.GetAvatarUpdatedAt().AsTime())
+	} else {
+		me.AvatarUpdatedAt.SetToNull()
+	}
+	if u.CoverUpdatedAt != nil {
+		me.CoverUpdatedAt = api.NewOptNilDateTime(u.GetCoverUpdatedAt().AsTime())
+	} else {
+		me.CoverUpdatedAt.SetToNull()
+	}
 	return me
 }

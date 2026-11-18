@@ -80,6 +80,7 @@ type Category struct {
 	SortOrder    int
 	Name         Localized
 	Description  Localized // nil = aucune
+	ImageURL     *string   // facultative : https://… ou /chemin du site
 	Depth        int
 	ProductCount int64
 	CreatedAt    time.Time
@@ -98,6 +99,17 @@ func (c *Category) Validate() error {
 	c.Name, c.Description = c.Name.Normalize(), c.Description.Normalize()
 	c.Name.check("/name", 200, true, &f)
 	c.Description.check("/description", 5000, false, &f)
+	if c.ImageURL != nil {
+		v := strings.TrimSpace(*c.ImageURL)
+		switch {
+		case v == "":
+			c.ImageURL = nil
+		case len(v) > 2000 || !(strings.HasPrefix(v, "https://") || strings.HasPrefix(v, "http://") || (strings.HasPrefix(v, "/") && !strings.HasPrefix(v, "//"))):
+			f.add("/imageUrl", "adresse https://… ou chemin du site commençant par /")
+		default:
+			c.ImageURL = &v
+		}
+	}
 	return f.err("catégorie invalide")
 }
 

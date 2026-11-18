@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="{{ .Lang }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>{{ .Subject }}</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#f8f8f8; -webkit-font-smoothing:antialiased;">
+    <!-- Aperçu affiché par la boîte de réception, puis masqué. -->
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">{{ .Preheader }}</div>
+    <div style="display:none; max-height:0; overflow:hidden;">&#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847;</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8f8f8;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; width:100%; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+
+            <!-- Bandeau -->
+            <tr>
+              <td style="background-color:#131921; padding:20px 28px;">
+                <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:19px; font-weight:700; color:#ffffff; letter-spacing:-0.2px;">{{ .BrandName }}</span>
+              </td>
+            </tr>
+
+            <!-- Corps -->
+            <tr>
+              <td style="padding:32px 28px 8px 28px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <h1 style="margin:0 0 16px 0; font-size:21px; line-height:1.3; font-weight:700; color:#131921;">{{ .Title }}</h1>
+                {{ range .Paragraphs }}
+                <p style="margin:0 0 14px 0; font-size:15px; line-height:1.6; color:#333333;">{{ . }}</p>
+                {{ end }}
+              </td>
+            </tr>
+
+            {{ if .Code }}
+            <!-- Code à recopier -->
+            <tr>
+              <td style="padding:8px 28px 4px 28px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" style="background-color:#f4f5f7; border:1px solid #e3e5e8; border-radius:10px; padding:18px 12px;">
+                      <span style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace; font-size:30px; font-weight:700; letter-spacing:7px; color:#131921;">{{ .Code }}</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            {{ end }}
+
+            {{ if .CTAURL }}
+            <!-- Bouton d'action -->
+            <tr>
+              <td align="center" style="padding:20px 28px 8px 28px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" style="background-color:#F7BE14; border-radius:8px;">
+                      <a href="{{ .CTAURL }}" style="display:inline-block; padding:13px 30px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; color:#131921; text-decoration:none; border-radius:8px;">{{ .CTALabel }}</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <!-- Repli : le lien en clair, pour les clients qui n'affichent pas le bouton. -->
+            <tr>
+              <td style="padding:12px 28px 4px 28px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <p style="margin:0; font-size:12px; line-height:1.6; color:#6b7280;">
+                  {{ .FallbackLabel }}<br />
+                  <a href="{{ .CTAURL }}" style="color:#1f5fbf; word-break:break-all;">{{ .CTAURL }}</a>
+                </p>
+              </td>
+            </tr>
+            {{ end }}
+
+            {{ if .Rows }}
+            <!-- Détails (paires libellé / valeur) -->
+            <tr>
+              <td style="padding:12px 28px 4px 28px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border:1px solid #e3e5e8; border-radius:10px;">
+                  {{ range .Rows }}
+                  <tr>
+                    <td style="padding:10px 14px; font-size:13px; color:#6b7280; border-bottom:1px solid #f0f1f3;">{{ .Label }}</td>
+                    <td align="right" style="padding:10px 14px; font-size:13px; font-weight:600; color:#131921; border-bottom:1px solid #f0f1f3;">{{ .Value }}</td>
+                  </tr>
+                  {{ end }}
+                </table>
+              </td>
+            </tr>
+            {{ end }}
+
+            {{ if .Note }}
+            <tr>
+              <td style="padding:16px 28px 0 28px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <p style="margin:0; padding:12px 14px; background-color:#fcf6e3; border-left:3px solid #F7BE14; border-radius:0 6px 6px 0; font-size:13px; line-height:1.6; color:#5a4a1a;">{{ .Note }}</p>
+              </td>
+            </tr>
+            {{ end }}
+
+            <!-- Pied -->
+            <tr>
+              <td style="padding:28px 28px 28px 28px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <hr style="border:0; border-top:1px solid #eceef0; margin:0 0 16px 0;" />
+                <p style="margin:0 0 6px 0; font-size:12px; line-height:1.6; color:#6b7280;">{{ .FooterLine }}</p>
+                <p style="margin:0; font-size:12px; line-height:1.6; color:#9ca3af;">&copy; {{ .Year }} {{ .BrandName }}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

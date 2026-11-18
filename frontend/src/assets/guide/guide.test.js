@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { execSync } from "node:child_process";
 import { clampIndex, computePlacement, resolveSteps, tourForPath } from "./logic.js";
 import { createPrefsStore, DEFAULT_PREFS, parsePrefs } from "./prefsStore.js";
@@ -9,7 +9,7 @@ import es from "./i18n/es.js";
 
 const mem = () => {
   const m = new Map();
-  return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => void m.set(k, v) };
+  return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => void m.set(k, v), removeItem: (k) => void m.delete(k) };
 };
 
 describe("resolveSteps", () => {
@@ -68,7 +68,7 @@ describe("préférences", () => {
     expect(createPrefsStore("ff-guide:guest", st).get().enabled).toBe(true);
   });
   it("fonctionne même si le stockage lève une erreur", () => {
-    const broken = { getItem: () => { throw new Error("x"); }, setItem: () => { throw new Error("x"); } };
+    const broken = { getItem: () => { throw new Error("x"); }, setItem: () => { throw new Error("x"); }, removeItem: () => { throw new Error("x"); } };
     const s = createPrefsStore("k", broken);
     s.set({ enabled: false });
     expect(s.get().enabled).toBe(false);
@@ -120,5 +120,82 @@ describe("repères dans le code", () => {
     const known = new Set([...src.matchAll(/"([a-z-]+)"/g)].map((m) => m[1]));
     const missing = TOURS.flatMap((t) => t.steps.filter((s) => s.target && !known.has(s.target)).map((s) => `${t.id}:${s.target}`));
     expect(missing).toEqual([]);
+  });
+});
+
+describe("synchronisation avec le serveur", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+  const remote = (over = {}) => ({ enabled: true, animations: "auto", seen: [], ...over });
+  const fakeSync = () => {
+    const f = { calls: [], result: true };
+    f.sync = { push: async (p) => { f.calls.push(p); if (f.result === "throw") throw new Error("réseau"); return f.result; } };
+    return f;
+  };
+
+  it("les changements rapprochés partent en un seul envoi (anti-rebond)", async () => {
+    const f = fakeSync();
+    const s = createPrefsStore("k", mem(), f.sync, 600);
+    s.set({ seen: ["a"] }); s.set({ seen: ["a", "b"] }); s.set({ enabled: false });
+    expect(f.calls).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(700);
+    expect(f.calls).toHaveLength(1);
+    expect(f.calls[0]).toEqual({ enabled: false, animations: "auto", seen: ["a", "b"] });
+  });
+
+  it("le serveur fait foi : sans changement local, il remplace le cache sans renvoyer", async () => {
+    const f = fakeSync();
+    const s = createPrefsStore("k", mem(), f.sync);
+    s.hydrate(remote({ enabled: false, seen: ["x"] }));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(s.get()).toEqual({ enabled: false, animations: "auto", seen: ["x"] });
+    expect(f.calls).toHaveLength(0);
+  });
+
+  it("un envoi échoué reste à envoyer et gagne sur le serveur au prochain chargement", async () => {
+    const f = fakeSync();
+    const st = mem();
+    const s1 = createPrefsStore("k", st, f.sync);
+    s1.hydrate(remote());
+    f.result = false;
+    s1.set({ seen: ["home"] });
+    await vi.advanceTimersByTimeAsync(700);
+    f.result = true;
+    const s2 = createPrefsStore("k", st, f.sync);
+    s2.hydrate(remote());
+    await vi.advanceTimersByTimeAsync(10);
+    expect(s2.get().seen).toEqual(["home"]);
+    expect(f.calls.at(-1).seen).toEqual(["home"]);
+    const s3 = createPrefsStore("k", st, f.sync);
+    s3.hydrate(remote({ seen: ["home", "basket"] }));
+    expect(s3.get().seen).toEqual(["home", "basket"]);
+  });
+
+  it("une exception réseau est traitée comme un échec, sans casser l'interface", async () => {
+    const f = fakeSync();
+    const s = createPrefsStore("k", mem(), f.sync);
+    f.result = "throw";
+    s.set({ enabled: false });
+    await vi.advanceTimersByTimeAsync(700);
+    expect(s.get().enabled).toBe(false);
+  });
+
+  it("un visiteur sans compte n'envoie jamais rien (pas de synchronisation)", async () => {
+    const s = createPrefsStore("ff-guide:guest", mem());
+    s.set({ enabled: false });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(s.get().enabled).toBe(false);
+  });
+
+  it("migration : des préférences locales d'avant la synchronisation sont réunies avec celles du serveur", async () => {
+    const f = fakeSync();
+    const st = mem();
+    createPrefsStore("k", st).set({ enabled: false, seen: ["a", "b"] });
+    const s = createPrefsStore("k", st, f.sync);
+    s.hydrate(remote({ seen: ["b", "c"] }));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(s.get().enabled).toBe(false);
+    expect([...s.get().seen].sort()).toEqual(["a", "b", "c"]);
+    expect([...f.calls.at(-1).seen].sort()).toEqual(["a", "b", "c"]);
   });
 });

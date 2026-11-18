@@ -21,6 +21,7 @@ type UserRepo interface {
 	Create(ctx context.Context, u *domain.User) error // ErrEmailTaken si l'adresse existe (atomique)
 	ByEmail(ctx context.Context, email string) (*domain.User, error)
 	ByID(ctx context.Context, id string) (*domain.User, error)
+	// Update enregistre le compte (adresse comprise : ErrEmailTaken si elle appartient à un autre compte).
 	Update(ctx context.Context, u *domain.User) error
 }
 
@@ -40,6 +41,10 @@ type TokenRepo interface {
 	Put(ctx context.Context, t *domain.OneTimeToken) error
 	// Consume est ATOMIQUE : renvoie l'identifiant du compte si le jeton est valide, non expiré et non utilisé.
 	Consume(ctx context.Context, purpose, hash string, now time.Time) (userID string, ok bool, err error)
+	// ConsumePayload : comme Consume, et renvoie la donnée liée au jeton (ex. la nouvelle adresse e-mail).
+	ConsumePayload(ctx context.Context, purpose, hash string, now time.Time) (userID, payload string, ok bool, err error)
+	// InvalidateUserTokens rend inutilisables les jetons non consommés de ce compte pour ce but (un seul lien valable à la fois).
+	InvalidateUserTokens(ctx context.Context, purpose, userID string, now time.Time) error
 }
 
 // FailureStore mémorise les échecs de connexion (ralentissement progressif + alerte au titulaire).
@@ -172,4 +177,19 @@ type OAuthRepo interface {
 	OAuthUser(ctx context.Context, provider, subject string) (userID string, found bool, err error)
 	// LinkOAuth lie l'identité au compte ; sans effet si le lien existe déjà pour ce compte.
 	LinkOAuth(ctx context.Context, provider, subject, userID string, at time.Time) error
+}
+
+// PreferencesRepo persiste les préférences d'interface, par compte (personnel ou client).
+type PreferencesRepo interface {
+	// LoadPreferences renvoie nil quand le compte n'a jamais rien enregistré.
+	LoadPreferences(ctx context.Context, kind domain.PrincipalKind, id string) (*domain.Preferences, error)
+	// SavePreferences remplace les préférences ; ErrNotFound si le compte n'existe pas.
+	SavePreferences(ctx context.Context, kind domain.PrincipalKind, id string, p domain.Preferences, at time.Time) error
+}
+
+// ConsentRepo : journal de consentements APPEND-ONLY (preuve).
+type ConsentRepo interface {
+	AppendConsent(ctx context.Context, c *domain.ConsentRecord) error // ErrNotFound si user_id inconnu
+	// LatestUserConsent renvoie le consentement le plus récent du compte, ou ErrNotFound s'il n'en a jamais donné.
+	LatestUserConsent(ctx context.Context, userID string) (*domain.ConsentRecord, error)
 }

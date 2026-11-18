@@ -61,6 +61,23 @@ func TestSuite(t *testing.T) {
 		{"OAuthRefusDesFalsifications", testOAuthRefusDesFalsifications},
 		{"ReglagesParDefautEtValidation", testReglagesParDefautEtValidation},
 		{"ReglagesModifiesAppliquesEtAudites", testReglagesModifiesAppliquesEtAudites},
+		{"PreferencesDefautsEtValidation", testPreferencesDefautsEtValidation},
+		{"PreferencesEnregistreesRemplaceesEtIsolees", testPreferencesEnregistreesRemplaceesEtIsolees},
+		{"PreferencesCompteInconnuOuMondeInconnu", testPreferencesCompteInconnuOuMondeInconnu},
+		{"ProfilModificationPartielleEtValidation", testProfilModificationPartielleEtValidation},
+		{"EmailChangementParcoursComplet", testEmailChangementParcoursComplet},
+		{"EmailChangementRefusEtUniformite", testEmailChangementRefusEtUniformite},
+		{"EmailChangementUnSeulLienEtUsageUnique", testEmailChangementUnSeulLienEtUsageUnique},
+		{"EmailChangementCourseSurLAdresse", testEmailChangementCourseSurLAdresse},
+		{"EntrepriseLectureEtRevalidation", testEntrepriseLectureEtRevalidation},
+		{"EntrepriseValidationEtParticulier", testEntrepriseValidationEtParticulier},
+		{"ConsentementsJournalAppendOnly", testConsentementsJournalAppendOnly},
+		{"ConsentementsValidationEtVisiteur", testConsentementsValidationEtVisiteur},
+		{"VerifierUnePermissionLueEnBase", testVerifierUnePermissionLueEnBase},
+		{"SecuriteAppareilsConnectesEtDeconnexion", testSecuriteAppareilsConnectesEtDeconnexion},
+		{"SecuriteAlerteNouvelAppareilEtLienDeSecours", testSecuriteAlerteNouvelAppareilEtLienDeSecours},
+		{"SecuriteHistoriqueConserve90Jours", testSecuriteHistoriqueConserve90Jours},
+		{"SecuritePhotoEtCouverture", testSecuritePhotoEtCouverture},
 	}
 	for _, b := range backends {
 		t.Run(b.name, func(t *testing.T) {

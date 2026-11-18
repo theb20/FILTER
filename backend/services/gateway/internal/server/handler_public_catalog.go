@@ -219,7 +219,7 @@ func categoryTree(all []*pb.Category, locale string, root *string, depth int) []
 	var build func(c *pb.Category, d int) api.CategoryNode
 	build = func(c *pb.Category, d int) api.CategoryNode {
 		name, _ := pickText(c.GetName(), locale)
-		n := api.CategoryNode{ID: uuidOf(c.GetId()), Slug: c.GetSlug(), Name: name, Depth: c.GetDepth(), ProductCount: api.NewOptInt64(c.GetProductCount()), Children: []api.CategoryNode{}}
+		n := api.CategoryNode{ID: uuidOf(c.GetId()), Slug: c.GetSlug(), Name: name, Depth: c.GetDepth(), ProductCount: api.NewOptInt64(c.GetProductCount()), Children: []api.CategoryNode{}, ImageUrl: nilStr(c.ImageUrl)}
 		if c.ParentId != nil {
 			n.ParentId = api.NewNilUUID(uuidOf(c.GetParentId()))
 		} else {

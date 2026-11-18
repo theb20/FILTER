@@ -10,6 +10,11 @@ export function CategoryFields({ value }: { value?: Category }) {
       <label className="block text-sm font-medium text-night">Identifiant d’URL<input name="slug" required defaultValue={value?.slug} pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={80} className={inputCls} /><span className="mt-1 block text-xs font-normal text-slate">{slugHint}</span></label>
       <LocalizedFields name="name" label="Nom" value={value?.name} />
       <LocalizedFields name="description" label="Description (facultatif)" value={value?.description} multiline required={false} />
+      <label className="block text-sm font-medium text-night">Image : adresse <span className="font-normal text-slate">(facultatif, https://… ou /img/…)</span><input name="imageUrl" defaultValue={value?.imageUrl ?? ""} maxLength={2000} pattern="(https?://|/).*" title="Adresse https://… ou chemin commençant par /" className={inputCls} />
+        <span className="mt-1 block text-xs font-normal text-slate">Affichée sur les cartes de catégories du site. Laissez vide pour ne pas en avoir.</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {value?.imageUrl && <img src={value.imageUrl} alt="" className="mt-2 h-24 w-24 rounded-lg border border-line object-cover" />}
+      </label>
     </>
   );
 }

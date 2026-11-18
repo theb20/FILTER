@@ -114,11 +114,20 @@ func userToProto(u *domain.User) *identityv1.User {
 		Id: u.ID, Email: u.Email, EmailVerified: u.EmailVerified, Kind: kindToProto(u.Kind), Locale: u.Locale, PreferredCurrency: u.PreferredCurrency,
 		ProConditionsActive: u.ProActive(), Status: u.Status, CreatedAt: timestamppb.New(u.CreatedAt),
 	}
+	if u.AvatarUpdatedAt != nil {
+		out.AvatarUpdatedAt = timestamppb.New(*u.AvatarUpdatedAt)
+	}
+	if u.CoverUpdatedAt != nil {
+		out.CoverUpdatedAt = timestamppb.New(*u.CoverUpdatedAt)
+	}
 	if u.FirstName != "" {
 		out.FirstName = &u.FirstName
 	}
 	if u.LastName != "" {
 		out.LastName = &u.LastName
+	}
+	if u.Phone != "" {
+		out.PhoneE164 = &u.Phone
 	}
 	if u.Company != nil {
 		out.Company = companyToProto(u.Company)

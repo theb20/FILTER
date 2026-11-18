@@ -46,16 +46,28 @@ const isVisible = (target: string) => {
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function GuideProvider({ userId, permissions, children }: { userId: string; permissions: string[]; children: React.ReactNode }) {
+/**
+ * `initialPrefs` : préférences du serveur (lues à l'affichage de la page) ; `save` : action serveur qui les enregistre.
+ * Sans l'un ou l'autre (serveur injoignable), le guide fonctionne sur le cache du navigateur.
+ */
+export function GuideProvider({ userId, permissions, initialPrefs, save, children }: { userId: string; permissions: string[]; initialPrefs?: GuidePrefs | null; save?: (p: GuidePrefs) => Promise<boolean>; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const store = useMemo(() => createPrefsStore(`ff-guide:${userId}`), [userId]);
+  const store = useMemo(() => createPrefsStore(`ff-guide:${userId}`, undefined, save ? { push: save } : undefined), [userId, save]);
   const prefs = useSyncExternalStore(store.subscribe, store.get, () => DEFAULT_PREFS);
   const [activeRaw, setActive] = useState<Active | null>(null);
   // Une visite n'est valable que sur la page où elle a démarré : naviguer la ferme, sans effet de bord.
   const active = activeRaw && activeRaw.path === pathname ? activeRaw : null;
   const [pending, setPending] = useState<string | null>(null); // visite à lancer après navigation
   const lastFocus = useRef<HTMLElement | null>(null);
+  const hydrated = useRef<typeof store | null>(null);
+
+  // Le serveur fait foi : on rapatrie ses préférences une seule fois par membre (un rafraîchissement ultérieur ne doit pas écraser un choix récent).
+  useEffect(() => {
+    if (!initialPrefs || hydrated.current === store) return;
+    hydrated.current = store;
+    store.hydrate(initialPrefs);
+  }, [store, initialPrefs]);
 
   const tours = useMemo(() => TOURS.filter((t) => hasPermission(permissions, t.permission)), [permissions]);
   const current = useMemo(() => tourForPath(TOURS, pathname, permissions), [pathname, permissions]);

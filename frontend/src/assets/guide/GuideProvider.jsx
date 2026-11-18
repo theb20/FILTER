@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/authStore.js";
+import { request } from "../lib/api.js";
 import { TOURS } from "./content/tours.js";
 import { findTarget, resolveSteps, tourForPath } from "./logic.js";
 import { createPrefsStore, DEFAULT_PREFS } from "./prefsStore.js";
@@ -19,11 +20,37 @@ export default function GuideProvider({ children }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const userId = useAuth((a) => a.user?.id);
-  const store = useMemo(() => createPrefsStore(`ff-guide:${userId ?? "guest"}`), [userId]);
+  const authed = useAuth((a) => a.status === "authenticated" && Boolean(a.accessToken));
+  // Visiteur anonyme : cache du navigateur seulement. Compte connecté : le serveur fait foi (préférences synchronisées entre appareils).
+  const store = useMemo(() => createPrefsStore(
+    `ff-guide:${userId ?? "guest"}`,
+    undefined,
+    userId ? {
+      push: async (p) => {
+        const token = useAuth.getState().accessToken; // jeton courant, pas celui d'il y a dix minutes
+        if (!token) return false;
+        const r = await request("/me/preferences", { method: "PUT", token, body: { guide: p } });
+        return r.ok;
+      },
+    } : undefined,
+  ), [userId]);
   const prefs = useSyncExternalStore(store.subscribe, store.get, () => DEFAULT_PREFS);
   const [activeRaw, setActive] = useState(null);
   const [pending, setPending] = useState(null); // visite à lancer après navigation demandée depuis le profil
   const lastFocus = useRef(null);
+  const pull = useRef({ store: null, state: "idle" }); // état de la reprise des préférences du serveur
+
+  // Le serveur fait foi : on rapatrie les préférences du compte une fois par session. La réponse est appliquée même si le
+  // composant a été démonté entre-temps (React rejoue les effets en développement) ; un échec réseau laisse le cache et permet de réessayer.
+  useEffect(() => {
+    if (!userId || !authed) return;
+    if (pull.current.store === store && pull.current.state !== "idle") return;
+    pull.current = { store, state: "loading" };
+    request("/me/preferences", { token: useAuth.getState().accessToken }).then((r) => {
+      if (r.ok && r.data?.guide) { store.hydrate(r.data.guide); pull.current = { store, state: "done" }; }
+      else if (pull.current.store === store) pull.current = { store, state: "idle" };
+    });
+  }, [store, userId, authed]);
 
   // Une visite n'est valable que sur la page où elle a démarré : naviguer la ferme, sans effet de bord.
   const active = activeRaw && activeRaw.path === pathname ? activeRaw : null;

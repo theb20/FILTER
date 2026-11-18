@@ -66,12 +66,30 @@ func (s *Sink) render(env *eventsv1.Envelope) string {
 			return ""
 		}
 		return fmt.Sprintf("Réinitialisation du mot de passe pour %s\n  Code : %s (valable 15 minutes)", m.Email, m.Code)
+	case "identity.email_change_requested.v1":
+		var m eventsv1.EmailChangeRequested
+		if proto.Unmarshal(env.Payload, &m) != nil {
+			return ""
+		}
+		return fmt.Sprintf("Changement d'adresse : confirmation à envoyer à %s (ancienne : %s)\n  Lien : %s/confirm-email-change?token=%s", m.NewEmail, m.OldEmail, s.SiteURL, m.Token)
+	case "identity.email_change_confirmed.v1":
+		var m eventsv1.EmailChangeConfirmed
+		if proto.Unmarshal(env.Payload, &m) != nil {
+			return ""
+		}
+		return fmt.Sprintf("Adresse modifiée : %s remplacée par %s (alerte à l'ancienne adresse)", m.OldEmail, m.NewEmail)
 	case "identity.registration_attempt_on_existing_account.v1":
 		var m eventsv1.RegistrationAttemptOnExistingAccount
 		if proto.Unmarshal(env.Payload, &m) != nil {
 			return ""
 		}
 		return fmt.Sprintf("Tentative d'inscription sur un compte existant : %s", m.Email)
+	case "identity.new_device_login_alert_requested.v1":
+		var m eventsv1.NewDeviceLoginAlertRequested
+		if proto.Unmarshal(env.Payload, &m) != nil {
+			return ""
+		}
+		return fmt.Sprintf("Nouvelle connexion au compte %s : %s · %s, %s %s (IP %s). Ce n'était pas moi : %s/secure-account?token=%s", m.Email, m.Browser, m.Os, m.City, m.Country, m.Ip, s.SiteURL, m.Token)
 	case "identity.suspicious_login_alert_requested.v1":
 		var m eventsv1.SuspiciousLoginAlertRequested
 		if proto.Unmarshal(env.Payload, &m) != nil {

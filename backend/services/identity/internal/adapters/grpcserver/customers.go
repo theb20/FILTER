@@ -36,6 +36,9 @@ func companyStatusFromProto(s *identityv1.CompanyStatus) string {
 
 func companyToProto(c *domain.Company) *identityv1.Company {
 	out := &identityv1.Company{Id: c.ID, LegalName: c.LegalName, TaxId: c.TaxID, Country: c.Country, Status: companyStatusToProto(c.State())}
+	if c.JobTitle != "" {
+		out.JobTitle = &c.JobTitle
+	}
 	if c.RejectionReason != "" {
 		out.RejectionReason = &c.RejectionReason
 	}

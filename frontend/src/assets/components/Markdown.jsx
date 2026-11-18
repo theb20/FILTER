@@ -23,6 +23,11 @@ function inline(text, keyBase) {
   return out;
 }
 
+/** Un paragraphe Markdown rendu en ligne (gras, italique, liens sûrs), sans style de couleur : hérite du parent. */
+export function MarkdownInline({ text }) {
+  return text.split("\n").map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l, `i${j}`)}</Fragment>);
+}
+
 export default function Markdown({ source }) {
   const blocks = source.replace(/\r/g, "").split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
   return (

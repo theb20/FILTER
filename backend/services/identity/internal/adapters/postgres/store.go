@@ -91,22 +91,25 @@ func notFound(err error) error {
 // ── UserRepo ────────────────────────────────────────────────────────────────
 
 const userCols = `u.id::text, u.email, u.password_hash, u.email_verified, u.kind, u.first_name, u.last_name, u.locale,
-	u.preferred_currency, u.status, u.created_at, c.id::text, c.legal_name, c.tax_id, c.country, c.approved, c.status, c.rejection_reason, c.decided_at`
+	u.preferred_currency, u.status, u.created_at, u.phone, c.id::text, c.legal_name, c.tax_id, c.country, c.approved, c.status, c.rejection_reason, c.decided_at, c.job_title`
 const userFrom = ` FROM users u LEFT JOIN companies c ON c.id = u.company_id `
 
 func scanUser(row pgx.Row) (*domain.User, error) {
 	var u domain.User
-	var cid, legal, tax, country, cstatus, creason *string
+	var cid, legal, tax, country, cstatus, creason, cjob *string
 	var approved *bool
 	var decided *time.Time
 	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.EmailVerified, &u.Kind, &u.FirstName, &u.LastName, &u.Locale,
-		&u.PreferredCurrency, &u.Status, &u.CreatedAt, &cid, &legal, &tax, &country, &approved, &cstatus, &creason, &decided); err != nil {
+		&u.PreferredCurrency, &u.Status, &u.CreatedAt, &u.Phone, &cid, &legal, &tax, &country, &approved, &cstatus, &creason, &decided, &cjob); err != nil {
 		return nil, notFound(err)
 	}
 	if cid != nil {
 		u.Company = &domain.Company{ID: *cid, LegalName: *legal, TaxID: *tax, Country: *country, Approved: *approved, Status: *cstatus, DecidedAt: decided}
 		if creason != nil {
 			u.Company.RejectionReason = *creason
+		}
+		if cjob != nil {
+			u.Company.JobTitle = *cjob
 		}
 	}
 	return &u, nil
@@ -122,9 +125,9 @@ func (s *Store) Create(ctx context.Context, u *domain.User) error {
 	}
 	return s.Do(ctx, func(ctx context.Context) error {
 		db := s.q(ctx)
-		tag, err := db.Exec(ctx, `INSERT INTO users (id, email, password_hash, email_verified, kind, first_name, last_name, locale, preferred_currency, status, company_id, created_at)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (email) DO NOTHING`,
-			u.ID, u.Email, u.PasswordHash, u.EmailVerified, u.Kind, u.FirstName, u.LastName, u.Locale, u.PreferredCurrency, u.Status, companyID, u.CreatedAt)
+		tag, err := db.Exec(ctx, `INSERT INTO users (id, email, password_hash, email_verified, kind, first_name, last_name, locale, preferred_currency, status, company_id, created_at, phone)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (email) DO NOTHING`,
+			u.ID, u.Email, u.PasswordHash, u.EmailVerified, u.Kind, u.FirstName, u.LastName, u.Locale, u.PreferredCurrency, u.Status, companyID, u.CreatedAt, u.Phone)
 		if err != nil {
 			if isUnique(err) {
 				return application.ErrEmailTaken
@@ -153,17 +156,20 @@ func (s *Store) ByID(ctx context.Context, id string) (*domain.User, error) {
 func (s *Store) Update(ctx context.Context, u *domain.User) error {
 	return s.Do(ctx, func(ctx context.Context) error {
 		db := s.q(ctx)
-		tag, err := db.Exec(ctx, `UPDATE users SET password_hash=$2, email_verified=$3, first_name=$4, last_name=$5, locale=$6, preferred_currency=$7, status=$8 WHERE id=$1`,
-			u.ID, u.PasswordHash, u.EmailVerified, u.FirstName, u.LastName, u.Locale, u.PreferredCurrency, u.Status)
+		tag, err := db.Exec(ctx, `UPDATE users SET email=$9, password_hash=$2, email_verified=$3, first_name=$4, last_name=$5, locale=$6, preferred_currency=$7, status=$8, phone=$10 WHERE id=$1`,
+			u.ID, u.PasswordHash, u.EmailVerified, u.FirstName, u.LastName, u.Locale, u.PreferredCurrency, u.Status, u.Email, u.Phone)
 		if err != nil {
+			if isUnique(err) {
+				return application.ErrEmailTaken
+			}
 			return err
 		}
 		if tag.RowsAffected() == 0 {
 			return application.ErrNotFound
 		}
 		if u.Company != nil {
-			_, err = db.Exec(ctx, `UPDATE companies SET legal_name=$2, tax_id=$3, country=$4, approved=$5, status=$6, rejection_reason=NULLIF($7,''), decided_at=$8 WHERE id=$1`,
-				u.Company.ID, u.Company.LegalName, u.Company.TaxID, u.Company.Country, u.Company.Approved, u.Company.State(), u.Company.RejectionReason, u.Company.DecidedAt)
+			_, err = db.Exec(ctx, `UPDATE companies SET legal_name=$2, tax_id=$3, country=$4, approved=$5, status=$6, rejection_reason=NULLIF($7,''), decided_at=$8, job_title=$9 WHERE id=$1`,
+				u.Company.ID, u.Company.LegalName, u.Company.TaxID, u.Company.Country, u.Company.Approved, u.Company.State(), u.Company.RejectionReason, u.Company.DecidedAt, u.Company.JobTitle)
 		}
 		return err
 	})
@@ -213,19 +219,29 @@ func (s *Store) RevokeAllExcept(ctx context.Context, userID, keepFamilyID string
 // ── TokenRepo ───────────────────────────────────────────────────────────────
 
 func (s *Store) Put(ctx context.Context, t *domain.OneTimeToken) error {
-	_, err := s.q(ctx).Exec(ctx, `INSERT INTO one_time_tokens (purpose, token_hash, user_id, expires_at, used_at) VALUES ($1,$2,$3,$4,$5)`,
-		t.Purpose, t.Hash, t.UserID, t.ExpiresAt, t.UsedAt)
+	_, err := s.q(ctx).Exec(ctx, `INSERT INTO one_time_tokens (purpose, token_hash, user_id, expires_at, used_at, payload) VALUES ($1,$2,$3,$4,$5,$6)`,
+		t.Purpose, t.Hash, t.UserID, t.ExpiresAt, t.UsedAt, t.Payload)
 	return err
 }
 
 // Consume est atomique : un seul appelant concurrent obtient le compte.
 func (s *Store) Consume(ctx context.Context, purpose, hash string, now time.Time) (string, bool, error) {
-	var id string
-	err := s.q(ctx).QueryRow(ctx, `UPDATE one_time_tokens SET used_at = $3 WHERE purpose = $1 AND token_hash = $2 AND used_at IS NULL AND expires_at > $3 RETURNING user_id::text`, purpose, hash, now).Scan(&id)
+	id, _, ok, err := s.ConsumePayload(ctx, purpose, hash, now)
+	return id, ok, err
+}
+
+func (s *Store) ConsumePayload(ctx context.Context, purpose, hash string, now time.Time) (string, string, bool, error) {
+	var id, payload string
+	err := s.q(ctx).QueryRow(ctx, `UPDATE one_time_tokens SET used_at = $3 WHERE purpose = $1 AND token_hash = $2 AND used_at IS NULL AND expires_at > $3 RETURNING user_id::text, payload`, purpose, hash, now).Scan(&id, &payload)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", false, nil
+		return "", "", false, nil
 	}
-	return id, err == nil, err
+	return id, payload, err == nil, err
+}
+
+func (s *Store) InvalidateUserTokens(ctx context.Context, purpose, userID string, now time.Time) error {
+	_, err := s.q(ctx).Exec(ctx, `UPDATE one_time_tokens SET used_at = $3 WHERE purpose = $1 AND user_id = $2 AND used_at IS NULL`, purpose, userID, now)
+	return err
 }
 
 // ── FailureStore ────────────────────────────────────────────────────────────

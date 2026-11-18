@@ -221,6 +221,112 @@ func (f Field) check(v any) (any, error) {
 			return nil, nil
 		}
 		return out, nil
+	case "qlines": // lignes chiffrées de la réponse à un devis (prix par ligne, remise, notes)
+		l, ok := v.([]any)
+		if !ok {
+			return nil, bad(f.Name, "doit être une liste")
+		}
+		if len(l) > 100 {
+			return nil, bad(f.Name, "100 lignes au maximum")
+		}
+		out := make([]any, 0, len(l))
+		for _, x := range l {
+			m, ok := x.(map[string]any)
+			if !ok {
+				return nil, bad(f.Name, "ligne invalide")
+			}
+			line := map[string]any{}
+			ref, _ := m["reference"].(string)
+			if ref = strings.TrimSpace(ref); ref == "" || len([]rune(ref)) > 255 {
+				return nil, bad(f.Name, "référence obligatoire (255 caractères au maximum)")
+			}
+			line["reference"] = ref
+			q, _ := m["quantity"].(float64)
+			if q < 1 || q > 100000 || q != float64(int64(q)) {
+				return nil, bad(f.Name, "quantité invalide (entier de 1 à 100000)")
+			}
+			line["quantity"] = q
+			if p, ok := m["unitPrice"].(float64); ok {
+				if p < 0 || p > 1e12 || p != float64(int64(p)) {
+					return nil, bad(f.Name, "prix unitaire invalide (entier ≥ 0)")
+				}
+				line["unitPrice"] = p
+			}
+			if d, ok := m["discountPct"].(float64); ok && d != 0 {
+				if d < 0 || d > 100 {
+					return nil, bad(f.Name, "remise de ligne entre 0 et 100 %")
+				}
+				line["discountPct"] = d
+			}
+			if u, ok := m["image"].(string); ok && strings.TrimSpace(u) != "" {
+				if !mediaURL(strings.TrimSpace(u)) {
+					return nil, bad(f.Name, "image : adresse invalide (téléversée depuis le studio, ou https://…)")
+				}
+				line["image"] = strings.TrimSpace(u)
+			}
+			for _, key := range []string{"name", "leadTime", "note", "internal"} {
+				if s, ok := m[key].(string); ok {
+					s = strings.TrimSpace(s)
+					max := 255
+					if key == "note" || key == "internal" {
+						max = 1000
+					}
+					if len([]rune(s)) > max {
+						return nil, bad(f.Name, fmt.Sprintf("%s : %d caractères au maximum", key, max))
+					}
+					if s != "" {
+						line[key] = s
+					}
+				}
+			}
+			for _, key := range []string{"optional", "custom"} {
+				if b, ok := m[key].(bool); ok && b {
+					line[key] = true
+				}
+			}
+			if id, ok := m["productId"].(string); ok && id != "" {
+				if _, err := uuid.Parse(id); err != nil {
+					return nil, bad(f.Name, "identifiant de produit invalide")
+				}
+				line["productId"] = id
+			}
+			out = append(out, line)
+		}
+		if len(out) == 0 {
+			return nil, nil
+		}
+		return out, nil
+	case "imgs": // images jointes (annexes d'un devis) : [{url, caption}]
+		l, ok := v.([]any)
+		if !ok {
+			return nil, bad(f.Name, "doit être une liste")
+		}
+		if len(l) > 30 {
+			return nil, bad(f.Name, "30 images au maximum")
+		}
+		out := make([]any, 0, len(l))
+		for _, x := range l {
+			m, ok := x.(map[string]any)
+			if !ok {
+				return nil, bad(f.Name, "image invalide")
+			}
+			u, _ := m["url"].(string)
+			if u = strings.TrimSpace(u); !mediaURL(u) {
+				return nil, bad(f.Name, "image : adresse invalide")
+			}
+			img := map[string]any{"url": u}
+			if c, ok := m["caption"].(string); ok && strings.TrimSpace(c) != "" {
+				if len([]rune(c)) > 255 {
+					return nil, bad(f.Name, "légende : 255 caractères au maximum")
+				}
+				img["caption"] = strings.TrimSpace(c)
+			}
+			out = append(out, img)
+		}
+		if len(out) == 0 {
+			return nil, nil
+		}
+		return out, nil
 	case "items": // lignes d'une demande de devis
 		l, ok := v.([]any)
 		if !ok {
@@ -261,4 +367,16 @@ func (f Field) check(v any) (any, error) {
 		return out, nil
 	}
 	return nil, bad(f.Name, "type de champ non géré : "+f.Type)
+}
+
+// mediaURL : une image du site (téléversée : /v1/files/…) ou une adresse https. Jamais de javascript:, data: ou //hôte.
+func mediaURL(u string) bool {
+	if u == "" || len(u) > 2000 {
+		return false
+	}
+	if strings.HasPrefix(u, "/v1/files/") {
+		return !strings.Contains(u, "..")
+	}
+	pu, err := url.Parse(u)
+	return err == nil && pu.Scheme == "https" && pu.Host != ""
 }

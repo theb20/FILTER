@@ -12,6 +12,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+# Secrets et réglages locaux : backend/.env (ignoré par git). Une variable déjà exportée dans le terminal reste prioritaire.
+. "$ROOT/backend/scripts/load-env.sh"; ff_load_env "$ROOT/backend"
 D="${FF_DEV_DIR:-$HOME/.filterfinder}"
 SITE_PORT=5173; BO_PORT=3100
 mkdir -p "$D"/{log,run}

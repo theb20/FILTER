@@ -35,6 +35,7 @@ const (
 // Company est le titulaire d'un compte entreprise. `Approved` reste le miroir de `Status == approved`.
 type Company struct {
 	ID, LegalName, TaxID, Country string
+	JobTitle                      string // fonction du titulaire (facultatif ; n'entre pas dans la revalidation)
 	Approved                      bool
 	Status                        string // vide = en attente (comptes créés avant le statut)
 	RejectionReason               string
@@ -61,11 +62,14 @@ type User struct {
 	Kind              string
 	FirstName         string
 	LastName          string
+	Phone             string // E.164 ; vide = non renseigné
 	Locale            string
 	PreferredCurrency string
 	Status            string
 	Company           *Company
 	CreatedAt         time.Time
+	AvatarUpdatedAt   *time.Time // photo de profil (nil = aucune) ; voir security.go
+	CoverUpdatedAt    *time.Time // image de couverture (nil = aucune)
 }
 
 // ProActive : les conditions pro s'ouvrent seulement après validation de l'entreprise.
@@ -90,6 +94,7 @@ type OneTimeToken struct {
 	Hash      string
 	Purpose   string
 	UserID    string
+	Payload   string // donnée liée au jeton (ex. la NOUVELLE adresse d'un changement d'e-mail) ; jamais un secret
 	ExpiresAt time.Time
 	UsedAt    *time.Time
 }
@@ -100,6 +105,7 @@ const (
 	PurposePasswordResetCode = "password_reset_code" // code à 6 chiffres envoyé par e-mail
 	PurposePasswordReset     = "password_reset"      // jeton remis après vérification du code
 	PurposeOAuthExchange     = "oauth_exchange"      // code à usage unique (60 s) échangé contre une session
+	PurposeEmailChange       = "email_change"        // lien envoyé à la NOUVELLE adresse ; Payload = cette adresse
 )
 
 // Settings : valeurs par défaut VALIDÉES, toutes réglables (identity-settings).

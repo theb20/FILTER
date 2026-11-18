@@ -3,6 +3,12 @@
 import { cached, getJson } from "./catalog.js";
 
 /** @returns {Promise<{ id: string, question: string, answer: string }[]>} */
+/** Cartes du hero de l'accueil (images, textes, liens, couleurs) : Contenu du site › Cartes du hero. */
+export const fetchHeroCards = () => cached("hero-cards", () => getJson("/hero-cards"));
+/** Partenaires de l'accueil (logos) : Contenu du site › Partenaires. */
+export const fetchPartners = () => cached("partners", () => getJson("/home-partners"));
+/** Textes modifiables de l'accueil (section secteurs) : Contenu du site › Textes de l'accueil. @returns {Promise<Record<string, Record<string, string>>>} */
+export const fetchHomeSettings = () => cached("home-settings", () => getJson("/home-settings"));
 export const fetchFaq = () => cached("faq", () => getJson("/faq"));
 
 /** Page légale ou éditoriale publiée, ou null si elle n'existe pas (encore). @param {string} slug */
@@ -15,6 +21,13 @@ export const fetchPage = (slug) =>
       throw e;
     }
   });
+
+/** Premiers paragraphes de texte d'un corps Markdown (intertitres et listes ignorés), pour un aperçu. @param {string} body @param {number} n */
+export function leadParagraphs(body, n) {
+  return body.replace(/\r/g, "").split(/\n{2,}/).map((b) => b.trim())
+    .filter((b) => b && !/^#{1,3}\s/.test(b) && !b.split("\n").every((l) => /^([-*]|\d+[.)])\s+/.test(l)))
+    .slice(0, n);
+}
 
 /** @typedef {{ id: string, rating: number, title: string, text: string, author: string, company?: string, verified: boolean, date: string }} Review */
 /** @param {string} productId @returns {Promise<{ items: Review[], count: number, average: number }>} */

@@ -15,10 +15,13 @@ services:
       ENV: dev
       GATEWAY_ADDR: ":8080"
       IDENTITY_ADDR: identity:9001
+      REDIS_URL: redis://redis:6379/0 # limitation de débit partagée (obligatoire hors développement)
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
       COOKIE_SECURE: "false" # développement en http ; la production exige Secure
     ports: ["127.0.0.1:8080:8080"]
-    depends_on: [identity]
+    depends_on:
+      identity: { condition: service_started }
+      redis: { condition: service_healthy }
     networks: [internal]
 
   identity:
@@ -50,7 +53,7 @@ services:
       retries: 20
     networks: [internal]
 
-  # Prêt pour la limitation de débit distribuée et le cache ; pas encore utilisé par identity.
+  # Limitation de débit distribuée du gateway (REDIS_URL). Aucun secret n'y est stocké : seulement des compteurs éphémères.
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]

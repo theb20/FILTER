@@ -83,6 +83,7 @@ func toCategory(c *pb.Category) api.CategoryAdmin {
 	} else {
 		out.ParentId.SetToNull()
 	}
+	out.ImageUrl = nilStr(c.ImageUrl)
 	if c.Description != nil {
 		out.Description = api.NewOptNilLocalizedText(locAPI(c.GetDescription()))
 	} else {
@@ -92,7 +93,7 @@ func toCategory(c *pb.Category) api.CategoryAdmin {
 }
 
 func categoryProto(id string, in *api.CategoryInput) *pb.Category {
-	c := &pb.Category{Id: id, Slug: in.Slug, ParentId: strPtr(in.ParentId), SortOrder: in.SortOrder.Or(0), Name: locProto(in.Name)}
+	c := &pb.Category{Id: id, Slug: in.Slug, ParentId: strPtr(in.ParentId), SortOrder: in.SortOrder.Or(0), Name: locProto(in.Name), ImageUrl: nilStrIn(in.ImageUrl)}
 	if d, ok := in.Description.Get(); ok {
 		c.Description = locProto(d)
 	}

@@ -88,8 +88,8 @@ export default {
   "guide.quote.contact.text": "Empresa, nombre, correo profesional y teléfono: la respuesta se envía a esta dirección.",
   "guide.quote.items.title": "Sus referencias",
   "guide.quote.items.text": "Una línea por referencia con su cantidad. Use «Añadir un artículo» para más. Cuanto más precisa la referencia, más rápido el presupuesto.",
-  "guide.quote.aside.title": "¿Prefiere hablar?",
-  "guide.quote.aside.text": "Nuestros datos de contacto están aquí si prefiere llamar o escribir.",
+  "guide.quote.aside.title": "Vista previa en directo",
+  "guide.quote.aside.text": "El documento del presupuesto se construye mientras escribe, para que lo revise antes de enviarlo.",
 
   "guide.contact.title": "Contacto",
   "guide.contact.summary": "Escribir a nuestro equipo.",

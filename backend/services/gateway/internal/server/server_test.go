@@ -532,7 +532,7 @@ func TestRotationDeCleJWKS(t *testing.T) {
 func TestRoutesNonImplementeesRepondent501(t *testing.T) {
 	r := newRig(t, nil)
 	tok := customerToken(t, r, "s", time.Minute)
-	rec := r.do(req{"GET", "/v1/me/company", "", map[string]string{"Authorization": "Bearer " + tok}})
+	rec := r.do(req{"GET", "/v1/me/data-requests", "", map[string]string{"Authorization": "Bearer " + tok}})
 	if rec.Code != 501 || problemOf(t, rec)["code"] != apperr.CodeNotImplemented {
 		t.Fatalf("une route sans RPC doit répondre 501 (jamais une fausse réponse) : %d %s", rec.Code, rec.Body.String())
 	}

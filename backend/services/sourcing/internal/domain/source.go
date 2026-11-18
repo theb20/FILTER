@@ -104,6 +104,10 @@ func NextMonth(t time.Time) time.Time { return MonthStart(t).AddDate(0, 1, 0) }
 
 var currencyRE = regexp.MustCompile(`^[A-Z]{3}$`)
 
+// secretRefRE : nom de variable d'environnement (majuscules, chiffres, soulignés). Interdit « = », les espaces et les
+// minuscules, c'est-à-dire tout ce qui ressemblerait à une clé collée par mégarde dans ce champ.
+var secretRefRE = regexp.MustCompile(`^[A-Z][A-Z0-9_]{2,63}$`)
+
 // ValidateSource applique les bornes du contrat ; chaque champ fautif est signalé.
 func ValidateSource(s *Source) error {
 	var f []apperr.Field
@@ -131,8 +135,14 @@ func ValidateSource(s *Source) error {
 	if s.MaxRetries < 0 {
 		bad("/maxRetries", "doit être supérieur ou égal à 0")
 	}
-	if strings.TrimSpace(s.SecretRef) == "" {
+	// Le champ ne porte que le NOM d'une variable d'environnement. Cette forme imposée empêche d'y coller la clé
+	// elle-même (ou toute la ligne « NOM=valeur ») : un secret ne doit JAMAIS entrer en base, ni dans l'audit.
+	s.SecretRef = strings.TrimSpace(s.SecretRef)
+	switch {
+	case s.SecretRef == "":
 		bad("/secretRef", "la référence du secret est obligatoire (jamais la clé elle-même)")
+	case !secretRefRE.MatchString(s.SecretRef):
+		bad("/secretRef", "nom de variable d'environnement attendu (majuscules, chiffres et soulignés, ex. BRAVE_SEARCH_API_KEY) : jamais la clé elle-même")
 	}
 	if s.CostPerCallMicros < 0 {
 		bad("/costPerCallMicros", "doit être supérieur ou égal à 0")

@@ -17,8 +17,18 @@ export async function adminGet<T>(path: string, returnTo: string, opts: Opts = {
   throw new Error(`Gateway ${path} : ${r.status} ${r.code}`);
 }
 
+/** Lecture facultative : null si l'élément n'existe pas (404) ou si le droit manque (403), sans redirection (l'appelant a une alternative). */
+export async function adminGetOpt<T>(path: string, returnTo: string, opts: Opts = {}): Promise<T | null> {
+  const token = await getAccess();
+  const r = token ? await gateway<T>(path, { method: "GET", token, query: opts.query }) : null;
+  if (r?.ok) return r.data;
+  if (!r || r.status === 401) redirect((await getRefresh()) ? `/session/refresh?next=${encodeURIComponent(returnTo)}` : "/login");
+  if (r.status === 403 || r.status === 404) return null;
+  throw new Error(`Gateway ${path} : ${r.status} ${r.code}`);
+}
+
 /** Écriture depuis une action serveur : renouvelle la session si besoin (les cookies sont modifiables ici) puis réessaie une fois. */
-export async function adminAct<T = unknown>(method: Exclude<Method, "GET">, path: string, opts: Opts = {}): Promise<ApiResult<T>> {
+export async function adminAct<T = unknown>(method: Method, path: string, opts: Opts = {}): Promise<ApiResult<T>> {
   let token = await getAccess();
   let r = token ? await gateway<T>(path, { method, token, body: opts.body, query: opts.query }) : null;
   if (!r || (!r.ok && r.status === 401)) {

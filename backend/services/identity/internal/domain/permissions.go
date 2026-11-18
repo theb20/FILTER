@@ -36,6 +36,7 @@ var Permissions = []Permission{
 	{Code: "inventory:read", Group: "Stock", Description: "Consulter — stock"},
 	{Code: "inventory:write", Group: "Stock", Description: "Créer et modifier — stock"},
 	{Code: "invoices:read", Group: "Factures", Description: "Consulter — factures"},
+	{Code: "media:write", Group: "Médias", Description: "Téléverser des images — médias"},
 	{Code: "notifications:read", Group: "Notifications", Description: "Consulter — notifications"},
 	{Code: "notifications:write", Group: "Notifications", Description: "Créer et modifier — notifications"},
 	{Code: "orders:read", Group: "Commandes", Description: "Consulter — commandes"},

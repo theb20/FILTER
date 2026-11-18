@@ -78,10 +78,81 @@ async function getAll(path) {
 
 /** @returns {Promise<CatalogProduct[]>} */
 export const fetchProducts = () => cached("products", async () => (await getAll("/products")).map(adaptSummary));
+/** Identifiants des produits d'un secteur (filtre côté API : ?sectorId=). @param {string} sectorId @returns {Promise<Set<string>>} */
+export const fetchProductIdsBySector = (sectorId) => cached(`sector-products:${sectorId}`, async () => new Set((await getAll(`/products?sectorId=${encodeURIComponent(sectorId)}`)).map((p) => p.id)));
 /** @param {string} idOrSku */
 export const fetchProduct = (idOrSku) => cached(`product:${idOrSku}`, async () => adaptProduct(await getJson(`/products/${encodeURIComponent(idOrSku)}`)));
 /** @param {string} id @returns {Promise<CatalogProduct[]>} */
 export const fetchRelated = (id) => cached(`related:${id}`, async () => (await getJson(`/products/${id}/related?limit=6`)).map(adaptSummary));
+/** Identifiant de session anonyme : un nombre au hasard, gardé dans le navigateur, qui sert UNIQUEMENT à compter les
+ *  recherches web du jour. Aucun lien avec une personne ; l'effacer remet simplement le compteur du navigateur à zéro. */
+export function visitorId() {
+  try {
+    let v = localStorage.getItem("ff-visitor");
+    if (!v) {
+      v = crypto.randomUUID();
+      localStorage.setItem("ff-visitor", v);
+    }
+    return v;
+  } catch {
+    return ""; // navigation privée ou stockage refusé : seul le plafond par adresse réseau s'applique
+  }
+}
+
+/** Recherche sur le web (source externe), à la demande explicite du visiteur : chaque appel est facturé.
+ *  @param {string} q @param {string} [token] jeton du client connecté (plafond journalier plus élevé)
+ *  @returns {Promise<{ok: boolean, status: number, data: any, retryAfter?: number}>} */
+export const searchWeb = (q, token) =>
+  request(`/search/web?q=${encodeURIComponent(q)}`, { token, headers: { "X-Visitor-Id": visitorId() } });
+
+/** Photos d'un produit trouvé sur le web (fiche détaillée). Appel facturé, décompté des mêmes plafonds. */
+export const searchWebImages = (q, token) =>
+  request(`/search/web/images?q=${encodeURIComponent(q)}`, { token, headers: { "X-Visitor-Id": visitorId() } });
+
+/** Identifiant court et stable d'un résultat web, dérivé de son adresse : sert d'adresse à sa fiche sur le site. */
+export function webHitId(url) {
+  let h = 5381;
+  for (const ch of String(url)) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
+  return h.toString(36);
+}
+
+/** Les résultats web ne sont pas conservés côté serveur : la fiche les relit dans l'onglet (effacé à sa fermeture). */
+export function rememberWebHit(hit) {
+  try {
+    sessionStorage.setItem(`ff-web:${webHitId(hit.url)}`, JSON.stringify(hit));
+  } catch { /* stockage refusé : la fiche se rouvrira depuis la liste */ }
+}
+
+/** Série de résultats d'une recherche : la fiche s'en sert pour proposer les autres produits trouvés. */
+export function rememberWebResults(query, hits) {
+  try {
+    sessionStorage.setItem("ff-web:last", JSON.stringify({ query, hits }));
+    hits.forEach(rememberWebHit);
+  } catch { /* stockage refusé */ }
+}
+export function recallWebResults() {
+  try {
+    return JSON.parse(sessionStorage.getItem("ff-web:last") || "null");
+  } catch {
+    return null;
+  }
+}
+
+/** Référence probable lue dans une désignation : le plus long mot qui mêle lettres et chiffres (ex. « SH 63029 », « 7572FC »).
+ *  Sert à préremplir la demande de devis ; le client la vérifie toujours. */
+export function guessReference(title = "") {
+  const words = String(title).toUpperCase().match(/[A-Z0-9][A-Z0-9./-]{3,}/g) ?? [];
+  const refs = words.filter((w) => /\d/.test(w) && w.length >= 4 && !/^(19|20)\d\d$/.test(w));
+  return refs.sort((a, b) => b.length - a.length)[0] ?? "";
+}
+export function recallWebHit(id) {
+  try {
+    return JSON.parse(sessionStorage.getItem(`ff-web:${id}`) || "null");
+  } catch {
+    return null;
+  }
+}
+
 /** Arbre des catégories (racines avec leurs enfants). @returns {Promise<any[]>} */
 export const fetchCategories = () => cached("categories", () => getJson("/categories"));
 /** @returns {Promise<{id: string, slug: string, name: string, logoUrl: string | null}[]>} */
@@ -137,3 +208,13 @@ export function useProductsById(ids) {
   }, [key, getApiLang()]);
   return { products: state.data ?? {}, ready: state.status !== "loading" };
 }
+
+/** Chiffres du catalogue, calculés par l'API (produits publiés, marques). @returns {Promise<{ products: number, brands: number }>} */
+export const fetchStats = () =>
+  cached("stats", async () => {
+    const [p, b] = await Promise.all([getJson("/products?pageSize=1"), getJson("/brands?pageSize=1")]);
+    return { products: p.page.total, brands: b.page.total };
+  });
+
+/** Derniers produits publiés (les plus récemment modifiés d'abord). @returns {Promise<CatalogProduct[]>} */
+export const fetchLatest = () => cached("latest", async () => (await getJson("/products?pageSize=12")).items.map(adaptSummary));

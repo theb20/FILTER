@@ -28,7 +28,10 @@ type Store struct {
 	families  map[string]time.Time // familles révoquées
 	staff     *staffData
 	settings  *domain.IdentitySettings
-	staffSess *Store // sessions du personnel : mêmes mécanismes, données séparées
+	prefs     map[string]domain.Preferences // « staff:<id> » / « customer:<id> »
+	consents  []domain.ConsentRecord        // journal append-only
+	sec       secState                      // sécurité du compte (security.go) ; hors instantané de transaction
+	staffSess *Store                        // sessions du personnel : mêmes mécanismes, données séparées
 
 	// Events : si renseigné, les événements publiés dans une transaction annulée sont retirés.
 	Events *events.Memory
@@ -47,7 +50,7 @@ func New() *Store {
 
 func newBare() *Store {
 	return &Store{users: map[string]*domain.User{}, byEmail: map[string]string{}, tokens: map[string]*domain.RefreshToken{}, byID: map[string]*domain.RefreshToken{},
-		oneTime: map[string]*domain.OneTimeToken{}, pairs: map[string]throttle.State{}, failures: map[string][]time.Time{}, alerted: map[string]time.Time{}, families: map[string]time.Time{}}
+		oneTime: map[string]*domain.OneTimeToken{}, pairs: map[string]throttle.State{}, failures: map[string][]time.Time{}, alerted: map[string]time.Time{}, families: map[string]time.Time{}, prefs: map[string]domain.Preferences{}}
 }
 
 // Do exécute fn de façon atomique : en cas d'erreur (ou de panique), l'état et les événements reviennent à ce qu'ils
@@ -109,6 +112,10 @@ func (s *Store) snapshot() *Store {
 	for k, v := range s.families {
 		c.families[k] = v
 	}
+	for k, v := range s.prefs {
+		c.prefs[k] = v.Clone()
+	}
+	c.consents = append([]domain.ConsentRecord(nil), s.consents...)
 	if s.settings != nil {
 		v := *s.settings
 		c.settings = &v
@@ -126,6 +133,8 @@ func (s *Store) restore(c *Store) {
 	s.users, s.byEmail, s.tokens, s.byID, s.oneTime = c.users, c.byEmail, c.tokens, c.byID, c.oneTime
 	s.pairs, s.failures, s.alerted, s.families = c.pairs, c.failures, c.alerted, c.families
 	s.settings = c.settings
+	s.prefs = c.prefs
+	s.consents = c.consents
 	if c.staff != nil {
 		s.staff = c.staff
 	}
@@ -182,8 +191,16 @@ func (s *Store) ByID(_ context.Context, id string) (*domain.User, error) {
 func (s *Store) Update(_ context.Context, u *domain.User) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.users[u.ID]; !ok {
+	old, ok := s.users[u.ID]
+	if !ok {
 		return application.ErrNotFound
+	}
+	if u.Email != old.Email {
+		if owner, taken := s.byEmail[u.Email]; taken && owner != u.ID {
+			return application.ErrEmailTaken
+		}
+		delete(s.byEmail, old.Email)
+		s.byEmail[u.Email] = u.ID
 	}
 	s.users[u.ID] = cloneUser(u)
 	return nil
@@ -254,15 +271,32 @@ func (s *Store) Put(_ context.Context, t *domain.OneTimeToken) error {
 	return nil
 }
 
-func (s *Store) Consume(_ context.Context, purpose, hash string, now time.Time) (string, bool, error) {
+func (s *Store) Consume(ctx context.Context, purpose, hash string, now time.Time) (string, bool, error) {
+	id, _, ok, err := s.ConsumePayload(ctx, purpose, hash, now)
+	return id, ok, err
+}
+
+func (s *Store) ConsumePayload(_ context.Context, purpose, hash string, now time.Time) (string, string, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	t, ok := s.oneTime[purpose+"|"+hash]
 	if !ok || t.UsedAt != nil || !now.Before(t.ExpiresAt) {
-		return "", false, nil
+		return "", "", false, nil
 	}
 	t.UsedAt = &now
-	return t.UserID, true, nil
+	return t.UserID, t.Payload, true, nil
+}
+
+func (s *Store) InvalidateUserTokens(_ context.Context, purpose, userID string, now time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, t := range s.oneTime {
+		if t.Purpose == purpose && t.UserID == userID && t.UsedAt == nil {
+			n := now
+			t.UsedAt = &n
+		}
+	}
+	return nil
 }
 
 // ── FailureStore ────────────────────────────────────────────────────────────

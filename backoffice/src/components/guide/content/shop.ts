@@ -46,6 +46,8 @@ const KINDS: Kind[] = [
   { slug: "reviews", title: "Avis clients", perm: "reviews:read", about: "Les avis déposés sur les produits, à modérer avant affichage.", fields: "Produit, note, texte, auteur, entreprise, avis vérifié ou non, et statut de modération. Modérer exige la permission « Modérer les avis »." },
   { slug: "quote-requests", title: "Demandes de devis", perm: "quotes:read", received: true, about: "Les demandes de devis envoyées depuis le site.", fields: "Seuls le statut et la note interne sont modifiables : la demande du client reste intacte." },
   { slug: "faq", title: "Questions fréquentes", perm: "content:read", about: "La foire aux questions affichée sur le site.", fields: "La question et la réponse existent dans chaque langue. L'ordre d'affichage et « Publiée sur le site » contrôlent leur apparition." },
+  { slug: "hero-cards", title: "Cartes du hero (accueil)", perm: "content:read", about: "Les grandes cartes avec image en haut de la page d'accueil du site.", fields: "Titre, texte et bouton (par langue), adresse de l'image, lien au clic, couleurs du panneau et du texte, ordre d'affichage et « Affichée sur le site ». Sans carte publiée, le site affiche ses cartes par défaut." },
+  { slug: "home-partners", title: "Partenaires (accueil)", perm: "content:read", about: "Les logos de la section « Nos partenaires clés » de l'accueil.", fields: "Nom, adresse du logo, lien facultatif vers le site du partenaire, ordre d'affichage et « Affiché sur le site ». Sans partenaire publié, le site affiche les logos des marques." },
   { slug: "pages", title: "Pages légales", perm: "content:read", about: "Les pages légales et éditoriales : confidentialité, CGV, mentions légales…", fields: "L'adresse (slug) forme l'URL de la page ; le contenu s'écrit en Markdown, dans chaque langue. Le type distingue page légale et éditoriale." },
   { slug: "articles", title: "Articles du blog", perm: "content:read", about: "Les articles du blog, leur auteur, leur catégorie et leurs produits liés.", fields: "Titre, extrait et corps par langue, catégorie, auteur, étiquettes, image, temps de lecture, mise en avant, produits liés. Le statut de publication est réservé à ceux qui peuvent publier." },
   { slug: "blog-categories", title: "Catégories du blog", perm: "content:read", about: "Les rubriques qui classent les articles.", fields: "Adresse (slug), nom par langue et ordre d'affichage." },
@@ -69,5 +71,29 @@ const settingsTour = (id: string, title: string, perm: string, about: string, fi
 export const shopTours: GuideTour[] = [
   ...KINDS.flatMap((k) => [listTour(k), formTour(k)]),
   settingsTour("commerce", "Règles commerciales", "pricing:read", "Les règles de prix et de commande appliquées par la boutique.", "Taux de TVA, seuil de livraison offerte, conditions d'une demande de devis (nombre d'articles, montant) et seuil de stock bas."),
+  settingsTour("home", "Textes de l'accueil", "content:read", "Les textes de la section Secteurs de l'accueil.", "Petit titre, titre et texte d'introduction, dans chaque langue. Un champ vide garde le texte par défaut du site.", ),
   settingsTour("site", "Informations du site", "content:read", "Les informations de l'entreprise affichées sur le site.", "Raison sociale, coordonnées, réseaux sociaux, année de fondation et chiffres clés mis en avant. Ces informations s'affichent sur le site."),
 ];
+
+export const quotesTour: GuideTour = {
+  id: "quotes", title: "Devis", summary: "Toutes les demandes de devis reçues.", path: "/quotes", permission: "quotes:read",
+  match: (p) => p === "/quotes",
+  steps: [
+    intro("Toutes les demandes de devis", "Chaque demande envoyée depuis le site arrive ici, de la plus récente à la plus ancienne."),
+    { id: "stats", target: "quotes-stats", placement: "bottom", title: "Les statuts d'un coup d'œil", text: "Cliquez une tuile pour ne voir que les demandes Nouvelles, En cours, Devis envoyé ou Clôturées." },
+    filters("Cherchez par nom, e-mail, entreprise ou référence client."),
+    table("La liste", "Particulier ou entreprise, objet, nombre d'articles et statut. « Ouvrir » affiche la demande complète."),
+    pagination, help,
+  ],
+};
+export const quoteDetailTour: GuideTour = {
+  id: "quote-detail", title: "Détail d'un devis", summary: "Lire la demande et la traiter.", path: "/quotes", permission: "quotes:read",
+  match: (p) => /^\/quotes\/[^/]+$/.test(p),
+  steps: [
+    header("L'objet de la demande et son statut actuel.", "La demande"),
+    { id: "studio", target: "quote-studio", placement: "top", title: "Le studio de devis", text: "Chiffrez chaque ligne (prix, remise, délai, notes), réglez les conditions, relisez l'aperçu tel que le client le verra, puis envoyez. Les prix fixes du catalogue sont repris automatiquement ; les notes internes ne sont jamais visibles du client." },
+    { id: "process", target: "quote-process", placement: "top", title: "Suivi de la demande", text: "Le statut est celui que le client voit. Il passe tout seul à « En cours » au premier brouillon et à « Devis envoyé » à l'envoi. La demande du client n'est jamais modifiée." },
+    danger("La suppression est définitive et demande une confirmation."),
+    help,
+  ],
+};

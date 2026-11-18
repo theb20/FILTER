@@ -16,6 +16,7 @@ type Config struct {
 	CookieSecure bool
 	HSTS         bool
 
+	UploadDir     string // images téléversées (devis, logo, cachet) ; à remplacer par un stockage objet en production
 	DefaultLocale string
 	MaxBodyBytes  int64
 
@@ -32,7 +33,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Env: "prod", CookieName: "ff_refresh", CookiePath: "/v1/auth", CookieSecure: true, HSTS: true,
-		DefaultLocale: "fr", MaxBodyBytes: 1 << 20,
+		DefaultLocale: "fr", MaxBodyBytes: 1 << 20, UploadDir: "uploads",
 		AnonPerMinute: 120, UserPerMinute: 600, LoginPerMinute: 10, RegisterPerHour: 5,
 		JWKSMinRefresh: 30 * time.Second, ClockLeeway: 30 * time.Second, RequestTimeoutRPC: 10 * time.Second,
 	}

@@ -9,7 +9,7 @@ export const setApiLang = (code) => { apiLang = code; };
 export const getApiLang = () => apiLang;
 
 /** @returns {Promise<{ok: boolean, status: number, data: any, code?: string, retryAfter?: number, fields?: Array<{code: string, field?: string}>}>} */
-export async function request(path, { method = "GET", body, token } = {}) {
+export async function request(path, { method = "GET", body, token, headers } = {}) {
   let res;
   try {
     res = await fetch(`${BASE}/v1${path}`, {
@@ -21,6 +21,7 @@ export async function request(path, { method = "GET", body, token } = {}) {
         "X-Requested-With": "ff-web", // exigé par le gateway sur les routes qui lisent le cookie (défense CSRF)
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });

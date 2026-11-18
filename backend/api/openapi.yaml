@@ -393,6 +393,30 @@ paths:
           $ref: '#/components/responses/Unprocessable'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /auth/login-alert/secure:
+    post:
+      operationId: secureAccountFromAlert
+      tags:
+      - Compte
+      summary: « Ce n'était pas moi » (lien de l'alerte de nouvelle connexion)
+      description: Consomme le jeton à usage unique de l'e-mail d'alerte et déconnecte TOUS les appareils du compte. Le site enchaîne
+        sur la réinitialisation du mot de passe. Jeton inconnu, expiré ou déjà utilisé → 400 `INVALID_CODE`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecureAccountRequest'
+      responses:
+        '204':
+          description: Succès
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /auth/password/forgot:
     post:
       operationId: forgotPassword
@@ -1430,6 +1454,83 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/Unprocessable'
+  /me/quote-requests:
+    get:
+      operationId: listMyQuoteRequests
+      tags:
+      - Compte
+      summary: Mes demandes de devis (suivi)
+      description: 'Les demandes envoyées avec l''adresse e-mail du compte. Exige une adresse VÉRIFIÉE (`EMAIL_NOT_VERIFIED` sinon) : une adresse non confirmée ne donne accès à aucune demande.'
+      security:
+      - customerAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyQuoteRequestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /me/quote-draft:
+    get:
+      operationId: getMyQuoteDraft
+      tags:
+      - Compte
+      security:
+      - customerAuth: []
+      summary: Mon brouillon de demande de devis
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteDraft'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: putMyQuoteDraft
+      tags:
+      - Compte
+      security:
+      - customerAuth: []
+      summary: Enregistrer mon brouillon de demande de devis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteDraft'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    delete:
+      operationId: deleteMyQuoteDraft
+      tags:
+      - Compte
+      security:
+      - customerAuth: []
+      summary: Supprimer mon brouillon de demande de devis
+      responses:
+        '204':
+          description: Succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /me/consents:
     get:
       operationId: getMyConsents
@@ -1469,6 +1570,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConsentRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /me/preferences:
+    get:
+      operationId: getMyPreferences
+      tags:
+      - Compte
+      summary: Mes préférences d'interface
+      security:
+      - customerAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      operationId: putMyPreferences
+      tags:
+      - Compte
+      summary: Enregistrer mes préférences d'interface
+      description: Remplace l'ensemble des préférences du compte (dernière écriture gagnante). Un compte qui n'a jamais rien enregistré reçoit les valeurs par défaut.
+      security:
+      - customerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1609,6 +1758,170 @@ paths:
           $ref: '#/components/responses/Unprocessable'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /me/sessions:
+    get:
+      operationId: listMySessions
+      tags:
+      - Compte
+      summary: Mes appareils connectés
+      description: Sessions ACTIVES du compte, avec l'appareil (déduit du navigateur) et la ville APPROXIMATIVE déduite de l'adresse IP
+        (base locale, aucune IP envoyée à un tiers). `current` marque l'appareil de la requête.
+      security:
+      - customerAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MySessionList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /me/sessions/{id}:
+    delete:
+      operationId: revokeMySession
+      tags:
+      - Compte
+      summary: Déconnecter un appareil
+      description: Révoque la session (l'appareil devra se reconnecter). Session d'un autre compte ou inconnue → 404.
+      security:
+      - customerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /me/sessions/revoke-others:
+    post:
+      operationId: revokeMyOtherSessions
+      tags:
+      - Compte
+      summary: Déconnecter tous les autres appareils
+      security:
+      - customerAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokedCount'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /me/login-activity:
+    get:
+      operationId: listMyLoginActivity
+      tags:
+      - Compte
+      summary: Historique de mes connexions
+      description: Connexions RÉUSSIES des 90 derniers jours (purge automatique au-delà), de la plus récente à la plus ancienne. La position
+        est APPROXIMATIVE (déduite de l'adresse IP).
+      security:
+      - customerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginEventPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /me/images/{kind}:
+    parameters:
+    - name: kind
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+        - avatar
+        - cover
+      description: '`avatar` : photo de profil ; `cover` : image de couverture.'
+    get:
+      operationId: getMyImage
+      tags:
+      - Compte
+      summary: Lire ma photo de profil ou ma couverture
+      security:
+      - customerAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyImage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: putMyImage
+      tags:
+      - Compte
+      summary: Remplacer ma photo de profil ou ma couverture
+      description: PNG, JPEG ou WebP, vérifiés par leur CONTENU (pas par l'extension), 600 Kio au plus. Le site redimensionne et
+        réencode l'image avant l'envoi (ce qui retire aussi les métadonnées, dont la position GPS d'une photo).
+      security:
+      - customerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MyImageUpload'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyImageSaved'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    delete:
+      operationId: deleteMyImage
+      tags:
+      - Compte
+      summary: Retirer ma photo de profil ou ma couverture
+      security:
+      - customerAuth: []
+      responses:
+        '204':
+          description: Succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /me/tickets:
     get:
       operationId: listMyTickets
@@ -2420,6 +2733,68 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Suggestion'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /search/web:
+    get:
+      operationId: searchWeb
+      tags:
+      - Vitrine · Catalogue
+      summary: Chercher aussi sur le web
+      description: 'Recherche sur une source externe (moteur web), à la demande explicite du visiteur : elle n''est JAMAIS déclenchée par une recherche ordinaire, car chaque appel est facturé. Trois plafonds journaliers s''appliquent ensemble (visiteur, client connecté, adresse réseau), en plus du budget de la source.'
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: X-Visitor-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          maxLength: 64
+        description: Identifiant de session anonyme, tiré au hasard par le site. Sert à compter les recherches du jour ; jamais rapproché d''une personne.
+      security: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebSearchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /search/web/images:
+    get:
+      operationId: searchWebImages
+      tags:
+      - Vitrine · Catalogue
+      summary: Photos d'un résultat web
+      description: 'Photos d''un produit trouvé sur le web, pour sa fiche sur le site. Comme la recherche web, l''appel est facturé : il est décompté des mêmes plafonds journaliers et du budget de la source.'
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: X-Visitor-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          maxLength: 64
+        description: Identifiant de session anonyme, tiré au hasard par le site.
+      security: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebImageResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
   /sectors:
@@ -7333,6 +7708,54 @@ paths:
           $ref: '#/components/responses/Unprocessable'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /admin/me/preferences:
+    get:
+      operationId: adminGetMyPreferences
+      tags:
+      - Admin · Authentification
+      summary: Mes préférences d'interface (personnel)
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      operationId: adminPutMyPreferences
+      tags:
+      - Admin · Authentification
+      summary: Enregistrer mes préférences d'interface (personnel)
+      description: Remplace l'ensemble des préférences du compte (dernière écriture gagnante). Un compte qui n'a jamais rien enregistré reçoit les valeurs par défaut.
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
   /admin/message-log:
     get:
       operationId: adminMessageLogList
@@ -12854,6 +13277,456 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
       x-required-permission: content:write
+  /admin/quote-responses:
+    get:
+      operationId: adminQuoteResponsesList
+      tags:
+      - Admin · Contenu du site
+      summary: 'Lister : Réponses aux devis'
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsQuoteResponsePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: quotes:read
+    post:
+      operationId: adminQuoteResponsesCreate
+      tags:
+      - Admin · Contenu du site
+      summary: 'Créer : Réponse'
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CmsQuoteResponseInput'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsQuoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: quotes:write
+  /admin/quote-responses/{id}:
+    get:
+      operationId: adminQuoteResponsesGet
+      tags:
+      - Admin · Contenu du site
+      summary: 'Lire : Réponse'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsQuoteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: quotes:read
+    put:
+      operationId: adminQuoteResponsesUpdate
+      tags:
+      - Admin · Contenu du site
+      summary: 'Modifier : Réponse'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CmsQuoteResponseInput'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsQuoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: quotes:write
+    delete:
+      operationId: adminQuoteResponsesDelete
+      tags:
+      - Admin · Contenu du site
+      summary: 'Supprimer : Réponse'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '204':
+          description: Succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      x-required-permission: quotes:write
+  /admin/hero-cards:
+    get:
+      operationId: adminHeroCardList
+      tags:
+      - Admin · Contenu du site
+      summary: 'Lister : Cartes du hero (accueil)'
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHeroCardPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: content:read
+    post:
+      operationId: adminHeroCardCreate
+      tags:
+      - Admin · Contenu du site
+      summary: 'Créer : Carte'
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CmsHeroCardInput'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHeroCard'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: content:write
+  /admin/hero-cards/{id}:
+    get:
+      operationId: adminHeroCardGet
+      tags:
+      - Admin · Contenu du site
+      summary: 'Lire : Carte'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHeroCard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: content:read
+    put:
+      operationId: adminHeroCardUpdate
+      tags:
+      - Admin · Contenu du site
+      summary: 'Modifier : Carte'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CmsHeroCardInput'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHeroCard'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: content:write
+    delete:
+      operationId: adminHeroCardDelete
+      tags:
+      - Admin · Contenu du site
+      summary: 'Supprimer : Carte'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '204':
+          description: Succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      x-required-permission: content:write
+  /admin/home-partners:
+    get:
+      operationId: adminHomePartnerList
+      tags:
+      - Admin · Contenu du site
+      summary: 'Lister : Partenaires (accueil)'
+      parameters:
+      - $ref: '#/components/parameters/Query'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHomePartnerPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: content:read
+    post:
+      operationId: adminHomePartnerCreate
+      tags:
+      - Admin · Contenu du site
+      summary: 'Créer : Partenaire'
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CmsHomePartnerInput'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHomePartner'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: content:write
+  /admin/home-partners/{id}:
+    get:
+      operationId: adminHomePartnerGet
+      tags:
+      - Admin · Contenu du site
+      summary: 'Lire : Partenaire'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHomePartner'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-required-permission: content:read
+    put:
+      operationId: adminHomePartnerUpdate
+      tags:
+      - Admin · Contenu du site
+      summary: 'Modifier : Partenaire'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CmsHomePartnerInput'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHomePartner'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: content:write
+    delete:
+      operationId: adminHomePartnerDelete
+      tags:
+      - Admin · Contenu du site
+      summary: 'Supprimer : Partenaire'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      security:
+      - staffAuth: []
+      responses:
+        '204':
+          description: Succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      x-required-permission: content:write
   /admin/pages/{id}/publish:
     post:
       operationId: adminPagesPublish
@@ -14665,6 +15538,137 @@ paths:
                 $ref: '#/components/schemas/CmsCommerceSettings'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /admin/home-settings:
+    get:
+      operationId: adminHomeSettingsGet
+      tags:
+      - Admin · Contenu du site
+      summary: 'Lire : Textes de l''accueil'
+      security:
+      - staffAuth: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHomeSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-required-permission: content:read
+    put:
+      operationId: adminHomeSettingsPut
+      tags:
+      - Admin · Contenu du site
+      summary: 'Enregistrer : Textes de l''accueil'
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CmsHomeSettings'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHomeSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: content:write
+  /home-settings:
+    get:
+      operationId: getHomeSettings
+      tags:
+      - Vitrine · Contenu
+      summary: Textes de l'accueil
+      security: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CmsHomeSettings'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /admin/uploads:
+    post:
+      operationId: adminUploadImage
+      tags:
+      - Admin · Contenu du site
+      summary: 'Téléverser une image (PNG, JPEG ou WebP, 5 Mo)'
+      security:
+      - staffAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUpload'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageUploaded'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-required-permission: media:write
+  /files/{name}:
+    get:
+      operationId: getUploadedImage
+      tags:
+      - Vitrine · Contenu
+      summary: Image téléversée (devis, logo, cachet)
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-f0-9]{32}\.(png|jpg|webp)$
+      security: []
+      responses:
+        '200':
+          description: Succès
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
   /faq:
     get:
       operationId: listFaq
@@ -14683,6 +15687,44 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PublicFaqItem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /hero-cards:
+    get:
+      operationId: listHeroCards
+      tags:
+      - Vitrine · Contenu
+      summary: Cartes du hero de l'accueil
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      security: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicHeroCard'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /home-partners:
+    get:
+      operationId: listHomePartners
+      tags:
+      - Vitrine · Contenu
+      summary: Partenaires de l'accueil
+      security: []
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicHomePartner'
         '429':
           $ref: '#/components/responses/TooManyRequests'
   /pages/{slug}:
@@ -15140,6 +16182,405 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    MyQuoteRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        reference:
+          type: string
+        company:
+          type: string
+        status:
+          type: string
+          enum:
+          - new
+          - in_progress
+          - quoted
+          - closed
+        itemCount:
+          type: integer
+          format: int64
+          minimum: 0
+        quote:
+          $ref: '#/components/schemas/MyQuote'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - status
+      - itemCount
+      - createdAt
+      - updatedAt
+      additionalProperties: false
+    MyQuoteLine:
+      type: object
+      properties:
+        reference:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        unitPrice:
+          type: integer
+          format: int64
+        discountPct:
+          type: number
+        lineTotal:
+          type: integer
+          format: int64
+        image:
+          type: string
+        leadTime:
+          type: string
+        note:
+          type: string
+        optional:
+          type: boolean
+      required:
+      - reference
+      - quantity
+      additionalProperties: false
+    MyQuote:
+      type: object
+      properties:
+        number:
+          type: string
+        intro:
+          type: string
+        version:
+          type: string
+        incoterm:
+          type: string
+        correspondent:
+          type: string
+        other:
+          type: integer
+          format: int64
+        acompte:
+          type: integer
+          format: int64
+        remaining:
+          type: integer
+          format: int64
+        annexes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyQuoteImage'
+        sentAt:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        deliveryPlace:
+          type: string
+        deliveryDelay:
+          type: string
+        paymentTerms:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyQuoteLine'
+        subtotal:
+          type: integer
+          format: int64
+        discountPct:
+          type: number
+        discountAmount:
+          type: integer
+          format: int64
+        shipping:
+          type: integer
+          format: int64
+        vatRate:
+          type: number
+        vatAmount:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          format: int64
+      required:
+      - lines
+      - total
+      additionalProperties: false
+    MyQuoteRequestList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyQuoteRequest'
+      required:
+      - items
+      additionalProperties: false
+    CmsQuoteRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        company:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+          maxLength: 20000
+        subject:
+          type: string
+          maxLength: 255
+        reference:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 255
+        attention:
+          type: string
+          maxLength: 255
+        jobTitle:
+          type: string
+          maxLength: 255
+        deliveryPlace:
+          type: string
+          maxLength: 255
+        deliveryDelay:
+          type: string
+          maxLength: 255
+        paymentTerms:
+          type: string
+          maxLength: 255
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuoteRequestItem'
+          maxItems: 100
+        status:
+          type: string
+          enum:
+          - new
+          - in_progress
+          - quoted
+          - closed
+        note:
+          type: string
+          maxLength: 20000
+      required:
+      - id
+      - createdAt
+      - updatedAt
+      - name
+      - email
+      - status
+      additionalProperties: false
+    CmsSiteSettings:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        publisher:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+          maxLength: 255
+        linkedinUrl:
+          type: string
+          format: uri
+          maxLength: 2000
+        facebookUrl:
+          type: string
+          format: uri
+          maxLength: 2000
+        youtubeUrl:
+          type: string
+          format: uri
+          maxLength: 2000
+        reviewsUrl:
+          type: string
+          format: uri
+          maxLength: 2000
+        regionalCountry:
+          type: string
+          maxLength: 255
+        regionalUrl:
+          type: string
+          format: uri
+          maxLength: 2000
+        crossReferencesClaim:
+          type: string
+          maxLength: 255
+        stockValueClaim:
+          type: string
+          maxLength: 255
+        foundedYear:
+          type: string
+          maxLength: 255
+        rccm:
+          type: string
+          maxLength: 255
+        taxNumber:
+          type: string
+          maxLength: 255
+        capital:
+          type: string
+          maxLength: 255
+        freeShippingClaim:
+          type: string
+          maxLength: 255
+        logoUrl:
+          type: string
+          maxLength: 255
+        stampUrl:
+          type: string
+          maxLength: 255
+        letterhead:
+          type: string
+          maxLength: 20000
+      required:
+      - name
+      - publisher
+      additionalProperties: false
+    QuoteSubmission:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        company:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+          maxLength: 20000
+        subject:
+          type: string
+          maxLength: 255
+        reference:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 255
+        attention:
+          type: string
+          maxLength: 255
+        jobTitle:
+          type: string
+          maxLength: 255
+        deliveryPlace:
+          type: string
+          maxLength: 255
+        deliveryDelay:
+          type: string
+          maxLength: 255
+        paymentTerms:
+          type: string
+          maxLength: 255
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuoteRequestItem'
+          maxItems: 100
+      required:
+      - name
+      - email
+      additionalProperties: false
+    QuoteDraft:
+      type: object
+      properties:
+        updatedAt:
+          type: string
+          format: date-time
+          description: Dernier enregistrement (lecture seule).
+        company:
+          type: string
+          maxLength: 255
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 255
+        subject:
+          type: string
+          maxLength: 255
+        reference:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 255
+        attention:
+          type: string
+          maxLength: 255
+        jobTitle:
+          type: string
+          maxLength: 255
+        deliveryPlace:
+          type: string
+          maxLength: 255
+        deliveryDelay:
+          type: string
+          maxLength: 255
+        paymentTerms:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+          maxLength: 20000
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuoteRequestItem'
+          maxItems: 100
+      additionalProperties: false
     QuoteRequestItem:
       type: object
       properties:
@@ -15220,6 +16661,472 @@ components:
       - items
       - page
       additionalProperties: false
+    CmsHeroCard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        cardKey:
+          type: string
+          maxLength: 255
+        title:
+          $ref: '#/components/schemas/LocalizedText'
+        text:
+          $ref: '#/components/schemas/LocalizedText'
+        cta:
+          $ref: '#/components/schemas/LocalizedText'
+        imageUrl:
+          type: string
+          maxLength: 255
+        link:
+          type: string
+          maxLength: 255
+        bgColor:
+          type: string
+          maxLength: 255
+        textColor:
+          type: string
+          maxLength: 255
+        sortOrder:
+          type: integer
+          format: int64
+          minimum: 0
+        published:
+          type: boolean
+      required:
+      - id
+      - createdAt
+      - updatedAt
+      - title
+      - imageUrl
+      additionalProperties: false
+    CmsHeroCardInput:
+      type: object
+      properties:
+        cardKey:
+          type: string
+          maxLength: 255
+        title:
+          $ref: '#/components/schemas/LocalizedText'
+        text:
+          $ref: '#/components/schemas/LocalizedText'
+        cta:
+          $ref: '#/components/schemas/LocalizedText'
+        imageUrl:
+          type: string
+          maxLength: 255
+        link:
+          type: string
+          maxLength: 255
+        bgColor:
+          type: string
+          maxLength: 255
+        textColor:
+          type: string
+          maxLength: 255
+        sortOrder:
+          type: integer
+          format: int64
+          minimum: 0
+        published:
+          type: boolean
+      required:
+      - title
+      - imageUrl
+      additionalProperties: false
+    CmsHeroCardPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CmsHeroCard'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+      required:
+      - items
+      - page
+      additionalProperties: false
+    CmsHomePartner:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        name:
+          type: string
+          maxLength: 255
+        logoUrl:
+          type: string
+          maxLength: 255
+        link:
+          type: string
+          maxLength: 255
+        sortOrder:
+          type: integer
+          format: int64
+          minimum: 0
+        published:
+          type: boolean
+      required:
+      - id
+      - createdAt
+      - updatedAt
+      - name
+      - logoUrl
+      additionalProperties: false
+    CmsHomePartnerInput:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        logoUrl:
+          type: string
+          maxLength: 255
+        link:
+          type: string
+          maxLength: 255
+        sortOrder:
+          type: integer
+          format: int64
+          minimum: 0
+        published:
+          type: boolean
+      required:
+      - name
+      - logoUrl
+      additionalProperties: false
+    CmsHomePartnerPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CmsHomePartner'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+      required:
+      - items
+      - page
+      additionalProperties: false
+    ImageUpload:
+      type: object
+      properties:
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 200
+        dataBase64:
+          type: string
+          maxLength: 7500000
+          description: Contenu de l'image en base64 (5 Mo au maximum avant encodage). Le format est vérifié sur le contenu.
+      required:
+      - filename
+      - dataBase64
+      additionalProperties: false
+    ImageUploaded:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+      - url
+      additionalProperties: false
+    CmsQuoteImage:
+      type: object
+      properties:
+        url:
+          type: string
+          maxLength: 2000
+        caption:
+          type: string
+          maxLength: 255
+      required:
+      - url
+      additionalProperties: false
+    MyQuoteImage:
+      type: object
+      properties:
+        url:
+          type: string
+        caption:
+          type: string
+      required:
+      - url
+      additionalProperties: false
+    CmsQuoteLine:
+      type: object
+      properties:
+        reference:
+          type: string
+          maxLength: 255
+        name:
+          type: string
+          maxLength: 255
+        quantity:
+          type: integer
+          format: int64
+          minimum: 1
+        unitPrice:
+          type: integer
+          format: int64
+          minimum: 0
+        discountPct:
+          type: number
+          minimum: 0
+          maximum: 100
+        image:
+          type: string
+          maxLength: 2000
+        leadTime:
+          type: string
+          maxLength: 255
+        note:
+          type: string
+          maxLength: 1000
+        internal:
+          type: string
+          maxLength: 1000
+        optional:
+          type: boolean
+        custom:
+          type: boolean
+        productId:
+          type: string
+          format: uuid
+      required:
+      - reference
+      - quantity
+      additionalProperties: false
+    CmsQuoteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+          format: uuid
+        number:
+          type: string
+          maxLength: 255
+        status:
+          type: string
+          enum:
+          - draft
+          - sent
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/CmsQuoteLine'
+        discountPct:
+          type: number
+          minimum: 0
+          maximum: 100
+        shipping:
+          type: integer
+          format: int64
+          minimum: 0
+        vatRate:
+          type: number
+          minimum: 0
+          maximum: 100
+        version:
+          type: string
+          maxLength: 255
+        incoterm:
+          type: string
+          maxLength: 255
+        correspondent:
+          type: string
+          maxLength: 255
+        other:
+          type: integer
+          format: int64
+          minimum: 0
+        acompte:
+          type: integer
+          format: int64
+          minimum: 0
+        annexes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CmsQuoteImage'
+        validUntil:
+          type: string
+          format: date-time
+        deliveryPlace:
+          type: string
+          maxLength: 255
+        deliveryDelay:
+          type: string
+          maxLength: 255
+        paymentTerms:
+          type: string
+          maxLength: 255
+        intro:
+          type: string
+          maxLength: 20000
+        internalNote:
+          type: string
+          maxLength: 20000
+        followUpAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+        subtotal:
+          type: integer
+          format: int64
+          minimum: 0
+        discountAmount:
+          type: integer
+          format: int64
+          minimum: 0
+        vatAmount:
+          type: integer
+          format: int64
+          minimum: 0
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+      required:
+      - id
+      - createdAt
+      - updatedAt
+      - requestId
+      - status
+      additionalProperties: false
+    CmsQuoteResponseInput:
+      type: object
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        number:
+          type: string
+          maxLength: 255
+        status:
+          type: string
+          enum:
+          - draft
+          - sent
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/CmsQuoteLine'
+        discountPct:
+          type: number
+          minimum: 0
+          maximum: 100
+        shipping:
+          type: integer
+          format: int64
+          minimum: 0
+        vatRate:
+          type: number
+          minimum: 0
+          maximum: 100
+        version:
+          type: string
+          maxLength: 255
+        incoterm:
+          type: string
+          maxLength: 255
+        correspondent:
+          type: string
+          maxLength: 255
+        other:
+          type: integer
+          format: int64
+          minimum: 0
+        acompte:
+          type: integer
+          format: int64
+          minimum: 0
+        annexes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CmsQuoteImage'
+        validUntil:
+          type: string
+          format: date-time
+        deliveryPlace:
+          type: string
+          maxLength: 255
+        deliveryDelay:
+          type: string
+          maxLength: 255
+        paymentTerms:
+          type: string
+          maxLength: 255
+        intro:
+          type: string
+          maxLength: 20000
+        internalNote:
+          type: string
+          maxLength: 20000
+        followUpAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+        subtotal:
+          type: integer
+          format: int64
+          minimum: 0
+        discountAmount:
+          type: integer
+          format: int64
+          minimum: 0
+        vatAmount:
+          type: integer
+          format: int64
+          minimum: 0
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+      required:
+      - requestId
+      - status
+      additionalProperties: false
+    CmsQuoteResponsePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CmsQuoteResponse'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+      required:
+      - items
+      - page
+      additionalProperties: false
     CmsPage:
       type: object
       properties:
@@ -15245,6 +17152,10 @@ components:
           $ref: '#/components/schemas/LocalizedText'
         body:
           $ref: '#/components/schemas/LocalizedText'
+        imageUrl:
+          type: string
+          maxLength: 255
+          description: Image facultative (adresse d'un fichier envoyé ou URL). Pour la page `about`, affichée à côté de l'aperçu « Notre histoire » de l'accueil.
         published:
           type: boolean
       required:
@@ -15272,6 +17183,10 @@ components:
           $ref: '#/components/schemas/LocalizedText'
         body:
           $ref: '#/components/schemas/LocalizedText'
+        imageUrl:
+          type: string
+          maxLength: 255
+          description: Image facultative (adresse d'un fichier envoyé ou URL). Pour la page `about`, affichée à côté de l'aperçu « Notre histoire » de l'accueil.
       required:
       - slug
       - kind
@@ -16042,57 +17957,6 @@ components:
       - items
       - page
       additionalProperties: false
-    CmsQuoteRequest:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        name:
-          type: string
-          maxLength: 255
-        email:
-          type: string
-          format: email
-          maxLength: 254
-        company:
-          type: string
-          maxLength: 255
-        phone:
-          type: string
-          maxLength: 255
-        message:
-          type: string
-          maxLength: 20000
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/QuoteRequestItem'
-          maxItems: 100
-        status:
-          type: string
-          enum:
-          - new
-          - in_progress
-          - quoted
-          - closed
-        note:
-          type: string
-          maxLength: 20000
-      required:
-      - id
-      - createdAt
-      - updatedAt
-      - name
-      - email
-      - status
-      additionalProperties: false
     CmsQuoteRequestUpdate:
       type: object
       properties:
@@ -16122,64 +17986,6 @@ components:
       - items
       - page
       additionalProperties: false
-    CmsSiteSettings:
-      type: object
-      properties:
-        name:
-          type: string
-          maxLength: 255
-        publisher:
-          type: string
-          maxLength: 255
-        phone:
-          type: string
-          maxLength: 255
-        email:
-          type: string
-          format: email
-          maxLength: 254
-        address:
-          type: string
-          maxLength: 255
-        linkedinUrl:
-          type: string
-          format: uri
-          maxLength: 2000
-        facebookUrl:
-          type: string
-          format: uri
-          maxLength: 2000
-        youtubeUrl:
-          type: string
-          format: uri
-          maxLength: 2000
-        reviewsUrl:
-          type: string
-          format: uri
-          maxLength: 2000
-        regionalCountry:
-          type: string
-          maxLength: 255
-        regionalUrl:
-          type: string
-          format: uri
-          maxLength: 2000
-        crossReferencesClaim:
-          type: string
-          maxLength: 255
-        stockValueClaim:
-          type: string
-          maxLength: 255
-        foundedYear:
-          type: string
-          maxLength: 255
-        freeShippingClaim:
-          type: string
-          maxLength: 255
-      required:
-      - name
-      - publisher
-      additionalProperties: false
     CmsCommerceSettings:
       type: object
       properties:
@@ -16206,6 +18012,163 @@ components:
         defaultZone:
           type: string
           maxLength: 255
+      additionalProperties: false
+    CmsHomeSettings:
+      type: object
+      properties:
+        sectorsEyebrow:
+          $ref: '#/components/schemas/LocalizedText'
+        sectorsTitle:
+          $ref: '#/components/schemas/LocalizedText'
+        sectorsText:
+          $ref: '#/components/schemas/LocalizedText'
+      additionalProperties: false
+    WebImage:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Adresse de la vignette servie par la source (https).
+        title:
+          type: string
+        pageUrl:
+          type: string
+          description: Page d'origine de la photo.
+        site:
+          type: string
+      required:
+      - url
+      additionalProperties: false
+    WebImageResult:
+      type: object
+      properties:
+        query:
+          type: string
+        source:
+          type: string
+        status:
+          type: string
+          enum:
+          - ok
+          - unavailable
+          - budget
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebImage'
+        remaining:
+          type: integer
+          format: int32
+          minimum: 0
+      required:
+      - query
+      - source
+      - status
+      - images
+      - remaining
+      additionalProperties: false
+    WebSearchHit:
+      type: object
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          description: Vignette proposée par la source, à afficher telle quelle (jamais téléchargée ni conservée).
+        site:
+          type: string
+          description: Nom du site d'origine, à afficher au visiteur à la place du prix.
+        snippets:
+          type: array
+          maxItems: 6
+          items:
+            type: string
+          description: Extraits supplémentaires de la page, pour la fiche détaillée.
+        brand:
+          type: string
+        reference:
+          type: string
+      required:
+      - title
+      additionalProperties: false
+    WebSearchResult:
+      type: object
+      properties:
+        query:
+          type: string
+        source:
+          type: string
+          description: Nom de la source interrogée, à afficher au visiteur.
+        status:
+          type: string
+          enum:
+          - ok
+          - unavailable
+          - budget
+          description: 'ok : résultats ci-dessous. unavailable : la source n''a pas répondu. budget : budget de la source épuisé pour la période.'
+        hits:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebSearchHit'
+        remaining:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Recherches web restantes aujourd'hui pour ce visiteur.
+      required:
+      - query
+      - source
+      - status
+      - hits
+      - remaining
+      additionalProperties: false
+    PublicHeroCard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        title:
+          type: string
+        text:
+          type: string
+        cta:
+          type: string
+        imageUrl:
+          type: string
+        link:
+          type: string
+        bgColor:
+          type: string
+        textColor:
+          type: string
+      required:
+      - id
+      - title
+      - imageUrl
+      additionalProperties: false
+    PublicHomePartner:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        logoUrl:
+          type: string
+        link:
+          type: string
+      required:
+      - id
+      - name
+      - logoUrl
       additionalProperties: false
     PublicFaqItem:
       type: object
@@ -16237,6 +18200,9 @@ components:
         body:
           type: string
           description: Markdown.
+        imageUrl:
+          type: string
+          description: Image facultative de la page (vide si aucune).
         updatedAt:
           type: string
           format: date-time
@@ -16456,34 +18422,6 @@ components:
           type: string
           maxLength: 10
       required:
-      - email
-      additionalProperties: false
-    QuoteSubmission:
-      type: object
-      properties:
-        name:
-          type: string
-          maxLength: 255
-        email:
-          type: string
-          format: email
-          maxLength: 254
-        company:
-          type: string
-          maxLength: 255
-        phone:
-          type: string
-          maxLength: 255
-        message:
-          type: string
-          maxLength: 20000
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/QuoteRequestItem'
-          maxItems: 100
-      required:
-      - name
       - email
       additionalProperties: false
     PromoCheckRequest:
@@ -17599,6 +19537,11 @@ components:
           - string
           - 'null'
           format: uuid
+        imageUrl:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
         depth:
           type: integer
           format: int32
@@ -19311,6 +21254,9 @@ components:
           type: string
         country:
           $ref: '#/components/schemas/CountryCode'
+        jobTitle:
+          type: string
+          description: Fonction de la personne dans l'entreprise (vide si non renseignée).
         status:
           type: string
           enum:
@@ -19382,6 +21328,18 @@ components:
         createdAt:
           type: string
           format: date-time
+        avatarUpdatedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: Date de la photo de profil (null = aucune). Sert aussi de clé de cache.
+        coverUpdatedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: Date de l'image de couverture (null = aucune).
       required:
       - id
       - email
@@ -19397,6 +21355,202 @@ components:
       - createdAt
       additionalProperties: false
       x-status: validated
+    GeoLocation:
+      type: object
+      description: "Position APPROXIMATIVE déduite de l'adresse IP (souvent la ville de l'opérateur). Source : DB-IP (CC BY 4.0)."
+      properties:
+        city:
+          type: string
+        region:
+          type: string
+        countryCode:
+          type: string
+        country:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+      - city
+      - region
+      - countryCode
+      - country
+      - latitude
+      - longitude
+      additionalProperties: false
+    DeviceInfo:
+      type: object
+      description: Appareil déduit de l'en-tête User-Agent (approximatif).
+      properties:
+        browser:
+          type: string
+        os:
+          type: string
+        kind:
+          type: string
+          enum:
+          - desktop
+          - mobile
+          - tablet
+          - unknown
+      required:
+      - browser
+      - os
+      - kind
+      additionalProperties: false
+    MySession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        current:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        ip:
+          type: string
+        device:
+          $ref: '#/components/schemas/DeviceInfo'
+        location:
+          anyOf:
+          - $ref: '#/components/schemas/GeoLocation'
+          - type: 'null'
+      required:
+      - id
+      - current
+      - createdAt
+      - lastSeenAt
+      - ip
+      - device
+      - location
+      additionalProperties: false
+    MySessionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MySession'
+      required:
+      - items
+      additionalProperties: false
+    RevokedCount:
+      type: object
+      properties:
+        revoked:
+          type: integer
+          format: int32
+      required:
+      - revoked
+      additionalProperties: false
+    LoginEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        at:
+          type: string
+          format: date-time
+        ip:
+          type: string
+        device:
+          $ref: '#/components/schemas/DeviceInfo'
+        location:
+          anyOf:
+          - $ref: '#/components/schemas/GeoLocation'
+          - type: 'null'
+        method:
+          type: string
+          enum:
+          - password
+          - google
+        newDevice:
+          type: boolean
+      required:
+      - id
+      - at
+      - ip
+      - device
+      - location
+      - method
+      - newDevice
+      additionalProperties: false
+    LoginEventPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LoginEvent'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+      required:
+      - items
+      - page
+      additionalProperties: false
+    SecureAccountRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 16
+          maxLength: 128
+      required:
+      - token
+      additionalProperties: false
+    MyImage:
+      type: object
+      properties:
+        contentType:
+          type: string
+          enum:
+          - image/png
+          - image/jpeg
+          - image/webp
+        data:
+          type: string
+          format: byte
+          description: Contenu de l'image, en base64.
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - contentType
+      - data
+      - updatedAt
+      additionalProperties: false
+    MyImageUpload:
+      type: object
+      properties:
+        data:
+          type: string
+          format: byte
+          maxLength: 819200
+          description: Contenu de l'image en base64 (600 Kio au plus une fois décodé).
+      required:
+      - data
+      additionalProperties: false
+    MyImageSaved:
+      type: object
+      properties:
+        contentType:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - contentType
+      - updatedAt
+      additionalProperties: false
     MeUpdate:
       type: object
       properties:
@@ -19581,6 +21735,41 @@ components:
       - code
       additionalProperties: false
       x-status: validated
+    Preferences:
+      type: object
+      description: Préférences d'interface du compte, synchronisées entre appareils. Chaque section a ses propres valeurs par défaut.
+      additionalProperties: false
+      required:
+      - guide
+      properties:
+        guide:
+          $ref: '#/components/schemas/GuidePreferences'
+    GuidePreferences:
+      type: object
+      description: Guide visuel (visites guidées). `seen` liste les identifiants des visites déjà faites (au plus 200).
+      additionalProperties: false
+      required:
+      - enabled
+      - animations
+      - seen
+      properties:
+        enabled:
+          type: boolean
+          default: true
+        animations:
+          type: string
+          enum:
+          - auto
+          - 'off'
+          default: auto
+        seen:
+          type: array
+          maxItems: 200
+          uniqueItems: true
+          items:
+            type: string
+            maxLength: 64
+            pattern: ^[a-z0-9-]+$
     ConsentInput:
       type: object
       properties:
@@ -20267,6 +22456,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/LocalizedText'
           - type: 'null'
+        imageUrl:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
         depth:
           type: integer
           format: int32
@@ -20305,6 +22499,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/LocalizedText'
           - type: 'null'
+        imageUrl:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
       required:
       - slug
       - name

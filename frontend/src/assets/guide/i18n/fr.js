@@ -88,8 +88,8 @@ export default {
   "guide.quote.contact.text": "Entreprise, nom, e-mail professionnel et téléphone : la réponse est envoyée à cette adresse.",
   "guide.quote.items.title": "Vos références",
   "guide.quote.items.text": "Une ligne par référence avec sa quantité. Utilisez « Ajouter un article » pour en ajouter. Plus la référence est précise, plus le devis est rapide.",
-  "guide.quote.aside.title": "Plutôt parler ?",
-  "guide.quote.aside.text": "Nos coordonnées sont ici si vous préférez appeler ou écrire.",
+  "guide.quote.aside.title": "Aperçu en direct",
+  "guide.quote.aside.text": "Le document du devis se construit au fil de votre saisie : vous pouvez le vérifier avant d'envoyer.",
 
   "guide.contact.title": "Contact",
   "guide.contact.summary": "Écrire à notre équipe.",

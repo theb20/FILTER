@@ -8,7 +8,7 @@ import { request } from "../lib/api.js";
 
 const KEY = "ff_site_v1";
 
-/** @typedef {{ name: string, publisher: string, phone: string, email: string, address: string, linkedinUrl: string, facebookUrl: string, youtubeUrl: string, reviewsUrl: string,
+/** @typedef {{ name: string, publisher: string, phone: string, email: string, address: string, linkedinUrl: string, facebookUrl: string, youtubeUrl: string, reviewsUrl: string, rccm: string, taxNumber: string, capital: string, logoUrl: string, stampUrl: string, letterhead: string,
  *   regionalSite: { country: string, url: string } | null,
  *   claims: { crossReferences: string, stockValue: string, foundedYear: string, freeShippingThreshold: string } }} Site
  * @typedef {{ id: string, name: string, fee: number, days: [number, number], freeEligible: boolean }} Zone
@@ -16,7 +16,7 @@ const KEY = "ff_site_v1";
  */
 
 /** @type {Site} */
-const EMPTY_SITE = { name: "", publisher: "", phone: "", email: "", address: "", linkedinUrl: "", facebookUrl: "", youtubeUrl: "", reviewsUrl: "", regionalSite: null,
+const EMPTY_SITE = { name: "", publisher: "", phone: "", email: "", address: "", linkedinUrl: "", facebookUrl: "", youtubeUrl: "", reviewsUrl: "", rccm: "", taxNumber: "", capital: "", logoUrl: "", stampUrl: "", letterhead: "", regionalSite: null,
   claims: { crossReferences: "", stockValue: "", foundedYear: "", freeShippingThreshold: "" } };
 /** @type {Commerce} */
 const EMPTY_COMMERCE = { vatRate: null, freeShippingThreshold: null, quoteThresholds: { minItems: null, minAmount: null }, lowStockThreshold: 5, defaultZone: "", zones: [] };
@@ -25,7 +25,7 @@ const EMPTY_COMMERCE = { vatRate: null, freeShippingThreshold: null, quoteThresh
 export function siteFromApi(d) {
   return {
     name: d.name ?? "", publisher: d.publisher ?? "", phone: d.phone ?? "", email: d.email ?? "", address: d.address ?? "",
-    linkedinUrl: d.linkedinUrl ?? "", facebookUrl: d.facebookUrl ?? "", youtubeUrl: d.youtubeUrl ?? "", reviewsUrl: d.reviewsUrl ?? "",
+    linkedinUrl: d.linkedinUrl ?? "", facebookUrl: d.facebookUrl ?? "", youtubeUrl: d.youtubeUrl ?? "", reviewsUrl: d.reviewsUrl ?? "", rccm: d.rccm ?? "", taxNumber: d.taxNumber ?? "", capital: d.capital ?? "", logoUrl: d.logoUrl ?? "", stampUrl: d.stampUrl ?? "", letterhead: d.letterhead ?? "",
     regionalSite: d.regionalCountry && d.regionalUrl ? { country: d.regionalCountry, url: d.regionalUrl } : null,
     claims: { crossReferences: d.crossReferencesClaim ?? "", stockValue: d.stockValueClaim ?? "", foundedYear: d.foundedYear ?? "", freeShippingThreshold: d.freeShippingClaim ?? "" },
   };

@@ -35,6 +35,10 @@ type Service struct {
 	StaffAdmin    StaffAdminRepo
 	Audit         AuditRepo
 	SettingsStore SettingsRepo
+	Preferences   PreferencesRepo
+	Consents      ConsentRepo
+	Security      SecurityRepo // appareils, historique des connexions, images (security.go) ; nil = désactivé
+	Geo           GeoLocator   // position approximative d'une IP ; nil = aucune
 	Customers     CustomerAdminRepo
 	OAuth         OAuthRepo
 	OAuthCfg      OAuthConfig
@@ -231,8 +235,10 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*Session, error) {
 			return apperr.Internal(err)
 		}
 		var e error
-		sess, e = s.issueSession(ctx, set, u, "", in.IP, in.UserAgent, now)
-		return e
+		if sess, e = s.issueSession(ctx, set, u, "", in.IP, in.UserAgent, now); e != nil {
+			return e
+		}
+		return s.recordLogin(ctx, u, in.IP, in.UserAgent, domain.LoginMethodPassword, now)
 	})
 	return sess, err
 }
@@ -357,6 +363,9 @@ func (s *Service) GetUser(ctx context.Context, id string) (*domain.User, error) 
 		return nil, apperr.NotFound("compte introuvable")
 	} else if err != nil {
 		return nil, apperr.Internal(err)
+	}
+	if err := s.withImages(ctx, u); err != nil {
+		return nil, err
 	}
 	return u, nil
 }

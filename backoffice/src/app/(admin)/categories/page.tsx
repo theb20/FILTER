@@ -13,13 +13,15 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
   const canWrite = can(me?.permissions ?? [], "catalog:write");
   return (
     <div>
-      <PageHeader title="Catégories" subtitle="L'arbre du catalogue. Les attributs d'une catégorie sont hérités par ses sous-catégories." action={canWrite && <LinkButton href="/categories/new">Ajouter une catégorie</LinkButton>} />
+      <PageHeader title="Catégories" subtitle="L'arbre du catalogue. Les attributs d'une catégorie sont hérités par ses sous-catégories." action={canWrite && <><LinkButton href="/categories/bulk" variant="ghost">Édition en masse (Excel)</LinkButton><LinkButton href="/categories/new">Ajouter une catégorie</LinkButton></>} />
       {ok === "deleted" && <Notice kind="ok">Catégorie supprimée.</Notice>}
       <Table head={["Catégorie", "Identifiant d'URL", "Produits", ""]} empty={rows.length === 0 ? "Aucune catégorie pour l'instant." : undefined}>
         {rows.map((c) => (
           <tr key={c.id} className="hover:bg-page">
             <td className="py-3 pr-4 font-medium text-night" style={{ paddingLeft: `${16 + c.level * 24}px` }}>
               {c.level > 0 && <span aria-hidden className="mr-2 text-slate/50">└</span>}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {c.imageUrl && <img src={c.imageUrl} alt="" className="mr-2 inline-block h-7 w-7 rounded-md border border-line object-cover align-middle" />}
               <Link href={`/categories/${c.id}`} className="hover:underline">{t(c.name)}</Link>
             </td>
             <td className="px-4 py-3 text-slate">{c.slug}</td>

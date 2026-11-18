@@ -2,10 +2,11 @@ go 1.26.5
 
 use (
 	./pkg
+	./services/catalog
+	./services/content
+	./services/finance
 	./services/gateway
 	./services/identity
+	./services/notification
 	./services/sourcing
-	./services/catalog
-	./services/finance
-	./services/content
 )

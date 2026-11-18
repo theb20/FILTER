@@ -28,6 +28,30 @@ routes:
   path: /auth/oauth/exchange
   rpc: identity.ExchangeOAuthCode
 - method: POST
+  path: /auth/login-alert/secure
+  rpc: identity.SecureAccountFromAlert
+- method: GET
+  path: /me/sessions
+  rpc: identity.ListMySessions
+- method: DELETE
+  path: /me/sessions/{id}
+  rpc: identity.RevokeMySession
+- method: POST
+  path: /me/sessions/revoke-others
+  rpc: identity.RevokeMyOtherSessions
+- method: GET
+  path: /me/login-activity
+  rpc: identity.ListMyLoginEvents
+- method: GET
+  path: /me/images/{kind}
+  rpc: identity.GetMyImage
+- method: PUT
+  path: /me/images/{kind}
+  rpc: identity.PutMyImage
+- method: DELETE
+  path: /me/images/{kind}
+  rpc: identity.DeleteMyImage
+- method: POST
   path: /auth/password/forgot
   rpc: identity.ForgotPassword
 - method: POST
@@ -75,12 +99,24 @@ routes:
 - method: POST
   path: /consents
   rpc: identity.RecordConsent
+- method: GET
+  path: /me/preferences
+  rpc: identity.GetPreferences
+- method: PUT
+  path: /me/preferences
+  rpc: identity.PutPreferences
 - method: POST
   path: /me/data-export
   rpc: identity.RequestDataExport
 - method: GET
   path: /me/data-requests
   rpc: identity.ListMyDataRequests
+- method: POST
+  path: /admin/uploads
+  rpc: gateway
+- method: GET
+  path: /files/{name}
+  rpc: gateway
 - method: GET
   path: /healthz
   rpc: gateway
@@ -117,6 +153,12 @@ routes:
 - method: POST
   path: /admin/me/password
   rpc: identity.ChangeStaffPassword
+- method: GET
+  path: /admin/me/preferences
+  rpc: identity.GetPreferences
+- method: PUT
+  path: /admin/me/preferences
+  rpc: identity.PutPreferences
 - method: GET
   path: /admin/staff-users
   rpc: identity.ListStaffUsers
@@ -391,6 +433,12 @@ routes:
   path: /products/{id}/related
   rpc: catalogadmin.ListProducts
 - method: GET
+  path: /search/web
+  rpc: sourcing.CallSource
+- method: GET
+  path: /search/web/images
+  rpc: sourcing.CallSource
+- method: GET
   path: /sectors
   rpc: catalogadmin.ListSectors
 - method: GET
@@ -407,6 +455,111 @@ routes:
   rpc: contentadmin.UpdateDocument
 - method: DELETE
   path: /admin/faq/{id}
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /admin/hero-cards
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.GetDocument
+- method: POST
+  path: /admin/hero-cards
+  rpc: contentadmin.CreateDocument
+- method: PUT
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /admin/home-partners
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /admin/home-partners/{id}
+  rpc: contentadmin.GetDocument
+- method: POST
+  path: /admin/home-partners
+  rpc: contentadmin.CreateDocument
+- method: PUT
+  path: /admin/home-partners/{id}
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /admin/home-partners/{id}
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /admin/hero-cards
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.GetDocument
+- method: POST
+  path: /admin/hero-cards
+  rpc: contentadmin.CreateDocument
+- method: PUT
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /admin/quote-responses
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /admin/quote-responses/{id}
+  rpc: contentadmin.GetDocument
+- method: POST
+  path: /admin/quote-responses
+  rpc: contentadmin.CreateDocument
+- method: PUT
+  path: /admin/quote-responses/{id}
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /admin/quote-responses/{id}
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /admin/hero-cards
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.GetDocument
+- method: POST
+  path: /admin/hero-cards
+  rpc: contentadmin.CreateDocument
+- method: PUT
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /admin/home-partners
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /admin/home-partners/{id}
+  rpc: contentadmin.GetDocument
+- method: POST
+  path: /admin/home-partners
+  rpc: contentadmin.CreateDocument
+- method: PUT
+  path: /admin/home-partners/{id}
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /admin/home-partners/{id}
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /admin/hero-cards
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.GetDocument
+- method: POST
+  path: /admin/hero-cards
+  rpc: contentadmin.CreateDocument
+- method: PUT
+  path: /admin/hero-cards/{id}
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /admin/hero-cards/{id}
   rpc: contentadmin.DeleteDocument
 - method: GET
   path: /admin/pages
@@ -595,7 +748,22 @@ routes:
   path: /commerce-settings
   rpc: contentadmin.GetSettings
 - method: GET
+  path: /admin/home-settings
+  rpc: contentadmin.GetSettings
+- method: PUT
+  path: /admin/home-settings
+  rpc: contentadmin.PutSettings
+- method: GET
+  path: /home-settings
+  rpc: contentadmin.GetSettings
+- method: GET
   path: /faq
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /hero-cards
+  rpc: contentadmin.ListDocuments
+- method: GET
+  path: /home-partners
   rpc: contentadmin.ListDocuments
 - method: GET
   path: /pages/{slug}
@@ -825,3 +993,15 @@ routes:
 - method: GET
   path: /admin/finance/cash-forecast
   rpc: financeadmin.GetCashForecast
+- method: GET
+  path: /me/quote-draft
+  rpc: contentadmin.GetDocument
+- method: PUT
+  path: /me/quote-draft
+  rpc: contentadmin.UpdateDocument
+- method: DELETE
+  path: /me/quote-draft
+  rpc: contentadmin.DeleteDocument
+- method: GET
+  path: /me/quote-requests
+  rpc: contentadmin.ListDocuments

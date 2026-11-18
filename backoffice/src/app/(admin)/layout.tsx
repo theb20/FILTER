@@ -4,6 +4,8 @@ import { currentStaff } from "@/lib/staff";
 import { can } from "@/lib/admin";
 import { AdminShell, type NavGroup } from "@/components/admin-shell";
 import { GuideProvider } from "@/components/guide/guide-provider";
+import { loadGuidePrefs } from "@/lib/preferences";
+import { saveGuidePrefs } from "./preferences/actions";
 
 // Chaque entrée n'apparaît que si le membre a la permission de la page (le gateway la contrôle de toute façon).
 const GROUPS: { title: string; items: { href: string; label: string; icon: string; perm?: string }[] }[] = [
@@ -21,7 +23,7 @@ const GROUPS: { title: string; items: { href: string; label: string; icon: strin
       { href: "/content/shipping-zones", label: "Zones de livraison", icon: "shipping", perm: "shipping:read" },
       { href: "/content/promo-codes", label: "Codes promotionnels", icon: "promo", perm: "pricing:read" },
       { href: "/content/settings/commerce", label: "Règles commerciales", icon: "settings", perm: "pricing:read" },
-      { href: "/content/quote-requests", label: "Demandes de devis", icon: "quotes", perm: "quotes:read" },
+      { href: "/quotes", label: "Devis", icon: "quotes", perm: "quotes:read" },
       { href: "/content/reviews", label: "Avis clients", icon: "reviews", perm: "reviews:read" },
     ],
   },
@@ -30,6 +32,9 @@ const GROUPS: { title: string; items: { href: string; label: string; icon: strin
     items: [
       { href: "/content/settings/site", label: "Informations du site", icon: "settings", perm: "content:read" },
       { href: "/content/faq", label: "Questions fréquentes", icon: "faq", perm: "content:read" },
+      { href: "/content/settings/home", label: "Textes de l'accueil", icon: "settings", perm: "content:read" },
+      { href: "/content/hero-cards", label: "Cartes du hero (accueil)", icon: "faq", perm: "content:read" },
+      { href: "/content/home-partners", label: "Partenaires (accueil)", icon: "faq", perm: "content:read" },
       { href: "/content/pages", label: "Pages légales", icon: "pages", perm: "content:read" },
       { href: "/content/articles", label: "Articles du blog", icon: "articles", perm: "content:read" },
       { href: "/content/blog-categories", label: "Catégories du blog", icon: "categories", perm: "content:read" },
@@ -51,6 +56,13 @@ const GROUPS: { title: string; items: { href: string; label: string; icon: strin
       { href: "/categories", label: "Catégories", icon: "categories", perm: "catalog:read" },
       { href: "/brands", label: "Marques", icon: "brands", perm: "catalog:read" },
       { href: "/sectors", label: "Secteurs", icon: "sectors", perm: "catalog:read" },
+    ],
+  },
+  {
+    title: "Moteur de recherche",
+    items: [
+      { href: "/engine/sources", label: "Sources externes", icon: "search", perm: "engine:read" },
+      { href: "/engine/costs", label: "Coûts des sources", icon: "wallet", perm: "engine:read" },
     ],
   },
   {
@@ -89,13 +101,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { me, needsRefresh } = await currentStaff();
   if (!me) redirect(needsRefresh ? "/session/refresh?next=/dashboard" : "/login");
 
+  const initialPrefs = await loadGuidePrefs(); // null si le serveur ne répond pas : le guide garde alors le cache du navigateur
+
   const groups: NavGroup[] = GROUPS.map((g) => ({
     title: g.title,
     items: g.items.filter((n) => !n.perm || can(me.permissions, n.perm)).map(({ href, label, icon }) => ({ href, label, icon })),
   })).filter((g) => g.items.length > 0);
 
   return (
-    <GuideProvider userId={me.id} permissions={me.permissions}>
+    <GuideProvider userId={me.id} permissions={me.permissions} initialPrefs={initialPrefs} save={saveGuidePrefs}>
       <AdminShell groups={groups} user={{ name: me.name, roles: me.roles }} org="Holding Ledan & Associé" logout={logout}>
         {children}
       </AdminShell>

@@ -21,6 +21,7 @@ type reqInfo struct {
 	IP      string
 	UA      string
 	Locale  string
+	Bearer  string // jeton porteur brut, pour les routes PUBLIQUES qui adaptent leur comportement à un client connecté
 }
 
 func withInfo(ctx context.Context, i reqInfo) context.Context {

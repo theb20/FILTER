@@ -17,9 +17,11 @@ const Category = lazy(() => import("./assets/pages/category.jsx"));
 const Card = lazy(() => import("./assets/pages/productDetail.jsx"));
 const Home = lazy(() => import("./assets/pages/home.jsx"));
 const Profil = lazy(() => import("./assets/pages/profil.jsx"));
+const SecureAccount = lazy(() => import("./assets/pages/secureAccount.jsx"));
 const Quote = lazy(() => import("./assets/pages/quote.jsx"));
 const Privacy = lazy(() => import("./assets/pages/privacy.jsx"));
 const OAuthCallback = lazy(() => import("./assets/pages/oauthCallback.jsx"));
+const WebResult = lazy(() => import("./assets/pages/webResult.jsx"));
 const VerifyEmail = lazy(() => import("./assets/pages/verifyEmail.jsx"));
 const InfoPage = lazy(() => import("./assets/pages/info.jsx"));
 const Brands = lazy(() => import("./assets/pages/brands.jsx"));
@@ -65,17 +67,20 @@ function App() {
               <Route path="/sign" element={<Sign />} />
               <Route path="/reset" element={<Reset />} />
               <Route path="/oauth/callback" element={<OAuthCallback />} />
+              <Route path="/web/:id" element={<WebResult />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/basket" element={<Basket />} />
               <Route path="/category" element={<Category />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/card" element={<Card />} />
               <Route path="/profil" element={<Profil />} />
+              <Route path="/secure-account" element={<SecureAccount />} />
               <Route path="/quote" element={<Quote />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/brands" element={<Brands />} />
+              <Route path="/about" element={<InfoPage titleKey="info.about" slug="about" />} />
               <Route path="/terms" element={<InfoPage titleKey="info.terms" slug="terms" />} />
               <Route path="/refund" element={<InfoPage titleKey="info.refund" slug="refund" />} />
               <Route path="*" element={<NotFound />} />

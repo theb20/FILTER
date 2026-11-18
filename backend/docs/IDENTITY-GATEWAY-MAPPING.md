@@ -95,6 +95,7 @@ Légende de l'accès : `publique`, `client` (JWT `customer`), `personnel` (JWT `
 | 24 | `POST /me/email` | client | EmailChangeRequest → 202 Accepted | `identity.RequestEmailChange` | — | 401, 403, 409, 422, 429 |
 | 25 | `POST /me/email/confirm` | publique | VerifyEmailRequest → 204 vide | `identity.ConfirmEmailChange` | — | 422, 429 |
 | 26 | `POST /me/password` | client | ChangePasswordRequest → 204 vide | `identity.ChangePassword` | — | 401, 403, 409, 422, 429 |
+| 26b | `GET` · `PUT /me/preferences` | client | — → 200 Preferences · Preferences → 200 Preferences | `identity.GetPreferences` · `identity.PutPreferences` | — | 401, 403, 400, 422 |
 
 ### Technique (gateway seul)
 
@@ -117,6 +118,7 @@ Légende de l'accès : `publique`, `client` (JWT `customer`), `personnel` (JWT `
 | 36 | `POST /admin/auth/refresh` | publique | RefreshRequest → 200 StaffTokens | `identity.StaffRefresh` | — | 401, 422, 429 |
 | 37 | `GET /admin/me` | personnel | — → 200 StaffMe | `identity.GetStaffProfile` | — | 401, 403 |
 | 38 | `POST /admin/me/password` | personnel | ChangePasswordRequest → 204 vide | `identity.ChangeStaffPassword` | — | 401, 403, 409, 422, 429 |
+| 38b | `GET` · `PUT /admin/me/preferences` | personnel | — → 200 Preferences · Preferences → 200 Preferences | `identity.GetPreferences` · `identity.PutPreferences` | — | 401, 403, 400, 422 |
 
 ### Admin · Administration (identity)
 
@@ -190,13 +192,47 @@ Non vérifié : Firefox et Safari (non installés ici) et le vrai Google. À val
 
 ---
 
-## 7. État d'implémentation (code de la phase 2)
+## 7. État d'implémentation (mesuré, pas déclaré)
 
-| Élément | État |
-|---|---|
-| `pkg/` (erreurs, RFC 9457, JWT EdDSA + JWKS, ralentissement, événements, logs expurgés) | écrit, testé |
-| identity : domaine, cas d'usage, adaptateur gRPC **mémoire** | **10 RPC sur 64** : `Register`, `VerifyEmail`, `ResendEmailVerification`, `Login`, `RefreshTokens`, `Logout`, `LogoutAll`, `GetUser`, `ChangePassword`, `GetJwks`. Les 54 autres répondent `UNIMPLEMENTED` |
-| gateway : serveur **généré** (ogen) + middlewares (CORS, CSRF, débit, en-têtes), vérification locale des JWT | les 11 routes correspondantes ; les 53 autres du périmètre répondent **501** |
-| Contrôle des mots de passe compromis (préfixe de condensat + repli local) | écrit, testé (`BREACH_CHECK`) |
-| Adaptateur PostgreSQL, outbox, NATS, Redis | **non écrits** : identity refuse de démarrer hors `ENV=dev` |
-| Docker Compose, Dockerfile, CI Go | écrits, **non exécutés** (Docker absent) |
+Règle : « écrit » n'est pas « validé ». Une ligne n'est marquée **exécuté** que si un test l'a réellement fait tourner (mémoire **et** PostgreSQL réel pour identity). Dernière mesure : **61 RPC sur 66** implémentés dans `grpcserver`.
+
+| Élément | État | Preuve |
+|---|---|---|
+| `pkg/` (erreurs, RFC 9457, JWT EdDSA + JWKS, ralentissement, événements, logs expurgés) | écrit, **exécuté** | tests `pkg/*` |
+| identity : domaine, cas d'usage | **61 / 66 RPC** (comptes, sessions, rotation et rejeu, mot de passe oublié, OAuth, personnel + 2FA, invitations, rôles, clients, entreprises, audit, réglages, préférences, profil, changement d'e-mail, entreprise du compte, consentements, contrôle de permission) | suite partagée exécutée sur **mémoire et PostgreSQL réel** |
+| identity : **5 RPC manquantes** (toutes RGPD) | `RequestErasure`, `RequestDataExport`, `ListMyDataRequests`, `ListDataRequests`, `ProcessDataRequest` — en attente de vos décisions (§9) | répondent `UNIMPLEMENTED` |
+| gateway : serveur généré (ogen) + CORS, CSRF, débit, en-têtes, JWT locaux | **exécuté** (tests CSRF, cookie, rotation, débit connexion et inscription, permissions du personnel) | `gateway/internal/server/*_test.go` |
+| gateway : **5 routes** RGPD (`DELETE /me`, `/me/data-export`, `/me/data-requests`, `/admin/data-requests` ×2) | répondent **501** | `api.UnimplementedHandler` |
+| gateway + identity : profil (`PATCH /me`), e-mail (`POST /me/email`, `/me/email/confirm`), entreprise (`/me/company` ×2), consentements (`/me/consents` ×2, `POST /consents`) | **exécuté** : suite partagée **mémoire + PostgreSQL 17 réel** (course sur une même adresse, lien unique, expiration, revalidation de l'entreprise, journal append-only), 3 langues pour les e-mails, tests gateway, et **parcours HTTP réel** (gateway + identity + PostgreSQL + NATS + Redis) | `application/profile_test.go`, `gateway/.../profile_test.go` |
+| PostgreSQL (identity) : migrations goose, unité de travail, contraintes en base | **exécuté** (PostgreSQL 17 réel) | `adapters/postgres`, suite partagée |
+| Outbox + relais NATS JetStream | écrit, **exécuté** (PostgreSQL + NATS réels) | `pkg/outbox`, `pkg/natsbus` |
+| **Redis** | **écrit et testé sur miniredis (Lua réel)** : `RedisLimiter` (fenêtre glissante atomique, horloge Redis, partage entre instances testé, concurrence : exactement `limit` autorisées sur 60 appels). `REDIS_URL` **obligatoire hors dev** (démarrage refusé sinon). Panne : repli par instance + journal d'erreur + `/readyz` échoue si Redis est injoignable (G14) ; sonde « redis » dans la santé admin. **Non exécuté contre un vrai serveur Redis** (aucun Redis/Docker sur ce poste) | `services/gateway/internal/server/ratelimit_redis{,_test}.go`, `cmd/gateway/main.go` |
+| Idempotence `Idempotency-Key` (G7) | **écrite et testée** (mémoire + miniredis, `-race`) : rejeu à l'identique, `409 IDEMPOTENCY_KEY_REUSED` si le corps change, `409 CONFLICT` si l'appel est encore en cours, 20 appels simultanés → 1 seule exécution, erreur → clé libérée, portée (acteur, méthode, chemin, clé), table des routes vérifiée contre `openapi.yaml`. Magasin HS → **503, appel refusé** (jamais d'exécution sans garantie). **Aucune des 7 routes concernées n'est encore servie** (commandes/paiements/remboursements = 501) : le mécanisme est prêt, pas exercé sur un vrai handler. Non exécuté contre un vrai Redis | `services/gateway/internal/server/idempotency{,_test}.go` |
+| OAuth Google | exécuté avec un **faux fournisseur** ; vrai Google **non testé** | `oauth_test.go` |
+| Docker Compose, Dockerfile | écrits, **non exécutés** (Docker absent) | — |
+| Navigateurs réels (Firefox, Safari), préproduction avec le vrai domaine | **non testés** | voir §6 |
+
+## 8. Préférences d'interface (`/me/preferences`, `/admin/me/preferences`)
+
+Préférences d'affichage d'un compte, synchronisées entre ses appareils (aujourd'hui : le guide visuel — activé, animations, visites déjà faites).
+
+- **Le compte est toujours celui du jeton**, jamais un identifiant fourni par l'appelant : on ne peut ni lire ni écrire celles d'un autre. Le corps refuse les champs inconnus (`additionalProperties: false`).
+- **Deux mondes séparés** : personnel (`/admin/me/preferences`, jeton du personnel, aucune permission requise) et clients (`/me/preferences`, jeton client). Un jeton de l'un n'ouvre pas la route de l'autre.
+- **`PUT` remplace l'ensemble** (dernière écriture gagnante). Un compte qui n'a rien enregistré reçoit les défauts : guide actif, animations `auto`, aucune visite faite. `seen` vaut `[]`, jamais `null`.
+- **Bornes** : au plus 200 visites, identifiants `^[a-z0-9-]{1,64}$` sans doublon (vérifiés au gateway, dans le domaine et par `CHECK` en base pour le nombre et les valeurs de `animations`).
+- **Stockage** : table `user_preferences` (migration 00007), un propriétaire exactement (client OU membre du personnel, clés étrangères `ON DELETE CASCADE` : supprimer le compte efface ses préférences).
+- **Pas d'entrée d'audit** : ce sont des réglages d'affichage personnels, sans effet sur la sécurité ni sur les données de l'entreprise.
+
+## 9. Profil, e-mail, entreprise, consentements — décisions prises et écarts à confirmer
+
+Implémenté sans changer le contrat (OpenAPI, proto, table des routes). Points où j'ai dû **choisir** : à confirmer.
+
+1. **Compte sans mot de passe (Google) : changement d'e-mail REFUSÉ (403).** Le contrat exige alors une « connexion récente », mais `RequestEmailChangeRequest` ne porte aucune preuve de cela. Pour l'autoriser il faut un champ proto additif (ex. `recent_login`) rempli par le gateway depuis `iat` du jeton : **changement de contrat, non fait**.
+2. **Le jeton d'accès déjà émis reste valable jusqu'à 15 min** après un changement d'e-mail (JWT vérifié localement, G2). Les jetons de rafraîchissement sont tous révoqués. Même limite que le changement de mot de passe.
+3. **`GET /me/company` d'un particulier : 404 ; `GET /me/consents` sans consentement : 404** — le contrat ne déclare pas ce code pour ces routes (seulement 401/403). Je n'invente pas de réponse vide. Alternative : l'ajouter au contrat.
+4. **`PUT /me/company` d'un particulier : 409** (déclaré au contrat). Seules les données **légales** (raison sociale, identifiant fiscal, pays) repassent le statut à `pending` ; la fonction (`jobTitle`) n'y touche pas.
+5. **Consentements** : journal **append-only** (aucune mise à jour). `necessary` doit être `true` (sinon 422). Version de politique : `^[A-Za-z0-9._-]{1,32}$`, libre. L'adresse IP est **tronquée** (IPv4 /24, IPv6 /48) avant écriture. Un visiteur sans `anonymousId` en reçoit un généré. **Durée de conservation de la preuve : non fixée** ; si le compte est supprimé, la preuve est conservée détachée (`user_id → NULL`). À décider avec le RGPD.
+6. **Nouveaux champs** (additifs, déjà prévus au contrat) : `users.phone` (E.164), `companies.job_title`, `one_time_tokens.payload` (nouvelle adresse), table `consents` — migration `00008`.
+7. **Réponse uniforme** à `POST /me/email` si la nouvelle adresse existe déjà : 202, aucun e-mail. Le temps de réponse n'est pas parfaitement égalisé (pas de jeton créé dans ce cas).
+8. **E-mails** : `email_change_requested` part vers la **nouvelle** adresse, `email_change_confirmed` vers l'**ancienne** (avec la nouvelle adresse et la date), en fr/en/es. Le lien pointe vers `/confirm-email-change?token=…` du site : **cette page n'existe pas encore côté vitrine**.
+9. **Inscription** : `phone` du formulaire d'inscription n'est pas encore transmis à la création du compte.

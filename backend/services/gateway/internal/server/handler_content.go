@@ -264,6 +264,37 @@ func (h *handler) ListFaq(ctx context.Context, p api.ListFaqParams) (api.ListFaq
 	return &out, nil
 }
 
+func (h *handler) ListHomePartners(ctx context.Context) (api.ListHomePartnersRes, error) {
+	docs, err := h.publicAll(ctx, "home_partner", map[string]string{"published": "true"})
+	if err != nil {
+		return nil, err
+	}
+	str := func(v any) string { s, _ := v.(string); return s }
+	out := api.ListHomePartnersOKApplicationJSON{}
+	for _, d := range docs {
+		m := d.GetData().AsMap()
+		out = append(out, api.PublicHomePartner{ID: uuidOf(d.GetId()), Name: str(m["name"]), LogoUrl: str(m["logoUrl"]), Link: api.NewOptString(str(m["link"]))})
+	}
+	return &out, nil
+}
+
+func (h *handler) ListHeroCards(ctx context.Context, p api.ListHeroCardsParams) (api.ListHeroCardsRes, error) {
+	locale := wantLocale(ctx, p.AcceptLanguage)
+	docs, err := h.publicAll(ctx, "hero_card", map[string]string{"published": "true"})
+	if err != nil {
+		return nil, err
+	}
+	str := func(v any) string { s, _ := v.(string); return s }
+	out := api.ListHeroCardsOKApplicationJSON{}
+	for _, d := range docs {
+		m := d.GetData().AsMap()
+		out = append(out, api.PublicHeroCard{ID: uuidOf(d.GetId()), Key: api.NewOptString(str(m["cardKey"])), Title: pickLoc(m["title"], locale),
+			Text: api.NewOptString(pickLoc(m["text"], locale)), Cta: api.NewOptString(pickLoc(m["cta"], locale)), ImageUrl: str(m["imageUrl"]),
+			Link: api.NewOptString(str(m["link"])), BgColor: api.NewOptString(str(m["bgColor"])), TextColor: api.NewOptString(str(m["textColor"]))})
+	}
+	return &out, nil
+}
+
 func (h *handler) GetPage(ctx context.Context, p api.GetPageParams) (api.GetPageRes, error) {
 	c, err := h.content()
 	if err != nil {
@@ -280,7 +311,11 @@ func (h *handler) GetPage(ctx context.Context, p api.GetPageParams) (api.GetPage
 	if !flag(m, "published") {
 		return nil, apperr.NotFound("page introuvable")
 	}
-	return &api.PublicPage{Slug: str(m, "slug"), Kind: api.PublicPageKind(str(m, "kind")), Title: pickLoc(m["title"], locale), Body: pickLoc(m["body"], locale), UpdatedAt: res.GetDocument().GetUpdatedAt().AsTime()}, nil
+	out := &api.PublicPage{Slug: str(m, "slug"), Kind: api.PublicPageKind(str(m, "kind")), Title: pickLoc(m["title"], locale), Body: pickLoc(m["body"], locale), UpdatedAt: res.GetDocument().GetUpdatedAt().AsTime()}
+	if u := str(m, "imageUrl"); u != "" {
+		out.ImageUrl = api.NewOptString(u)
+	}
+	return out, nil
 }
 
 func (h *handler) ListShippingZones(ctx context.Context, p api.ListShippingZonesParams) (api.ListShippingZonesRes, error) {

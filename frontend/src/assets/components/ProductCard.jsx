@@ -37,8 +37,8 @@ export default function ProductCard({ product: p, variant = "row" }) {
 
   if (variant === "tile") {
     return (
-      <article className="flex h-full flex-col rounded-[8px] bg-white p-4 shadow-card">
-        <Link to={`/card?id=${p.id}`} aria-label={name} className="flex h-32 items-center justify-center rounded-[6px] bg-gray-50">
+      <article className="group flex h-full flex-col rounded-[10px] bg-white p-4 shadow-card ring-1 ring-gray-100 transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:ring-action">
+        <Link to={`/card?id=${p.id}`} aria-label={name} className="flex h-36 items-center justify-center overflow-hidden rounded-[8px] bg-gray-50 transition-colors group-hover:bg-white">
           {thumb("h-24")}
         </Link>
         <h3 className="mt-3 text-[17px] font-semibold leading-snug">
@@ -47,7 +47,7 @@ export default function ProductCard({ product: p, variant = "row" }) {
         <p className="mt-0.5 text-sm text-gray-700">{t("list.ref")} <strong>{p.reference}</strong> · {p.brand}</p>
         <div className="mt-1">{stock}</div>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
-          <p className="text-[20px] font-bold">{price}</p>
+          <p className="text-[22px] font-extrabold tracking-tight">{price}</p>
           {addButton}
         </div>
       </article>
@@ -55,7 +55,7 @@ export default function ProductCard({ product: p, variant = "row" }) {
   }
 
   return (
-    <li className="flex flex-col gap-4 rounded-[4px] bg-white p-4 shadow-card sm:flex-row">
+    <li className="group flex flex-col gap-4 rounded-[8px] bg-white p-4 shadow-card ring-1 ring-transparent transition duration-200 hover:shadow-lg hover:ring-gray-200 sm:flex-row">
       <Link to={`/card?id=${p.id}`} className="flex h-36 w-full shrink-0 items-center justify-center bg-gray-50 sm:w-36" aria-label={name}>
         {thumb("h-28")}
       </Link>

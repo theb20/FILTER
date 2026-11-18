@@ -72,6 +72,34 @@ func (f *Factory) For(src *domain.Source) (application.Connector, error) {
 
 // ── Brave Search API ────────────────────────────────────────────────────────
 
+// braveImages lit la réponse de `GET /res/v1/images/search`. La vignette servie par Brave est préférée à l'image
+// d'origine : elle est en https, de taille raisonnable, et n'expose pas le visiteur au site source.
+func braveImages(body []byte) ([]domain.RawHit, error) {
+	var doc struct {
+		Results []struct {
+			Title     string `json:"title"`
+			URL       string `json:"url"`
+			Source    string `json:"source"`
+			Thumbnail struct {
+				Src string `json:"src"`
+			} `json:"thumbnail"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal(body, &doc); err != nil {
+		return nil, &application.CallError{Kind: "decode", Sent: true, Err: errors.New("réponse illisible")}
+	}
+	hits := make([]domain.RawHit, 0, len(doc.Results))
+	for _, r := range doc.Results {
+		if r.Thumbnail.Src == "" {
+			continue
+		}
+		u := r.URL
+		raw, _ := json.Marshal(r)
+		hits = append(hits, domain.RawHit{Title: r.Title, URL: &u, PayloadJSON: string(raw)})
+	}
+	return hits, nil
+}
+
 // Brave interroge `GET /res/v1/web/search` (en-tête X-Subscription-Token ; paramètres q, country, search_lang, count).
 // Les résultats de Brave ne portent ni référence ni marque structurées : Reference et Brand restent absents, donc ces
 // résultats ne sont JAMAIS fusionnés entre eux (règle de la phase 1).
@@ -124,11 +152,24 @@ func (b *Brave) Search(ctx context.Context, p application.SearchParams) ([]domai
 	case res.StatusCode >= 400:
 		return nil, &application.CallError{Kind: "http_4xx", HTTPStatus: res.StatusCode, Sent: true, Err: fmt.Errorf("réponse %d", res.StatusCode)}
 	}
+	if strings.Contains(b.Endpoint, "/images/search") {
+		return braveImages(body)
+	}
 	var doc struct {
 		Web struct {
 			Results []struct {
-				Title string `json:"title"`
-				URL   string `json:"url"`
+				Title       string `json:"title"`
+				URL         string `json:"url"`
+				Description string `json:"description"` // extrait affiché au visiteur ; jamais conservé (stockage brut interdit)
+				Thumbnail   struct {
+					Src string `json:"src"`
+				} `json:"thumbnail"`
+				Profile struct {
+					Name string `json:"name"`
+				} `json:"profile"`
+				MetaURL struct {
+					Hostname string `json:"hostname"`
+				} `json:"meta_url"`
 			} `json:"results"`
 		} `json:"web"`
 	}

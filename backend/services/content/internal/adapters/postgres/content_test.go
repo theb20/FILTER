@@ -169,3 +169,33 @@ func TestReglages(t *testing.T) {
 	_, err = s.GetSettings(ctx, "autre")
 	wantCode(t, err, apperr.CodeNotFound)
 }
+
+func TestDevisEtBrouillon(t *testing.T) {
+	s := rig(t)
+	owner := "11111111-1111-1111-1111-111111111111"
+	d, err := s.Create(ctx, adm, "quote_draft", m{"userId": owner, "subject": "Cuves GPL", "deliveryDelay": "3 semaines", "items": []any{m{"reference": "HF-100", "quantity": 2.0}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// un seul brouillon par compte (clé unique), retrouvé par l'identifiant du compte
+	if _, err := s.Create(ctx, adm, "quote_draft", m{"userId": owner}); code(err) != apperr.CodeConflict {
+		t.Fatalf("second brouillon du même compte : %v", code(err))
+	}
+	got, err := s.Get(ctx, "quote_draft", owner)
+	if err != nil || got.ID != d.ID {
+		t.Fatalf("lecture par compte : %v", err)
+	}
+	// la demande de devis reprend les éléments d'un devis
+	q, err := s.Create(ctx, adm, "quote_request", m{"name": "A", "email": "a@b.co", "status": "new", "subject": "Cuves GPL", "reference": "ENGPLA030267", "attention": "Mme K.",
+		"deliveryPlace": "Abidjan", "deliveryDelay": "3 semaines", "paymentTerms": "30 jours fin de mois", "items": []any{m{"reference": "VRN20 Vanne", "quantity": 126.0}}})
+	if err != nil || q.Data["reference"] != "ENGPLA030267" {
+		t.Fatalf("demande : %v", err)
+	}
+	if _, err := s.Create(ctx, adm, "quote_request", m{"name": "A", "email": "a@b.co", "status": "new", "items": []any{m{"quantity": 1.0}}}); code(err) != apperr.CodeValidation {
+		t.Fatalf("ligne sans référence : %v", code(err))
+	}
+	site, _ := s.GetSettings(ctx, "site")
+	if site.Data["rccm"] == nil || site.Data["taxNumber"] == nil || site.Data["capital"] == nil {
+		t.Fatalf("identifiants légaux du devis : %v", site.Data)
+	}
+}

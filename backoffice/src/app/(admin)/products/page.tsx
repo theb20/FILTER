@@ -27,7 +27,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const sel = selectCls;
   return (
     <div>
-      <PageHeader title="Produits" subtitle="Le catalogue. Un produit est publié sur le site seulement une fois sa fiche complète." action={canWrite && <LinkButton href="/products/new">Ajouter un produit</LinkButton>} />
+      <PageHeader title="Produits" subtitle="Le catalogue. Un produit est publié sur le site seulement une fois sa fiche complète." action={canWrite && <><LinkButton href="/products/bulk" variant="ghost">Édition en masse (Excel)</LinkButton><LinkButton href="/products/new">Ajouter un produit</LinkButton></>} />
       {sp.ok === "deleted" && <Notice kind="ok">Produit supprimé.</Notice>}
       <FilterBar reset={{ href: "/products", show: Object.keys(keep).length > 0 }}>
         <SearchInput defaultValue={sp.q} placeholder="SKU, nom, référence…" className="w-full sm:w-64" />

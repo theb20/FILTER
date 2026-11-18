@@ -220,6 +220,21 @@ message SuspiciousLoginAlertRequested {
   string locale = 5;
 }
 
+// Connexion RÉUSSIE depuis un appareil jamais vu sur ce compte. `token` (lien « ce n'était pas moi ») n'est jamais
+// journalisé. La ville est APPROXIMATIVE (déduite de l'IP) ; vide si inconnue.
+message NewDeviceLoginAlertRequested {
+  string user_id = 1;
+  string email = 2;
+  string locale = 3;
+  google.protobuf.Timestamp at = 4;
+  string ip = 5;
+  string browser = 6;
+  string os = 7;
+  string city = 8;
+  string country = 9;
+  string token = 10;
+}
+
 // Vérification envoyée à la NOUVELLE adresse ; l'ANCIENNE est notifiée. Le jeton n'est jamais journalisé.
 message EmailChangeRequested {
   string user_id = 1;

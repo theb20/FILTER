@@ -20,6 +20,8 @@ type Server struct {
 	cfg     Config
 	log     *slog.Logger
 	limiter Limiter
+	idem    IdempotencyStore
+	keys    *KeyCache
 	now     func() time.Time
 	ready   func(context.Context) error
 	probes  []HealthProbe
@@ -27,18 +29,19 @@ type Server struct {
 
 // Deps regroupe les dépendances (ports) du gateway.
 type Deps struct {
-	Config   Config
-	Log      *slog.Logger
-	Identity identityv1.IdentityServiceClient
-	Sourcing sourcingv1.SourcingServiceClient         // facultatif
-	Catalog  catalogadminv1.CatalogAdminServiceClient // facultatif
-	Finance  financeadminv1.FinanceAdminServiceClient // facultatif
-	Content  contentadminv1.ContentAdminServiceClient // facultatif
-	Probes   []HealthProbe                            // sondes de « Santé des services »
-	Keys     *KeyCache
-	Limiter  Limiter
-	Ready    func(context.Context) error
-	Now      func() time.Time
+	Config      Config
+	Log         *slog.Logger
+	Identity    identityv1.IdentityServiceClient
+	Sourcing    sourcingv1.SourcingServiceClient         // facultatif
+	Catalog     catalogadminv1.CatalogAdminServiceClient // facultatif
+	Finance     financeadminv1.FinanceAdminServiceClient // facultatif
+	Content     contentadminv1.ContentAdminServiceClient // facultatif
+	Probes      []HealthProbe                            // sondes de « Santé des services »
+	Keys        *KeyCache
+	Limiter     Limiter
+	Idempotency IdempotencyStore // nil : mémoire (développement)
+	Ready       func(context.Context) error
+	Now         func() time.Time
 }
 
 // New assemble le gateway : serveur ogen GÉNÉRÉ + middlewares.
@@ -46,6 +49,11 @@ func New(d Deps) (http.Handler, error) {
 	s := &Server{cfg: d.Config, log: d.Log, limiter: d.Limiter, now: d.Now, ready: d.Ready, probes: d.Probes}
 	if s.now == nil {
 		s.now = time.Now
+	}
+	s.keys = d.Keys
+	s.idem = d.Idempotency
+	if s.idem == nil {
+		s.idem = NewMemoryIdempotency(s.now)
 	}
 	if s.limiter == nil {
 		s.limiter = NewMemoryLimiter()

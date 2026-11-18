@@ -28,6 +28,9 @@ type store interface {
 	application.SettingsRepo
 	application.CustomerAdminRepo
 	application.OAuthRepo
+	application.PreferencesRepo
+	application.ConsentRepo
+	application.SecurityRepo
 	StaffSessions() application.SessionRepo
 }
 
@@ -102,6 +105,12 @@ func (r outboxReader) OfType(typ string) []events.Event {
 			msg = &eventsv1.SuspiciousLoginAlertRequested{}
 		case application.EvStaffInvitationRequested:
 			msg = &eventsv1.StaffInvitationRequested{}
+		case application.EvEmailChangeRequested:
+			msg = &eventsv1.EmailChangeRequested{}
+		case application.EvEmailChangeConfirmed:
+			msg = &eventsv1.EmailChangeConfirmed{}
+		case application.EvNewDeviceLogin:
+			msg = &eventsv1.NewDeviceLoginAlertRequested{}
 		case application.EvStaffTwoFactorReset:
 			msg = &eventsv1.StaffTwoFactorReset{}
 		default:

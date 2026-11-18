@@ -52,11 +52,11 @@ func locFrom(l *pb.Localized) domain.Localized {
 // ── catégories ──
 
 func catTo(c *domain.Category) *pb.Category {
-	return &pb.Category{Id: c.ID, Slug: c.Slug, ParentId: c.ParentID, SortOrder: int32(c.SortOrder), Name: locTo(c.Name), Description: locTo(c.Description), Depth: int32(c.Depth), ProductCount: c.ProductCount, CreatedAt: timestamppb.New(c.CreatedAt), UpdatedAt: timestamppb.New(c.UpdatedAt)}
+	return &pb.Category{Id: c.ID, Slug: c.Slug, ParentId: c.ParentID, SortOrder: int32(c.SortOrder), Name: locTo(c.Name), Description: locTo(c.Description), ImageUrl: c.ImageURL, Depth: int32(c.Depth), ProductCount: c.ProductCount, CreatedAt: timestamppb.New(c.CreatedAt), UpdatedAt: timestamppb.New(c.UpdatedAt)}
 }
 
 func catFrom(c *pb.Category) domain.Category {
-	return domain.Category{Slug: c.GetSlug(), ParentID: c.ParentId, SortOrder: int(c.GetSortOrder()), Name: locFrom(c.GetName()), Description: locFrom(c.GetDescription())}
+	return domain.Category{Slug: c.GetSlug(), ParentID: c.ParentId, SortOrder: int(c.GetSortOrder()), Name: locFrom(c.GetName()), Description: locFrom(c.GetDescription()), ImageURL: c.ImageUrl}
 }
 
 func (s *Server) ListCategories(ctx context.Context, r *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {

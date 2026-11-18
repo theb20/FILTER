@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import TopBar from "./TopBar.jsx";
 import Header from "./header.jsx";
+import CategoryBar from "./CategoryBar.jsx";
 import GeoBanner from "./GeoBanner.jsx";
 import Newsletter from "./Newsletter.jsx";
 import Footer from "./Footer.jsx";
@@ -29,6 +30,7 @@ export default function Layout() {
         <>
           {isBlog && <Suspense fallback={null}><FeaturedBar /></Suspense>}
           <Header />
+          <CategoryBar />
           <TopBar />
           <GeoBanner />
         </>

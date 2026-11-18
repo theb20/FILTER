@@ -20,7 +20,7 @@ export default function Brands() {
       <ul data-guide="brands-list" className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {brands.map((b) => (
           <li key={b.id}>
-            <Link to={`/category?brand=${encodeURIComponent(b.slug)}`} className="flex h-28 flex-col items-center justify-center gap-2 rounded-[4px] border border-gray-200 p-3 text-center hover:border-black">
+            <Link to={`/category?brand=${encodeURIComponent(b.name)}`} className="flex h-28 flex-col items-center justify-center gap-2 rounded-[4px] border border-gray-200 p-3 text-center hover:border-black">
               {b.logoUrl ? <img src={b.logoUrl} alt="" loading="lazy" className="max-h-12 max-w-full object-contain" /> : null}
               <span className="font-medium">{b.name}</span>
             </Link>

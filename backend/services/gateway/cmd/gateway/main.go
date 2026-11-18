@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"log/slog"
 	"net/http"
 	"os"
@@ -141,9 +142,18 @@ func run(log *slog.Logger) error {
 		}})
 	}
 
+	// Limitation de débit : Redis (partagé entre instances) ; obligatoire hors développement.
+	limiter, idem, redisProbe, err := buildLimiter(cfg, log)
+	if err != nil {
+		return err
+	}
+	if redisProbe != nil {
+		probes = append(probes, *redisProbe)
+	}
+
 	keys := server.NewKeyCache(jwksFromIdentity{id}, cfg.ClockLeeway, cfg.JWKSMinRefresh, nil)
 	h, err := server.New(server.Deps{
-		Config: cfg, Log: log, Identity: id, Sourcing: sourcing, Catalog: catalog, Finance: financeCli, Content: content, Probes: probes, Keys: keys, Limiter: server.NewMemoryLimiter(),
+		Config: cfg, Log: log, Identity: id, Sourcing: sourcing, Catalog: catalog, Finance: financeCli, Content: content, Probes: probes, Keys: keys, Limiter: limiter, Idempotency: idem,
 		Ready: func(ctx context.Context) error {
 			r, err := health.Check(ctx, &healthpb.HealthCheckRequest{})
 			if err != nil {
@@ -152,16 +162,17 @@ func run(log *slog.Logger) error {
 			if r.GetStatus() != healthpb.HealthCheckResponse_SERVING {
 				return errors.New("identity ne sert pas")
 			}
+			if redisProbe != nil { // G14 : /readyz = Redis + canal gRPC vers identity
+				if err := redisProbe.Check(ctx); err != nil {
+					return fmt.Errorf("redis : %w", err)
+				}
+			}
 			return nil
 		},
 	})
 	if err != nil {
 		return err
 	}
-	if cfg.Env == "dev" {
-		log.Warn("limitation de débit EN MÉMOIRE (une seule instance) ; l'adaptateur Redis est à venir")
-	}
-
 	srv := &http.Server{
 		Addr: getenv("GATEWAY_ADDR", ":8080"), Handler: h,
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 1 << 20,
@@ -186,6 +197,7 @@ func loadConfig() (server.Config, error) {
 	cfg := server.DefaultConfig()
 	cfg.Env = getenv("ENV", "dev")
 	cfg.TrustProxy = getenv("TRUST_PROXY", "false") == "true"
+	cfg.UploadDir = getenv("UPLOAD_DIR", cfg.UploadDir)
 	for _, o := range strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",") {
 		if o = strings.TrimSpace(o); o != "" {
 			cfg.AllowedOrigins = append(cfg.AllowedOrigins, o)
@@ -241,4 +253,32 @@ func getenv(k, d string) string {
 		return v
 	}
 	return d
+}
+
+// buildLimiter choisit la limitation de débit. REDIS_URL (ex. redis://:mdp@redis:6379/0) active la version partagée.
+// Sans REDIS_URL : refusé hors développement (la limite par instance se contourne en répartissant les requêtes sur
+// N instances) ; en développement, repli en mémoire avec avertissement.
+func buildLimiter(cfg server.Config, log *slog.Logger) (server.Limiter, server.IdempotencyStore, *server.HealthProbe, error) {
+	url := strings.TrimSpace(os.Getenv("REDIS_URL"))
+	if url == "" {
+		if cfg.Env != "dev" {
+			return nil, nil, nil, errors.New("REDIS_URL est obligatoire hors développement (limitation de débit partagée entre instances)")
+		}
+		log.Warn("REDIS_URL absent : limitation de débit EN MÉMOIRE (une seule instance, développement uniquement)")
+		return server.NewMemoryLimiter(), server.NewMemoryIdempotency(nil), nil, nil
+	}
+	opt, err := redis.ParseURL(url)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("REDIS_URL invalide : %w", err)
+	}
+	l := server.NewRedisLimiter(redis.NewClient(opt), log)
+	pctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := l.Ping(pctx); err != nil {
+		if cfg.Env != "dev" {
+			return nil, nil, nil, fmt.Errorf("Redis injoignable au démarrage : %w", err)
+		}
+		log.Warn("Redis injoignable au démarrage (développement : repli local actif)", "err", err.Error())
+	}
+	return l, server.NewRedisIdempotency(l.Client()), &server.HealthProbe{Name: "redis", Kind: "broker", Check: l.Ping}, nil
 }

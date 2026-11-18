@@ -2,7 +2,7 @@
 // Les écrans « contenu » du backoffice (liste, création, détail) sont pilotés par ces descriptions.
 
 export type FieldType = string; // str | text | slug | code | loc | int | num | bool | url | email | ts | uuid | enum:a|b | strs | uuids | items
-export type FieldDef = { name: string; type: FieldType; label: string; req: boolean; labels?: Record<string, string>; help?: string; long?: boolean; ro?: boolean; gated?: boolean; ref?: string; min?: number; max?: number };
+export type FieldDef = { name: string; type: FieldType; label: string; req: boolean; labels?: Record<string, string>; help?: string; long?: boolean; ro?: boolean; gated?: boolean; img?: boolean; ref?: string; min?: number; max?: number };
 export type KindDef = {
   slug: string; kind: string; title: string; single: string; perm: { read: string; write: string }; summary: string[];
   ops: ("list" | "get" | "create" | "update" | "delete")[]; updateFields: string[] | null; fields: FieldDef[];
@@ -62,6 +62,58 @@ export const CONTENT_KINDS: KindDef[] = [
   ]
  },
  {
+  "slug": "hero-cards",
+  "kind": "hero_card",
+  "title": "Cartes du hero (accueil)",
+  "single": "Carte",
+  "perm": {
+   "read": "content:read",
+   "write": "content:write"
+  },
+  "summary": [
+   "title"
+  ],
+  "ops": [
+   "list",
+   "get",
+   "create",
+   "update",
+   "delete"
+  ],
+  "publish": null,
+  "updateFields": null,
+  "fields": [
+   {"name": "title", "type": "loc", "label": "Titre", "req": true},
+   {"name": "text", "type": "loc", "label": "Texte", "req": false, "long": true},
+   {"name": "cta", "type": "loc", "label": "Texte du bouton (ex. COMMENCER)", "req": false},
+   {"name": "imageUrl", "type": "str", "label": "Image (adresse, ex. /img/background/bg_card_1.png ou https://…)", "req": true},
+   {"name": "link", "type": "str", "label": "Lien au clic (ex. /category, /quote)", "req": false},
+   {"name": "bgColor", "type": "str", "label": "Couleur du panneau (ex. #3d44e0)", "req": false},
+   {"name": "textColor", "type": "str", "label": "Couleur du texte (ex. #ffffff)", "req": false},
+   {"name": "cardKey", "type": "str", "label": "Repère interne (facultatif)", "req": false},
+   {"name": "sortOrder", "type": "int", "label": "Ordre d'affichage", "req": false, "min": 0},
+   {"name": "published", "type": "bool", "label": "Affichée sur le site", "req": false}
+  ]
+ },
+ {
+  "slug": "home-partners",
+  "kind": "home_partner",
+  "title": "Partenaires (accueil)",
+  "single": "Partenaire",
+  "perm": {"read": "content:read", "write": "content:write"},
+  "summary": ["name"],
+  "ops": ["list", "get", "create", "update", "delete"],
+  "publish": null,
+  "updateFields": null,
+  "fields": [
+   {"name": "name", "type": "str", "label": "Nom du partenaire", "req": true},
+   {"name": "logoUrl", "type": "str", "label": "Logo (adresse de l'image, ex. /img/… ou https://…)", "req": true},
+   {"name": "link", "type": "str", "label": "Lien au clic (site du partenaire, facultatif)", "req": false},
+   {"name": "sortOrder", "type": "int", "label": "Ordre d'affichage", "req": false, "min": 0},
+   {"name": "published", "type": "bool", "label": "Affiché sur le site", "req": false}
+  ]
+ },
+ {
   "slug": "pages",
   "kind": "page",
   "title": "Pages (légales et éditoriales)",
@@ -93,7 +145,7 @@ export const CONTENT_KINDS: KindDef[] = [
     "type": "slug",
     "label": "Adresse (slug)",
     "req": true,
-    "help": "Ex. confidentialite, cgv, mentions-legales"
+    "help": "Adresses lues par le site : about (Notre histoire, dont l’accueil affiche les 3 premiers paragraphes), terms, refund, privacy"
    },
    {
     "name": "kind",
@@ -118,6 +170,7 @@ export const CONTENT_KINDS: KindDef[] = [
     "req": true,
     "long": true
    },
+   {"name": "imageUrl", "type": "str", "label": "Image (facultatif)", "req": false, "img": true, "help": "Pour la page « about » : image affichée à côté de l’aperçu « Notre histoire » de l’accueil, et en tête de la page."},
    {
     "name": "published",
     "type": "bool",
@@ -844,6 +897,62 @@ export const CONTENT_KINDS: KindDef[] = [
     "ro": true
    },
    {
+    "name": "subject",
+    "type": "str",
+    "label": "Objet",
+    "req": false,
+    "ro": true
+   },
+   {
+    "name": "reference",
+    "type": "str",
+    "label": "Référence du client",
+    "req": false,
+    "ro": true
+   },
+   {
+    "name": "address",
+    "type": "str",
+    "label": "Adresse de l'entreprise",
+    "req": false,
+    "ro": true
+   },
+   {
+    "name": "attention",
+    "type": "str",
+    "label": "À l'attention de",
+    "req": false,
+    "ro": true
+   },
+   {
+    "name": "jobTitle",
+    "type": "str",
+    "label": "Fonction ou service",
+    "req": false,
+    "ro": true
+   },
+   {
+    "name": "deliveryPlace",
+    "type": "str",
+    "label": "Lieu de livraison souhaité",
+    "req": false,
+    "ro": true
+   },
+   {
+    "name": "deliveryDelay",
+    "type": "str",
+    "label": "Délai de livraison souhaité",
+    "req": false,
+    "ro": true
+   },
+   {
+    "name": "paymentTerms",
+    "type": "str",
+    "label": "Conditions de paiement souhaitées",
+    "req": false,
+    "ro": true
+   },
+   {
     "name": "items",
     "type": "items",
     "label": "Articles demandés",
@@ -968,11 +1077,43 @@ export const CONTENT_SETTINGS: SettingsDef[] = [
     "req": false
    },
    {
+    "name": "rccm",
+    "type": "str",
+    "label": "RCCM (devis)",
+    "req": false
+   },
+   {
+    "name": "taxNumber",
+    "type": "str",
+    "label": "Compte contribuable (devis)",
+    "req": false
+   },
+   {
+    "name": "capital",
+    "type": "str",
+    "label": "Capital social (devis)",
+    "req": false
+   },
+   {
     "name": "freeShippingClaim",
     "type": "str",
     "label": "Bandeau : montant de livraison offerte (texte)",
     "req": false
-   }
+   },
+   {"name": "logoUrl", "type": "str", "label": "Logo de la société (en-tête des devis)", "req": false, "img": true},
+   {"name": "stampUrl", "type": "str", "label": "Cachet et signature (bas des devis)", "req": false, "img": true},
+   {"name": "letterhead", "type": "text", "label": "En-tête des devis : lignes sous le nom de la société", "req": false, "help": "Une ligne par information, ex. « HLEA – Siège d'Abidjan », « RCI ABIDJAN Palmeraie », « Résidence KAHA, Appartement E3 ». Vide = l'adresse du site."}
+  ]
+ },
+ {
+  "key": "home",
+  "slug": "home-settings",
+  "title": "Textes de l'accueil",
+  "perm": {"read": "content:read", "write": "content:write"},
+  "fields": [
+   {"name": "sectorsEyebrow", "type": "loc", "label": "Section secteurs : petit titre (ex. Secteurs)", "req": false},
+   {"name": "sectorsTitle", "type": "loc", "label": "Section secteurs : titre (ex. La filtration pour chaque secteur)", "req": false},
+   {"name": "sectorsText", "type": "loc", "label": "Section secteurs : texte d'introduction", "req": false, "long": true}
   ]
  },
  {

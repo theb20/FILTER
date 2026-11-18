@@ -6,13 +6,12 @@ import { useEffect, useState } from "react";
 import { GuideButton } from "@/components/guide/guide-button";
 import {
   Boxes, Building2, ClipboardList, FolderTree, KeyRound, LayoutDashboard, LogOut, Menu, Package, Settings, ShieldCogIcon,
-  Tags, UserCog, UserRound, Users, X, Factory, Truck, BadgePercent, FileText, HelpCircle, Newspaper, Mail, Star, ReceiptText, Landmark, BookOpen, Scale, ShieldCheck, CalendarDays, BookMarked, Wallet, Repeat, Banknote, TrendingUp, type LucideIcon,
-} from "lucide-react";
+  Tags, UserCog, UserRound, Users, X, Factory, Truck, BadgePercent, FileText, HelpCircle, Newspaper, Mail, Star, ReceiptText, Landmark, BookOpen, Scale, ShieldCheck, CalendarDays, BookMarked, Wallet, Repeat, Banknote, TrendingUp, type LucideIcon, Search,} from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard, customers: Users, companies: Building2, products: Package, categories: FolderTree, brands: Tags,
   sectors: Factory, staff: UserCog, roles: KeyRound, audit: ClipboardList, settings: Settings, account: UserRound, attributes: Boxes,
-  finance: Landmark, ledger: BookOpen, scale: Scale, approvals: ShieldCheck, calendar: CalendarDays, accounts: BookMarked, wallet: Wallet, bank: Banknote, forecast: TrendingUp, recurring: Repeat, shipping: Truck, promo: BadgePercent, pages: FileText, faq: HelpCircle, articles: Newspaper, mail: Mail, reviews: Star, quotes: ReceiptText,
+  finance: Landmark, ledger: BookOpen, scale: Scale, approvals: ShieldCheck, calendar: CalendarDays, accounts: BookMarked, wallet: Wallet, bank: Banknote, forecast: TrendingUp, recurring: Repeat, shipping: Truck, promo: BadgePercent, pages: FileText, faq: HelpCircle, articles: Newspaper, mail: Mail, reviews: Star, quotes: ReceiptText, search: Search,
 };
 
 export type NavItem = { href: string; label: string; icon: string };

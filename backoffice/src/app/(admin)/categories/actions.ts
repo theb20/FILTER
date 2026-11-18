@@ -8,7 +8,7 @@ import type { Category } from "@/lib/types";
 import type { FormState } from "@/components/ui/client";
 
 function body(form: FormData) {
-  return { slug: String(form.get("slug") ?? "").trim(), name: readLocalized(form, "name"), description: readOptionalLocalized(form, "description") };
+  return { slug: String(form.get("slug") ?? "").trim(), name: readLocalized(form, "name"), description: readOptionalLocalized(form, "description"), imageUrl: String(form.get("imageUrl") ?? "").trim() || null };
 }
 
 export async function createCategory(_: FormState, form: FormData): Promise<FormState> {
